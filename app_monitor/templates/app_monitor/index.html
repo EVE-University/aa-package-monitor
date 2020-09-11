@@ -1,0 +1,61 @@
+{% extends 'app_monitor/base.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load static %}
+
+{% block details %}
+
+    <span class="pull-right">
+        {% if perms.structures.add_structure_owner %}        
+            <a class="btn btn-success" 
+                title="Refresh data now"
+                href="{% url 'app_monitor:update_distributions' %}">
+                <i class="fas fa-sync"></i>
+            </a>            
+        {% endif %} 
+    </span>
+
+    <div class="panel panel-default">
+        <div class="panel-body" style="min-height: 100px;">  
+            <table id="tab_app_list" class="table">
+                <thead>
+                    <tr>                    
+                        <th>Name</th>                        
+                        <th>Installed Version</th>
+                        <th>Latest Stable</th>
+                        <th>Description</th>
+                        <th>Django Apps</th>
+                    </tr>
+                </thead>                
+            </table>
+            <br>
+            <p class="text-muted">
+                This data was last updated at {{ updated_at }}. If a distribution package has no "Latest Stable", then it is proberbly not available via PyPI.
+            </p>
+        </div>        
+    </div>
+
+     <!-- share data with JS part -->
+    <div 
+        id="dataExport" 
+        data-listDataUrl="{% url 'app_monitor:app_list_data' %}?tags={{ active_tags|join:',' }}"
+    >
+    </div>
+    
+{% endblock details %}
+
+{% block extra_javascript %}
+    {% include 'bundles/datatables-js.html' %}    
+    <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
+
+    <script type="text/javascript" src="{% static 'app_monitor/app_list.js' %}"></script>
+{% endblock extra_javascript %}
+
+{% block extra_css %}    
+    {% include 'bundles/datatables-css.html' %}
+    
+    <link rel="stylesheet" href="{% static 'app_monitor/app_list.css' %}" type="text/css" media="screen">    
+{% endblock extra_css %}
+
+{% block extra_script %}    
+{% endblock extra_script %}
