@@ -22,7 +22,7 @@ An app for keeping track of installed packages and outstanding updates with Alli
 - Add the following lines to your local.py to enable checking for updates:
 
     ```Python
-    CELERYBEAT_SCHEDULE['app_monitor_update_distributions'] = {
+    CELERYBEAT_SCHEDULE['package_monitor_update_distributions'] = {
         'task': 'package_monitor.tasks.update_distributions',
         'schedule': crontab(hour='*/1'),
     }
