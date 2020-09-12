@@ -2,6 +2,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from allianceauth.services.hooks import MenuItemHook, UrlHook
 from allianceauth import hooks
+from package_monitor.models import Distribution
 
 from . import urls, __title__
 
@@ -21,6 +22,8 @@ class PackageMonitorMenuItem(MenuItemHook):
 
     def render(self, request):
         if request.user.has_perm("package_monitor.basic_access"):
+            app_count = Distribution.objects.outdated_count()
+            self.count = app_count if app_count and app_count > 0 else None
             return MenuItemHook.render(self, request)
         return ""
 

@@ -2,7 +2,6 @@ import json
 from unittest.mock import patch, Mock
 
 from importlib_metadata import PackagePath
-from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version as Pep440Version
 import requests
@@ -63,13 +62,18 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
                     "dummy_2a/__init__.py",
                     "dummy_2b/__init__.py",
                 ],
-                requires=["dummy-1<0.2.0"],
+                requires=["dummy-1<0.3.0"],
             ),
             ImportlibDistributionStub(
                 name="dummy-3",
                 version="0.3.0",
                 files=["dummy_3/file_3.py", "dummy_3/__init__.py"],
-                requires=["dummy-1<0.1.5"],
+                requires=["dummy-1>0.1.0"],
+            ),
+            ImportlibDistributionStub(
+                name="dummy-4",
+                version="0.4.0",
+                files=["dummy_4/file_4.py"],
             ),
         ]
 
@@ -82,13 +86,14 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_distributions.side_effect = self.distributions_stub
 
         result = Distribution.objects._distribution_packages_amended()
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 4)
         d1 = result[0]
         d1_raw = self.distributions_stub()[0]
         self.assertEqual(d1.name, "dummy-1")
         self.assertEqual(d1.distribution.metadata["Name"], d1_raw.metadata["Name"])
         self.assertListEqual(d1.files, ["/dummy_1/__init__.py"])
 
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["dummy-4"])
     @patch(MODULE_PATH_MANAGERS + ".django_apps", spec=True)
     @patch(MODULE_PATH_MANAGERS + ".distributions", spec=True)
     def test_select_relevant_packages(self, mock_distributions, mock_django_apps):
@@ -101,7 +106,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
         result = Distribution.objects._select_relevant_packages()
 
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result), 3)
+        self.assertSetEqual(set(result.keys()), {"dummy-1", "dummy-2", "dummy-4"})
         self.assertEqual(result["dummy-1"]["name"], "dummy-1")
         self.assertSetEqual(set(result["dummy-1"]["apps"]), {"dummy_1"})
         self.assertEqual(result["dummy-1"]["current"], Pep440Version("0.1.0"))
@@ -114,26 +120,16 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(result["dummy-2"]["name"], "dummy-2")
         self.assertSetEqual(set(result["dummy-2"]["apps"]), {"dummy_2a", "dummy_2b"})
 
-    def test_compile_package_requirements(self):
-        packages = {
-            "alpha-1": {
-                "name": "alpha-1",
-                "requirements": [Requirement("dummy-1<0.2.0")],
-            },
-            "alpha-2": {
-                "name": "alpha-2",
-                "requirements": [Requirement("dummy-1>0.1.0")],
-            },
-            "dummy-1": {
-                "name": "dummy-1",
-                "requirements": [],
-            },
-        }
+    @patch(MODULE_PATH_MANAGERS + ".distributions", spec=True)
+    def test_compile_package_requirements(self, mock_distributions):
+        mock_distributions.side_effect = self.distributions_stub
+
+        packages = {"alpha-1": [], "dummy-1": []}
         result = Distribution.objects._compile_package_requirements(packages)
         self.assertEqual(len(result), 1)
         self.assertEqual(
             result["dummy-1"],
-            SpecifierSet("<0.2.0") & SpecifierSet(">0.1.0"),
+            SpecifierSet("<0.3.0") & SpecifierSet(">0.1.0"),
         )
 
     @patch(MODULE_PATH_MANAGERS + ".requests", auto_spec=True)

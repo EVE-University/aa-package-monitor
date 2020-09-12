@@ -15,7 +15,7 @@ from .utils import create_link_html, yesno_str, messages_plus
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
-    outdated_count = Distribution.objects.filter(is_outdated=True).count()
+    outdated_count = Distribution.objects.outdated_count()
     if outdated_count > 0:
         messages_plus.warning(
             request,
@@ -41,15 +41,17 @@ def app_list_data(request):
         if dist.is_outdated:
             name_link_html += '&nbsp;<i class="fas fa-exclamation-circle"></i>'
 
+        my_apps = json.loads(dist.apps)
         data.append(
             {
                 "name_link": name_link_html,
-                "apps": "<br>".join(json.loads(dist.apps)),
+                "apps": "<br>".join(my_apps) if my_apps else "-",
                 "current": dist.installed_version,
                 "latest": dist.latest_version if dist.latest_version else "-",
                 "is_outdated": dist.is_outdated,
                 "is_outdated_str": yesno_str(dist.is_outdated),
                 "description": dist.description,
+                "has_apps_str": yesno_str(bool(my_apps)),
             }
         )
 

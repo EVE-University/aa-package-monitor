@@ -1,12 +1,6 @@
-"""
-from django.conf import settings
+from .utils import clean_setting
 
-
-# put your app settings here
-
-EXAMPLE_SETTING_ONE = getattr(
-    settings, 
-    'EXAMPLE_SETTING_ONE', 
-    None
+# Names of additional distribution packages to be monitored
+PACKAGE_MONITOR_INCLUDE_PACKAGES = clean_setting(
+    "PACKAGE_MONITOR_INCLUDE_PACKAGES", default_value=None, required_type=list
 )
-"""

@@ -19,14 +19,15 @@ $(document).ready(function () {
             { data: 'description' },
             { data: 'apps' },
 
-            { data: 'is_outdated_str' }
+            { data: 'is_outdated_str' },
+            { data: 'has_apps_str' }
         ],
 
         ordering: false,
 
         columnDefs: [
             { "sortable": false, "targets": [0, 1, 2, 3, 4] },
-            { "visible": false, "targets": [5] }
+            { "visible": false, "targets": [5, 6] }
         ],
 
         paging: false,
@@ -37,6 +38,10 @@ $(document).ready(function () {
                 {
                     idx: 5,
                     title: "Outdated?"
+                },
+                {
+                    idx: 6,
+                    title: "Has Django Apps?"
                 }
             ],
             bootstrap: true
