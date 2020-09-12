@@ -7,33 +7,51 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='General',
+            name="General",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
             ],
             options={
-                'permissions': (('basic_access', 'Can access this app'),),
-                'managed': False,
-                'default_permissions': (),
+                "permissions": (("basic_access", "Can access this app"),),
+                "managed": False,
+                "default_permissions": (),
             },
         ),
         migrations.CreateModel(
-            name='Distribution',
+            name="Distribution",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255, unique=True)),
-                ('description', models.TextField(default='')),
-                ('apps', models.TextField(default='')),
-                ('installed_version', models.CharField(default='', max_length=64)),
-                ('latest_version', models.CharField(default='', max_length=64)),
-                ('is_outdated', models.BooleanField(db_index=True, default=None, null=True)),
-                ('website_url', models.TextField(default='')),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255, unique=True)),
+                ("description", models.TextField(default="")),
+                ("apps", models.TextField(default="")),
+                ("installed_version", models.CharField(default="", max_length=64)),
+                ("latest_version", models.CharField(default="", max_length=64)),
+                (
+                    "is_outdated",
+                    models.BooleanField(db_index=True, default=None, null=True),
+                ),
+                ("website_url", models.TextField(default="")),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
     ]

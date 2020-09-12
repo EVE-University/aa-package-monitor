@@ -11,6 +11,8 @@ import requests
 from django.apps import apps as django_apps
 from django.db import models, transaction
 
+_DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
+
 
 class DistributionManager(models.Manager):
     def update_all(self) -> int:
@@ -21,21 +23,11 @@ class DistributionManager(models.Manager):
         self._save_packages(packages)
         return len(packages)
 
-    def _select_relevant_packages(self) -> dict:
+    @classmethod
+    def _select_relevant_packages(cls) -> dict:
         """returns all distribution packages which relate directly to installed apps"""
-        Distributions = namedtuple("Distributions", ["name", "files", "distribution"])
-        my_distributions = [
-            Distributions(
-                name=dist.metadata["Name"].lower(),
-                distribution=dist,
-                files=[
-                    "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
-                ],
-            )
-            for dist in distributions()
-        ]
         packages = dict()
-        for dist in my_distributions:
+        for dist in cls._distribution_packages_amended():
             for app in django_apps.get_app_configs():
                 my_file = app.module.__file__
                 for dist_file in dist.files:
@@ -59,7 +51,22 @@ class DistributionManager(models.Manager):
 
         return packages
 
-    def _compile_package_requirements(self, packages: dict) -> dict:
+    @staticmethod
+    def _distribution_packages_amended() -> list:
+        """returns the list of all known distribution packages with amended infos"""
+        return [
+            _DistributionInfo(
+                name=dist.metadata["Name"].lower(),
+                distribution=dist,
+                files=[
+                    "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
+                ],
+            )
+            for dist in distributions()
+        ]
+
+    @staticmethod
+    def _compile_package_requirements(packages: dict) -> dict:
         """returns all requirements in consolidated form for the given packages"""
         requirements = dict()
         for package in packages.values():
@@ -73,7 +80,8 @@ class DistributionManager(models.Manager):
 
         return requirements
 
-    def _fetch_versions_from_pypi(self, packages: dict, requirements: dict) -> None:
+    @staticmethod
+    def _fetch_versions_from_pypi(packages: dict, requirements: dict) -> None:
         """fetches the latest versions for given packages from PyPI in accordance
         with the given requirements and updates the packages
         """

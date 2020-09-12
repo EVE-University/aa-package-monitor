@@ -6,7 +6,7 @@
 {% block details %}
 
     <span class="pull-right">        
-        Last updated {{ updated_at | naturaltime }}&nbsp;&nbsp;
+        Last updated {{ updated_at|naturaltime|default_if_none:"never" }}&nbsp;&nbsp;
         <a class="btn btn-success" 
             title="Refresh data now"
             href="{% url 'package_monitor:update_distributions' %}">

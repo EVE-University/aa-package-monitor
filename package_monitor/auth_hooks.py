@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 from allianceauth.services.hooks import MenuItemHook, UrlHook
 from allianceauth import hooks
 
-from . import urls
+from . import urls, __title__
 
 
 class PackageMonitorMenuItem(MenuItemHook):
@@ -13,7 +13,7 @@ class PackageMonitorMenuItem(MenuItemHook):
         # setup menu entry for sidebar
         MenuItemHook.__init__(
             self,
-            _("Installed Packages"),
+            _(__title__),
             "fas fa-code-branch fa-fw",
             "package_monitor:index",
             navactive=["package_monitor:index"],
