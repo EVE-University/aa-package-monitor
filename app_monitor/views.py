@@ -7,14 +7,14 @@ from django.contrib.auth.decorators import login_required, permission_required
 from . import __title__
 from .models import Distribution
 from .tasks import update_distributions as task_update_distributions
-from .utils import create_link_html, yesno_str, DATETIME_FORMAT, messages_plus
+from .utils import create_link_html, yesno_str, messages_plus
 
 
 @login_required
 @permission_required("app_monitor.basic_access")
 def index(request):
     obj = Distribution.objects.first()
-    updated_at = obj.updated_at.strftime(DATETIME_FORMAT) if obj else "(No data)"
+    updated_at = obj.updated_at if obj else None
     outdated_count = Distribution.objects.filter(is_outdated=True).count()
     if outdated_count > 0:
         messages_plus.warning(
@@ -64,7 +64,7 @@ def update_distributions(request):
         request,
         message=(
             "Data update as been started. "
-            "Refresh this page in about 30 seconds for the results."
+            "Reload this page in about 30 seconds for the results."
         ),
     )
     return redirect(reverse("app_monitor:index"))

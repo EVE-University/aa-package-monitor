@@ -12,11 +12,18 @@ from django.apps import apps as django_apps
 from django.db import models, transaction
 
 
-Distributions = namedtuple("Distributions", ["name", "files", "distribution"])
-
-
 class DistributionManager(models.Manager):
-    def update_all(self):
+    def update_all(self) -> int:
+        """Updates the list of relevant distribution packages in the database"""
+        packages = self._select_relevant_packages()
+        requirements = self._compile_package_requirements(packages)
+        self._fetch_versions_from_pypi(packages, requirements)
+        self._save_packages(packages)
+        return len(packages)
+
+    def _select_relevant_packages(self) -> dict:
+        """returns all distribution packages which relate directly to installed apps"""
+        Distributions = namedtuple("Distributions", ["name", "files", "distribution"])
         my_distributions = [
             Distributions(
                 name=dist.metadata["Name"].lower(),
@@ -27,7 +34,6 @@ class DistributionManager(models.Manager):
             )
             for dist in distributions()
         ]
-
         packages = dict()
         for dist in my_distributions:
             for app in django_apps.get_app_configs():
@@ -51,8 +57,12 @@ class DistributionManager(models.Manager):
                         packages[dist.name]["apps"].append(app.name)
                         break
 
+        return packages
+
+    def _compile_package_requirements(self, packages: dict) -> dict:
+        """returns all requirements in consolidated form for the given packages"""
         requirements = dict()
-        for package_name, package in packages.items():
+        for package in packages.values():
             for requirement in package["requirements"]:
                 requirement_name = requirement.name.lower()
                 if requirement.specifier and requirement_name in packages:
@@ -61,6 +71,12 @@ class DistributionManager(models.Manager):
 
                     requirements[requirement_name] &= requirement.specifier
 
+        return requirements
+
+    def _fetch_versions_from_pypi(self, packages: dict, requirements: dict) -> None:
+        """fetches the latest versions for given packages from PyPI in accordance
+        with the given requirements and updates the packages
+        """
         for package_name in packages:
             r = requests.get(f"https://pypi.org/pypi/{package_name}/json")
             if r.status_code == requests.codes.ok:
@@ -82,6 +98,8 @@ class DistributionManager(models.Manager):
 
             packages[package_name]["latest"] = latest
 
+    def _save_packages(self, packages: dict) -> None:
+        """Saves the given package information into the model"""
         with transaction.atomic():
             self.all().delete()
             for package in packages.values():

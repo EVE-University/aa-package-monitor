@@ -18,11 +18,15 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     license="MIT",
-    description="Example plugin app for Alliance Auth",
+    description=(
+        "An app for keeping track of installed packages and "
+        "outstanding updates with Alliance Auth"
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="John Doe",
-    author_email="john.doe@example.com",
+    author="Erik Kalkoken",
+    author_email="kalkoken87@gmail.com",
+    url="https://gitlab.com/ErikKalkoken/aa-app-monitor",
     classifiers=[
         "Environment :: Web Environment",
         "Framework :: Django",
@@ -31,8 +35,17 @@ setup(
         "License :: OSI Approved :: MIT License",  # example license
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    ],
+    python_requires="~=3.6",
+    install_requires=[
+        "django>=2.2,<3.0",
+        "importlib_metadata",
+        "importlib_metadata",
+        "packaging>=20.1,<21",
     ],
 )

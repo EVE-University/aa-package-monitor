@@ -5,14 +5,13 @@
 
 {% block details %}
 
-    <span class="pull-right">
-        {% if perms.structures.add_structure_owner %}        
-            <a class="btn btn-success" 
-                title="Refresh data now"
-                href="{% url 'app_monitor:update_distributions' %}">
-                <i class="fas fa-sync"></i>
-            </a>            
-        {% endif %} 
+    <span class="pull-right">        
+        Last updated {{ updated_at | naturaltime }}&nbsp;&nbsp;
+        <a class="btn btn-success" 
+            title="Refresh data now"
+            href="{% url 'app_monitor:update_distributions' %}">
+            <i class="fas fa-sync"></i>
+        </a>            
     </span>
 
     <div class="panel panel-default">
@@ -30,7 +29,7 @@
             </table>
             <br>
             <p class="text-muted">
-                This data was last updated at {{ updated_at }}. If a distribution package has no "Latest Stable", then it is proberbly not available via PyPI.
+                Shows only distrobutions pages that relate to installed apps. If a package has no "Latest Stable", then it is proberbly not available via PyPI.
             </p>
         </div>        
     </div>

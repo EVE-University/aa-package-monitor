@@ -1,8 +1,8 @@
 # App Monitor
 
-This app helps keep track of outstanding updates for all installed packages.
-
 **This app is currently in alpha state and not yet released - use at your own risk**
+
+An app for keeping track of installed packages and outstanding updates with Alliance Auth.
 
 ## Features
 
