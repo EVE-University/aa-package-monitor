@@ -45,7 +45,6 @@ setup(
     install_requires=[
         "django>=2.2,<3.0",
         "importlib_metadata",
-        "importlib_metadata",
         "packaging>=20.1,<21",
     ],
 )

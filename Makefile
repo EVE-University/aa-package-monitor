@@ -1,5 +1,5 @@
-appname = aa-structuretimers
-package = structuretimers
+appname = aa-app-monitor
+package = app_monitor
 
 help:
 	@echo "Makefile for $(appname)"	
