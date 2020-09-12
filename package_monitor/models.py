@@ -3,7 +3,7 @@ from django.db import models
 from .managers import DistributionManager
 
 
-class AppMonitor(models.Model):
+class General(models.Model):
     # Meta model for app permissions
 
     class Meta:
@@ -13,7 +13,7 @@ class AppMonitor(models.Model):
 
 
 class Distribution(models.Model):
-    """A Python distribution"""
+    """A Python distribution package"""
 
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(default="")

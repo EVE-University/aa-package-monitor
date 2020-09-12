@@ -33,7 +33,7 @@ from ..utils import (
 from ..utils import set_test_logger
 
 
-MODULE_PATH = "app_monitor.utils"
+MODULE_PATH = "package_monitor.utils"
 logger = set_test_logger(MODULE_PATH, __file__)
 
 

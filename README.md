@@ -1,4 +1,4 @@
-# App Monitor
+# Package Monitor
 
 **This app is currently in alpha state and not yet released - use at your own risk**
 
@@ -18,12 +18,12 @@ An app for keeping track of installed packages and outstanding updates with Alli
 ## Installation
 
 - Install directly from this repo
-- app name to be added to `INSTALLED_APPS` is `"app_monitor"`
+- app name to be added to `INSTALLED_APPS` is `"package_monitor"`
 - Add the following lines to your local.py to enable checking for updates:
 
     ```Python
     CELERYBEAT_SCHEDULE['app_monitor_update_distributions'] = {
-        'task': 'app_monitor.tasks.update_distributions',
+        'task': 'package_monitor.tasks.update_distributions',
         'schedule': crontab(hour='*/1'),
     }
     ```

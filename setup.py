@@ -1,7 +1,7 @@
 import os
 from setuptools import find_packages, setup
 
-from app_monitor import __version__
+from package_monitor import __version__
 
 
 # read the contents of your README file
@@ -13,20 +13,20 @@ with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name="aa-app-monitor",
+    name="aa-package-monitor",
     version=__version__,
     packages=find_packages(),
     include_package_data=True,
     license="MIT",
     description=(
-        "An app for keeping track of installed packages and "
-        "outstanding updates with Alliance Auth"
+        "An app that helps keep track of installed packages and "
+        "outstanding updates for Alliance Auth"
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Erik Kalkoken",
     author_email="kalkoken87@gmail.com",
-    url="https://gitlab.com/ErikKalkoken/aa-app-monitor",
+    url="https://gitlab.com/ErikKalkoken/aa-package-monitor",
     classifiers=[
         "Environment :: Web Environment",
         "Framework :: Django",

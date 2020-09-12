@@ -1,5 +1,5 @@
-appname = aa-app-monitor
-package = app_monitor
+appname = aa-package-monitor
+package = package_monitor
 
 help:
 	@echo "Makefile for $(appname)"	

@@ -1,4 +1,4 @@
-{% extends 'app_monitor/base.html' %}
+{% extends 'package_monitor/base.html' %}
 {% load i18n %}
 {% load humanize %}
 {% load static %}
@@ -9,7 +9,7 @@
         Last updated {{ updated_at | naturaltime }}&nbsp;&nbsp;
         <a class="btn btn-success" 
             title="Refresh data now"
-            href="{% url 'app_monitor:update_distributions' %}">
+            href="{% url 'package_monitor:update_distributions' %}">
             <i class="fas fa-sync"></i>
         </a>            
     </span>
@@ -37,7 +37,7 @@
      <!-- share data with JS part -->
     <div 
         id="dataExport" 
-        data-listDataUrl="{% url 'app_monitor:app_list_data' %}?tags={{ active_tags|join:',' }}"
+        data-listDataUrl="{% url 'package_monitor:app_list_data' %}?tags={{ active_tags|join:',' }}"
     >
     </div>
     
@@ -47,13 +47,13 @@
     {% include 'bundles/datatables-js.html' %}    
     <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
 
-    <script type="text/javascript" src="{% static 'app_monitor/app_list.js' %}"></script>
+    <script type="text/javascript" src="{% static 'package_monitor/app_list.js' %}"></script>
 {% endblock extra_javascript %}
 
 {% block extra_css %}    
     {% include 'bundles/datatables-css.html' %}
     
-    <link rel="stylesheet" href="{% static 'app_monitor/app_list.css' %}" type="text/css" media="screen">    
+    <link rel="stylesheet" href="{% static 'package_monitor/app_list.css' %}" type="text/css" media="screen">    
 {% endblock extra_css %}
 
 {% block extra_script %}    

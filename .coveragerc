@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = app_monitor
+source = package_monitor
 
 [report]
 exclude_lines =

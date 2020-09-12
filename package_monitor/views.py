@@ -11,7 +11,7 @@ from .utils import create_link_html, yesno_str, messages_plus
 
 
 @login_required
-@permission_required("app_monitor.basic_access")
+@permission_required("package_monitor.basic_access")
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
@@ -25,11 +25,11 @@ def index(request):
             ),
         )
     context = {"app_title": __title__, "updated_at": updated_at}
-    return render(request, "app_monitor/index.html", context)
+    return render(request, "package_monitor/index.html", context)
 
 
 @login_required
-@permission_required("app_monitor.basic_access")
+@permission_required("package_monitor.basic_access")
 def app_list_data(request):
     data = list()
     for dist in Distribution.objects.order_by("name"):
@@ -57,7 +57,7 @@ def app_list_data(request):
 
 
 @login_required
-@permission_required("app_monitor.basic_access")
+@permission_required("package_monitor.basic_access")
 def update_distributions(request):
     task_update_distributions.delay()
     messages_plus.success(
@@ -67,4 +67,4 @@ def update_distributions(request):
             "Reload this page in about 30 seconds for the results."
         ),
     )
-    return redirect(reverse("app_monitor:index"))
+    return redirect(reverse("package_monitor:index"))

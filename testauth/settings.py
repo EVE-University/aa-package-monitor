@@ -262,7 +262,7 @@ SITE_NAME = "testauth"
 DEBUG = False
 
 # Add any additional apps to this list.
-INSTALLED_APPS += ["app_monitor"]
+INSTALLED_APPS += ["package_monitor"]
 
 # Enter credentials to use MySQL/MariaDB. Comment out to use sqlite3
 """
