@@ -14,9 +14,21 @@
         </a>            
     </span>
 
+    <ul class="nav nav-tabs">
+        <li role="presentation" class="{% if filter != 'current' and filter != 'outdated' %}active{% endif %}">
+            <a href="{% url 'package_monitor:index' %}?filter=all">All&nbsp;({{ all_count }})</a>
+        </li>
+        <li role="presentation" class="{% if filter == 'current' %}active{% endif %}">
+            <a href="{% url 'package_monitor:index' %}?filter=current">Current&nbsp;({{ current_count }})</a>
+        </li>
+        <li role="presentation" class="{% if filter == 'outdated' %}active{% endif %}">
+            <a href="{% url 'package_monitor:index' %}?filter=outdated">Update available&nbsp;({{ outdated_count }})</a>
+        </li>
+    </ul>
+
     <div class="panel panel-default">
         <div class="panel-body" style="min-height: 100px;">  
-            <table id="tab_app_list" class="table">
+            <table id="tab_package_list" class="table">
                 <thead>
                     <tr>                    
                         <th>Name</th>                        
@@ -38,7 +50,7 @@
      <!-- share data with JS part -->
     <div 
         id="dataExport" 
-        data-listDataUrl="{% url 'package_monitor:app_list_data' %}?tags={{ active_tags|join:',' }}"
+        data-listDataUrl="{% url 'package_monitor:package_list_data' %}?filter={{ filter }}"        
     >
     </div>
     
@@ -48,13 +60,13 @@
     {% include 'bundles/datatables-js.html' %}    
     <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
 
-    <script type="text/javascript" src="{% static 'package_monitor/app_list.js' %}"></script>
+    <script type="text/javascript" src="{% static 'package_monitor/package_list.js' %}"></script>
 {% endblock extra_javascript %}
 
 {% block extra_css %}    
     {% include 'bundles/datatables-css.html' %}
     
-    <link rel="stylesheet" href="{% static 'package_monitor/app_list.css' %}" type="text/css" media="screen">    
+    <link rel="stylesheet" href="{% static 'package_monitor/package_list.css' %}" type="text/css" media="screen">    
 {% endblock extra_css %}
 
 {% block extra_script %}    

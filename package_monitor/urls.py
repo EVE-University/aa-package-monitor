@@ -6,7 +6,7 @@ app_name = "package_monitor"
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("app_list_data", views.app_list_data, name="app_list_data"),
+    path("package_list_data", views.package_list_data, name="package_list_data"),
     path(
         "update_distributions", views.update_distributions, name="update_distributions"
     ),

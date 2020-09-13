@@ -9,30 +9,41 @@ from .models import Distribution
 from .tasks import update_distributions as task_update_distributions
 from .utils import create_link_html, yesno_str, messages_plus
 
+PACKAGE_LIST_FILTER_PARAM = "filter"
+
 
 @login_required
 @permission_required("package_monitor.basic_access")
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
-    outdated_count = Distribution.objects.outdated_count()
-    if outdated_count > 0:
-        messages_plus.warning(
-            request,
-            message=(
-                f"{outdated_count} distribution packages are outdated "
-                "and should be updated."
-            ),
-        )
-    context = {"app_title": __title__, "updated_at": updated_at}
+    context = {
+        "app_title": __title__,
+        "page_title": "Distribution packages",
+        "updated_at": updated_at,
+        "filter": request.GET.get(PACKAGE_LIST_FILTER_PARAM),
+        "all_count": Distribution.objects.count(),
+        "current_count": Distribution.objects.filter(is_outdated=False).count(),
+        "outdated_count": Distribution.objects.outdated_count(),
+    }
     return render(request, "package_monitor/index.html", context)
 
 
 @login_required
 @permission_required("package_monitor.basic_access")
-def app_list_data(request):
+def package_list_data(request) -> JsonResponse:
+    """Returns the packages as list in JSON.
+    Specify different subsets with the "filter" GET parameter
+    """
+    my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM, "")
+    distributions_qs = Distribution.objects.all()
+    if my_filter == "outdated":
+        distributions_qs = distributions_qs.filter(is_outdated=True)
+    elif my_filter == "current":
+        distributions_qs = distributions_qs.filter(is_outdated=False)
+
     data = list()
-    for dist in Distribution.objects.order_by("name"):
+    for dist in distributions_qs.order_by("name"):
         name_link_html = (
             create_link_html(dist.website_url, dist.name)
             if dist.website_url

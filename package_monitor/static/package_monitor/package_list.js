@@ -5,7 +5,7 @@ $(document).ready(function () {
     var listDataUrl = elem.getAttribute('data-listDataUrl');
 
     /* dataTable def */
-    $('#tab_app_list').DataTable({
+    $('#tab_package_list').DataTable({
         ajax: {
             url: listDataUrl,
             dataSrc: '',
@@ -24,6 +24,7 @@ $(document).ready(function () {
         ],
 
         ordering: false,
+        info: false,
 
         columnDefs: [
             { "sortable": false, "targets": [0, 1, 2, 3, 4] },
@@ -31,21 +32,6 @@ $(document).ready(function () {
         ],
 
         paging: false,
-
-        filterDropDown:
-        {
-            columns: [
-                {
-                    idx: 5,
-                    title: "Outdated?"
-                },
-                {
-                    idx: 6,
-                    title: "Has Django Apps?"
-                }
-            ],
-            bootstrap: true
-        },
 
         rowCallback: function (row, data, index) {
             if (data['is_outdated']) {
