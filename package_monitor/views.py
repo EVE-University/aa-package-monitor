@@ -5,6 +5,10 @@ from django.shortcuts import render, redirect, reverse
 from django.contrib.auth.decorators import login_required, permission_required
 
 from . import __title__
+from .app_settings import (
+    PACKAGE_MONITOR_INCLUDE_PACKAGES,
+    PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
+)
 from .models import Distribution
 from .tasks import update_distributions as task_update_distributions
 from .utils import create_link_html, yesno_str, messages_plus
@@ -25,6 +29,8 @@ def index(request):
         "all_count": Distribution.objects.count(),
         "current_count": Distribution.objects.filter(is_outdated=False).count(),
         "outdated_count": Distribution.objects.outdated_count(),
+        "include_packages": PACKAGE_MONITOR_INCLUDE_PACKAGES,
+        "show_all_packages": PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
     }
     return render(request, "package_monitor/index.html", context)
 

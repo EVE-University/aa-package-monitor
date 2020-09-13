@@ -3,7 +3,7 @@ import json
 
 from importlib_metadata import distributions
 
-from packaging.version import Version as Pep440Version
+from packaging.version import parse as version_parse
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 import requests
@@ -14,7 +14,10 @@ from django.db import models, transaction
 from allianceauth.services.hooks import get_extension_logger
 
 from . import __title__
-from .app_settings import PACKAGE_MONITOR_INCLUDE_PACKAGES
+from .app_settings import (
+    PACKAGE_MONITOR_INCLUDE_PACKAGES,
+    PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
+)
 from .utils import LoggerAddTag
 
 
@@ -52,7 +55,7 @@ class DistributionManager(models.Manager):
                 packages[dist.name] = {
                     "name": dist.name,
                     "apps": list(),
-                    "current": Pep440Version(dist.distribution.version),
+                    "current": version_parse(dist.distribution.version),
                     "requirements": requirements,
                     "distribution": dist.distribution,
                 }
@@ -67,7 +70,7 @@ class DistributionManager(models.Manager):
                         packages[dist.name]["apps"].append(app.name)
                         break
 
-                if (
+                if PACKAGE_MONITOR_SHOW_ALL_PACKAGES or (
                     PACKAGE_MONITOR_INCLUDE_PACKAGES
                     and dist.name in PACKAGE_MONITOR_INCLUDE_PACKAGES
                 ):
@@ -121,7 +124,7 @@ class DistributionManager(models.Manager):
                 pypi_info = r.json()
                 latest = None
                 for release, _ in pypi_info["releases"].items():
-                    my_release = Pep440Version(release)
+                    my_release = version_parse(release)
                     if not my_release.is_prerelease:
                         if package_name in requirements:
                             is_valid = my_release in requirements[package_name]
