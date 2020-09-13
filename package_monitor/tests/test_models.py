@@ -158,9 +158,10 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         result = Distribution.objects._compile_package_requirements(packages)
         self.assertEqual(len(result), 1)
         self.assertEqual(
-            result["dummy-1"],
+            result["dummy-1"]["specifier"],
             SpecifierSet("<0.3.0") & SpecifierSet(">0.1.0"),
         )
+        self.assertEqual(set(result["dummy-1"]["used_by"]), {"dummy-2", "dummy-3"})
 
     def test_save_packages(self):
         packages = {
@@ -177,11 +178,39 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
                     description="description-dummy-1",
                 ),
             },
+            "dummy-2": {
+                "name": "dummy-2",
+                "current": Pep440Version("0.2.1"),
+                "latest": Pep440Version("0.3.0"),
+                "apps": [],
+                "distribution": ImportlibDistributionStub(
+                    "dummy-2",
+                    "0.2.1",
+                    list("xyz"),
+                    homepage_url="homepage-dummy-2",
+                    description="description-dummy-2",
+                ),
+            },
         }
-        Distribution.objects._save_packages(packages)
-        dist = Distribution.objects.first()
+        requirements = {
+            "dummy-1": {
+                "specifier": SpecifierSet("<0.3.0"),
+                "used_by": ["dummy-3", "dummy-2"],
+            }
+        }
+        Distribution.objects._save_packages(packages, requirements)
+        dist = Distribution.objects.get(name="dummy-1")
         self.assertEqual(dist.name, "dummy-1")
         self.assertEqual(dist.apps, json.dumps(["dummy_1"]))
+        self.assertEqual(
+            dist.used_by,
+            json.dumps(
+                [
+                    {"name": "dummy-2", "homepage_url": "homepage-dummy-2"},
+                    {"name": "dummy-3", "homepage_url": ""},
+                ]
+            ),
+        )
         self.assertEqual(dist.installed_version, "0.1.1")
         self.assertEqual(dist.latest_version, "0.2.0")
         self.assertTrue(dist.is_outdated)
@@ -243,7 +272,7 @@ class TestFetchVersionsFromPypi(NoSocketsTestCase):
                 "requirements": [],
             },
         }
-        requirements = {"dummy-1": SpecifierSet("<0.3.0")}
+        requirements = {"dummy-1": {"specifier": SpecifierSet("<0.3.0")}}
         Distribution.objects._fetch_versions_from_pypi(packages, requirements)
         self.assertEqual(packages["dummy-1"]["latest"], Pep440Version("0.2.0"))
 

@@ -46,5 +46,6 @@ setup(
         "django>=2.2,<3.0",
         "importlib_metadata",
         "packaging>=20.1,<21",
+        "requests",
     ],
 )

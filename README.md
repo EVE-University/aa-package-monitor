@@ -17,40 +17,68 @@ An app for keeping track of installed packages and outstanding updates with Alli
 
 ## Overview
 
+Package Monitor is an app for Alliance Auth that helps you keep your installation up-to-date. It shows you all installed distributions packages and will automatically notify you, when there are updates available.
+
 Features:
 
-- Shows list of distributions packages for all installed apps
-- Checks for new stable releases of installed packages on PyPI
+- Shows list of installed distributions packages with related Django apps (if any)
+- Checks for new releases of installed packages on PyPI
 - Notifies user which installed packages are outdated and should be updated
-- Takes into account all dependencies when recommending new versions
+- Takes into account the dependencies of all installed packages when recommending updates
 - Shows the number of outdated packages as badge in the sidebar
 - Option to add distribution pages to the monitor which are not related to Django apps
-- Option to show all known distribution packages (as opposed to only the ones that have Django apps)
+- Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
+
+While it is possible to monitor all installed distribution packages, for most users we recommend the default mode - which only monitors packages that relate to currently installed apps - and maybe add some important packages like celery and redis.
 
 ## Screenshot
 
-![screenshot](https://i.imgur.com/4ZTgHf0.png)
+![screenshot](https://i.imgur.com/9ZMz1ji.png)
 
 ## Installation
 
-- Install directly from this repo
-- app name to be added to `INSTALLED_APPS` is `"package_monitor"`
+### Step 1 - Check Preconditions
+
+Please make sure you meet all preconditions before proceeding:
+
+- Package Monitor is a plugin for [Alliance Auth](https://gitlab.com/allianceauth/allianceauth). If you don't have Alliance Auth running already, please install it first before proceeding. (see the official [AA installation guide](https://allianceauth.readthedocs.io/en/latest/installation/auth/allianceauth/) for details)
+
+### Step 2 - Install app
+
+Make sure you are in the virtual environment (venv) of your Alliance Auth installation. Then install the newest release from PYPI:
+
+```bash
+pip install aa-package-monitor
+```
+
+### Step 3 - Configure settings
+
+- Add `'package_monitor'` to `INSTALLED_APPS`
 - Add the following lines to your local.py to enable checking for updates:
 
     ```Python
     CELERYBEAT_SCHEDULE['package_monitor_update_distributions'] = {
         'task': 'package_monitor.tasks.update_distributions',
-        'schedule': crontab(hour='*/1'),
+        'schedule': crontab(minute='*/60'),
     }
     ```
 
-- If you want to include additional distribution packages in the monitor add the following settings to your local.py (example to include celery and redis). This is optional:
+- Optional: Add additional settings if you want to change any defaults. See [Settings](#settings) for the full list.
 
-    ```Python
-    PACKAGE_MONITOR_INCLUDE_PACKAGES = ["celery", "redis"]
-    ```
+### Step 4 - Finalize installation
 
-- Run migration and restart supervisors to complete the installation
+Run migrations & copy static files
+
+```bash
+python manage.py migrate
+python manage.py collectstatic
+```
+
+Restart your supervisor services for Auth
+
+### Step 5 - Manually load packages data
+
+Open the installed Package Monitor on your Auth website. If you just installed the app we recommend to manually refresh data by clicking on the green refresh icon. Note that it can take up to 1 minute before the result becomes available.
 
 ## Settings
 

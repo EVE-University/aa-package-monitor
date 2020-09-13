@@ -28,17 +28,30 @@
 
     <div class="panel panel-default">
         <div class="panel-body" style="min-height: 100px;">  
-            <table id="tab_package_list" class="table">
-                <thead>
-                    <tr>                    
-                        <th>Name</th>                        
-                        <th>Installed Version</th>
-                        <th>Latest Stable</th>
-                        <th>Description</th>
-                        <th>Django Apps</th>
-                    </tr>
-                </thead>                
-            </table>
+            <div class="table-responsive">
+                <table id="tab_package_list" class="table table-striped">
+                    <thead>
+                        <tr>                    
+                            <th class="dotted_underline" title="Name of this distribution package">
+                                Name
+                            </th>
+                            <th class="dotted_underline" title="Currently installed version of this package">
+                                Installed
+                            </th>
+                            <th class="dotted_underline" title="Latest stable version available on PyPI for this package">
+                                Latest
+                            </th>
+                            <th>Description</th>
+                            <th class="dotted_underline" title="Currently installed Django apps included in this package">
+                                Included&nbsp;Apps
+                            </th>
+                            <th class="dotted_underline" title="Other distribution packages that are using this package">
+                                Used&nbsp;By
+                            </th>
+                        </tr>
+                    </thead>                
+                </table>
+            </div>
             <br>
             <p class="text-muted">
                 {% if show_all_packages %}
@@ -77,24 +90,22 @@
                     { data: 'latest' },
                     { data: 'description' },
                     { data: 'apps' },
-
-                    { data: 'is_outdated_str' },
-                    { data: 'has_apps_str' }
+                    { data: 'used_by' }
                 ],
 
                 ordering: false,
                 info: false,
 
                 columnDefs: [
-                    { "sortable": false, "targets": [0, 1, 2, 3, 4] },
-                    { "visible": false, "targets": [5, 6] }
+                    { "sortable": false, "targets": [0, 1, 2, 3, 4] },                    
                 ],
 
                 paging: false,
 
                 rowCallback: function (row, data, index) {
-                    if (data['is_outdated']) {
-                        $(row).addClass('warning');
+                    if (data['is_outdated']) {                                                
+                        $(row).find('td:eq(1)').addClass('warning')
+                        $(row).find('td:eq(2)').addClass('warning')
                         $(row).find('td:eq(2)').css('font-weight', 'bold')
                     }
                 }

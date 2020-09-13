@@ -35,7 +35,7 @@ class DistributionManager(models.Manager):
         packages = self._select_relevant_packages()
         requirements = self._compile_package_requirements(packages)
         self._fetch_versions_from_pypi(packages, requirements)
-        self._save_packages(packages)
+        self._save_packages(packages, requirements)
         return len(packages)
 
     @classmethod
@@ -102,11 +102,20 @@ class DistributionManager(models.Manager):
             if dist.requires:
                 for requirement in [Requirement(r) for r in dist.requires]:
                     requirement_name = requirement.name.lower()
-                    if requirement.specifier and requirement_name in packages:
+                    if requirement_name in packages:
                         if requirement_name not in requirements:
-                            requirements[requirement_name] = SpecifierSet()
+                            requirements[requirement_name] = {
+                                "specifier": SpecifierSet(),
+                                "used_by": list(),
+                            }
 
-                        requirements[requirement_name] &= requirement.specifier
+                        requirements[requirement_name]["used_by"].append(
+                            dist.metadata["Name"]
+                        )
+                        if requirement.specifier:
+                            requirements[requirement_name][
+                                "specifier"
+                            ] &= requirement.specifier
 
         return requirements
 
@@ -127,7 +136,9 @@ class DistributionManager(models.Manager):
                     my_release = version_parse(release)
                     if not my_release.is_prerelease:
                         if package_name in requirements:
-                            is_valid = my_release in requirements[package_name]
+                            is_valid = (
+                                my_release in requirements[package_name]["specifier"]
+                            )
                         else:
                             is_valid = True
 
@@ -146,32 +157,52 @@ class DistributionManager(models.Manager):
 
             packages[package_name]["latest"] = latest
 
-    def _save_packages(self, packages: dict) -> None:
+    def _save_packages(self, packages: dict, requirements: dict) -> None:
         """Saves the given package information into the model"""
+
+        def metadata_value(dist, prop: str) -> str:
+            return dist.metadata[prop] if dist.metadata[prop] != "UNKNOWN" else ""
+
+        def metadata_value_2(packages: dict, name: str, prop: str) -> str:
+            name = name.lower()
+            return (
+                metadata_value(packages[name]["distribution"], prop)
+                if name in packages
+                else ""
+            )
+
         with transaction.atomic():
             self.all().delete()
-            for package in packages.values():
+            for package_name, package in packages.items():
                 is_outdated = (
                     package["current"] < package["latest"]
                     if package["latest"]
                     else None
                 )
-                description = (
-                    package["distribution"].metadata["Summary"]
-                    if package["distribution"].metadata["Summary"] != "UNKNOWN"
-                    else ""
+                used_by = (
+                    [
+                        {
+                            "name": package_name,
+                            "homepage_url": metadata_value_2(
+                                packages, package_name, "Home-page"
+                            ),
+                        }
+                        for package_name in sorted(
+                            list(set(requirements[package_name]["used_by"])),
+                            key=str.casefold,
+                        )
+                    ]
+                    if package_name in requirements
+                    else []
                 )
-                website_url = (
-                    package["distribution"].metadata["Home-page"]
-                    if package["distribution"].metadata["Home-page"] != "UNKNOWN"
-                    else ""
-                )
+
                 self.create(
-                    name=package["name"],
-                    apps=json.dumps(package["apps"]),
+                    name=package["distribution"].metadata["Name"],
+                    apps=json.dumps(sorted(package["apps"], key=str.casefold)),
+                    used_by=json.dumps(used_by),
                     installed_version=str(package["current"]),
                     latest_version=str(package["latest"]) if package["latest"] else "",
                     is_outdated=is_outdated,
-                    description=description,
-                    website_url=website_url,
+                    description=metadata_value(package["distribution"], "Summary"),
+                    website_url=metadata_value(package["distribution"], "Home-page"),
                 )
