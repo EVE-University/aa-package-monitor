@@ -6,6 +6,7 @@ from importlib_metadata import PackagePath
 import requests
 
 from ..models import Distribution
+from .testdata import create_testdata
 from ..utils import NoSocketsTestCase
 
 MODULE_PATH_MODELS = "package_monitor.models"
@@ -67,12 +68,13 @@ def distributions_stub():
             name="dummy-3",
             version="0.3.0",
             files=["dummy_3/file_3.py", "dummy_3/__init__.py"],
-            requires=["dummy-1>0.1.0"],
+            requires=["dummy-1>0.1.0", "dummy-4"],
         ),
         ImportlibDistributionStub(
             name="dummy-4",
-            version="0.4.0",
+            version="1.0.0b2",
             files=["dummy_4/file_4.py"],
+            description="only prereleases",
         ),
         ImportlibDistributionStub(
             name="dummy-5",
@@ -98,7 +100,18 @@ pypi_info = {
         "releases": {
             "0.1.0": ["dummy"],
             "0.2.0": ["dummy"],
+            "0.3.0b1": ["dummy"],
             "0.3.0": ["dummy"],
+        },
+        "urls": None,
+    },
+    "dummy-4": {
+        "info": None,
+        "last_serial": "512345",
+        "releases": {
+            "1.0.0b1": ["dummy"],
+            "1.0.0b2": ["dummy"],
+            "1.0.0b3": ["dummy"],
         },
         "urls": None,
     },
@@ -106,9 +119,9 @@ pypi_info = {
         "info": None,
         "last_serial": "512345",
         "releases": {
-            "2010r": ["dummy"],
-            "2010c": ["dummy"],
             "2010b": ["dummy"],
+            "2010c": ["dummy"],
+            "2010r": ["dummy"],
         },
         "urls": None,
     },
@@ -135,6 +148,10 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_package_with_apps(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
+        """
+        when a normal package with apps is processed
+        then the resulting object contains a list of apps
+        """
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
         mock_requests.get.side_effect = requests_get_stub
@@ -164,6 +181,10 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_package_name_with_capitals(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
+        """
+        when package name has capitals
+        those are retained for the saved distribution object
+        """
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
         mock_requests.get.side_effect = requests_get_stub
@@ -175,6 +196,10 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertTrue(Distribution.objects.filter(name="Dummy-2").exists())
 
     def test_invalid_version(self, mock_distributions, mock_django_apps, mock_requests):
+        """
+        when current version can not be parsed
+        then no latest_version wil be provided and is_outdated is set to None
+        """
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
         mock_requests.get.side_effect = requests_get_stub
@@ -191,19 +216,56 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
+    def test_handle_preleases_only(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when current is a pre release
+        then latest can also be a (never) pre release
+        """
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        result = Distribution.objects.update_all()
+        self.assertEqual(result, 5)
+
+        obj = Distribution.objects.get(name="dummy-4")
+        self.assertEqual(obj.installed_version, "1.0.0b2")
+        self.assertEqual(obj.latest_version, "1.0.0b3")
+        self.assertTrue(obj.is_outdated)
+        self.assertEqual(obj.apps, json.dumps([]))
+        self.assertFalse(obj.has_installed_apps)
+        self.assertEqual(obj.website_url, "")
+
+    def test_pypi_is_offline(self, mock_distributions, mock_django_apps, mock_requests):
+        """
+        when pypi is offline
+        then last_version for all packages is empty and is_outdated is set to None
+        """
+
+        def requests_get_error_stub(*args, **kwargs):
+            r = Mock(spec=requests.Response)
+            r.status_code = 500
+            return r
+
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_error_stub
+        mock_requests.codes.ok = 200
+
+        result = Distribution.objects.update_all()
+        self.assertEqual(result, 5)
+
+        obj = Distribution.objects.get(name="dummy-1")
+        self.assertEqual(obj.latest_version, "")
+        self.assertIsNone(obj.is_outdated)
+
 
 class TestCurrentlySelected(NoSocketsTestCase):
     def setUp(self) -> None:
-        Distribution.objects.all().delete()
-        Distribution.objects.create(
-            name="dummy-1", apps=json.dumps(["app_1"]), installed_version="0.1.0"
-        )
-        Distribution.objects.create(
-            name="dummy-2", apps=json.dumps([]), installed_version="0.1.0"
-        )
-        Distribution.objects.create(
-            name="dummy-3", apps=json.dumps([]), installed_version="0.1.0"
-        )
+        create_testdata()
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)

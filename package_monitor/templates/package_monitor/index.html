@@ -6,7 +6,7 @@
 {% block details %}
 
     <ul class="nav nav-tabs">
-        <li role="presentation" class="{% if filter != 'current' and filter != 'outdated' %}active{% endif %}">
+        <li role="presentation" class="{% if filter != 'current' and filter != 'outdated' and filter != 'unknown' %}active{% endif %}">
             <a href="{% url 'package_monitor:index' %}?filter=all">All&nbsp;({{ all_count|default:"-" }})</a>
         </li>
         <li role="presentation" class="{% if filter == 'current' %}active{% endif %}">
@@ -14,6 +14,11 @@
         </li>
         <li role="presentation" class="{% if filter == 'outdated' %}active{% endif %}">
             <a href="{% url 'package_monitor:index' %}?filter=outdated">Update available&nbsp;({{ outdated_count|default:"-" }})</a>
+        </li>
+        <li role="presentation" class="{% if filter == 'unknown' %}active{% endif %}">
+            <a class="dotted_underline" href="{% url 'package_monitor:index' %}?filter=unknown" title="No information about new release available on PyPI">
+                No Info&nbsp;({{ unknown_count|default:"-" }})
+            </a>
         </li>
     </ul>
 
@@ -55,7 +60,7 @@
                     {% endif%}
                 {% endif%}
                 <br>
-                The latest stable of a package is retrieved from PyPI. If a package does not have a latest stable, then it is proberbly not available via PyPI.
+                The latest stable of a package is retrieved from PyPI. Will show as "?" if PyPI has no info about a package.
             </p>
         </div>        
     </div>

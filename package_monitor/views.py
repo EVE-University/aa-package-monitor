@@ -30,6 +30,7 @@ def index(request):
         "all_count": distributions_qs.count(),
         "current_count": distributions_qs.filter(is_outdated=False).count(),
         "outdated_count": distributions_qs.outdated_count(),
+        "unknown_count": distributions_qs.filter(is_outdated__isnull=True).count(),
         "include_packages": PACKAGE_MONITOR_INCLUDE_PACKAGES,
         "show_all_packages": PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
     }
@@ -49,6 +50,8 @@ def package_list_data(request) -> JsonResponse:
         distributions_qs = distributions_qs.filter(is_outdated=True)
     elif my_filter == "current":
         distributions_qs = distributions_qs.filter(is_outdated=False)
+    elif my_filter == "unknown":
+        distributions_qs = distributions_qs.filter(is_outdated__isnull=True)
 
     data = list()
     for dist in distributions_qs.order_by("name"):
@@ -82,11 +85,12 @@ def package_list_data(request) -> JsonResponse:
 
         data.append(
             {
+                "name": dist.name,
                 "name_link": add_no_wrap_html(name_link_html),
                 "apps": apps_html,
                 "used_by": used_by_html,
                 "current": dist.installed_version,
-                "latest": dist.latest_version if dist.latest_version else "-",
+                "latest": dist.latest_version if dist.latest_version else "?",
                 "is_outdated": dist.is_outdated,
                 "is_outdated_str": yesno_str(dist.is_outdated),
                 "description": dist.description,
@@ -94,17 +98,3 @@ def package_list_data(request) -> JsonResponse:
         )
 
     return JsonResponse(data, safe=False)
-
-
-@login_required
-@permission_required("package_monitor.basic_access")
-def update_distributions(request):
-    task_update_distributions.delay()
-    messages_plus.success(
-        request,
-        message=(
-            "Data update as been started. "
-            "Reload this page in about 1 - 2 minutes for the results."
-        ),
-    )
-    return redirect(reverse("package_monitor:index"))

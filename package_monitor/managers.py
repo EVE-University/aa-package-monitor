@@ -134,7 +134,12 @@ class DistributionManager(models.Manager):
         """fetches the latest versions for given packages from PyPI in accordance
         with the given requirements and updates the packages
         """
-        for package_name in packages:
+        for package_name, package in packages.items():
+            current_version = version_parse(package["current"])
+            current_is_prerelease = (
+                str(current_version) == str(package["current"])
+                and current_version.is_prerelease
+            )
             logger.info(
                 f"Fetching info for distribution package '{package_name}' from PyPI"
             )
@@ -144,8 +149,13 @@ class DistributionManager(models.Manager):
                 latest = None
                 for release, _ in pypi_info["releases"].items():
                     my_release = version_parse(release)
-                    if str(my_release) == str(release) and not my_release.is_prerelease:
-                        if package_name in requirements:
+                    if str(my_release) == str(release) and (
+                        current_is_prerelease or not my_release.is_prerelease
+                    ):
+                        if (
+                            package_name in requirements
+                            and len(requirements[package_name]["specifier"]) > 0
+                        ):
                             is_valid = (
                                 my_release in requirements[package_name]["specifier"]
                             )
