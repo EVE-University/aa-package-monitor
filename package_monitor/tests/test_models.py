@@ -45,14 +45,14 @@ class DjangoAppConfigStub:
 def distributions_stub():
     return [
         ImportlibDistributionStub(
-            name="Dummy-1",
+            name="dummy-1",
             version="0.1.1",
             files=["dummy_1/file_1.py", "dummy_1/__init__.py"],
             homepage_url="homepage-dummy-1",
             description="description-dummy-1",
         ),
         ImportlibDistributionStub(
-            name="dummy-2",
+            name="Dummy-2",
             version="0.2.0",
             files=[
                 "dummy_2/file_2.py",
@@ -61,6 +61,7 @@ def distributions_stub():
             ],
             requires=["dummy-1<0.3.0"],
             homepage_url="homepage-dummy-2",
+            description="package name starts with capital",
         ),
         ImportlibDistributionStub(
             name="dummy-3",
@@ -77,6 +78,7 @@ def distributions_stub():
             name="dummy-5",
             version="2009r",
             files=["dummy_5/file_5.py"],
+            description="Invalid version number",
         ),
     ]
 
@@ -104,7 +106,7 @@ pypi_info = {
         "info": None,
         "last_serial": "512345",
         "releases": {
-            "2010.1": ["dummy"],
+            "2010r": ["dummy"],
             "2010c": ["dummy"],
             "2010b": ["dummy"],
         },
@@ -130,8 +132,6 @@ def requests_get_stub(*args, **kwargs):
 @patch(MODULE_PATH_MANAGERS + ".django_apps", spec=True)
 @patch(MODULE_PATH_MANAGERS + ".distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
     def test_package_with_apps(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
@@ -148,11 +148,12 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.latest_version, "0.2.0")
         self.assertTrue(obj.is_outdated)
         self.assertEqual(obj.apps, json.dumps(["dummy_1"]))
+        self.assertTrue(obj.has_installed_apps)
         self.assertEqual(
             obj.used_by,
             json.dumps(
                 [
-                    {"name": "dummy-2", "homepage_url": "homepage-dummy-2"},
+                    {"name": "Dummy-2", "homepage_url": "homepage-dummy-2"},
                     {"name": "dummy-3", "homepage_url": ""},
                 ]
             ),
@@ -160,8 +161,19 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.website_url, "homepage-dummy-1")
         self.assertEqual(obj.description, "description-dummy-1")
 
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+    def test_package_name_with_capitals(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        result = Distribution.objects.update_all()
+        self.assertEqual(result, 5)
+
+        self.assertTrue(Distribution.objects.filter(name="Dummy-2").exists())
+
     def test_invalid_version(self, mock_distributions, mock_django_apps, mock_requests):
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
@@ -173,8 +185,44 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
         obj = Distribution.objects.get(name="dummy-5")
         self.assertEqual(obj.installed_version, "2009r")
-        self.assertEqual(obj.latest_version, "2010.1")
+        self.assertEqual(obj.latest_version, "")
         self.assertIsNone(obj.is_outdated)
         self.assertEqual(obj.apps, json.dumps([]))
+        self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
-        self.assertEqual(obj.description, "")
+
+
+class TestCurrentlySelected(NoSocketsTestCase):
+    def setUp(self) -> None:
+        Distribution.objects.all().delete()
+        Distribution.objects.create(
+            name="dummy-1", apps=json.dumps(["app_1"]), installed_version="0.1.0"
+        )
+        Distribution.objects.create(
+            name="dummy-2", apps=json.dumps([]), installed_version="0.1.0"
+        )
+        Distribution.objects.create(
+            name="dummy-3", apps=json.dumps([]), installed_version="0.1.0"
+        )
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+    def test_all_packages(self):
+        result = Distribution.objects.currently_selected()
+        self.assertEqual(result.count(), 3)
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+    def test_apps_related_packages(self):
+        result = Distribution.objects.currently_selected()
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(set(result.values_list("name", flat=True)), {"dummy-1"})
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["dummy-3"])
+    def test_apps_related_packages_plus_addons(self):
+        result = Distribution.objects.currently_selected()
+        self.assertEqual(result.count(), 2)
+        self.assertEqual(
+            set(result.values_list("name", flat=True)), {"dummy-1", "dummy-3"}
+        )

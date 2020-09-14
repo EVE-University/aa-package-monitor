@@ -25,10 +25,26 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
 
 
-class DistributionManager(models.Manager):
+class DistributionQuerySet(models.QuerySet):
     def outdated_count(self) -> int:
-        """Returns the number of outdated distribution packages"""
         return self.filter(is_outdated=True).count()
+
+
+class DistributionManager(models.Manager):
+    def get_queryset(self) -> models.QuerySet:
+        return DistributionQuerySet(self.model, using=self._db)
+
+    def currently_selected(self) -> models.QuerySet:
+        """Currently selected packages based on global settings,
+        e.g. related to installed apps vs. all packages
+        """
+        if PACKAGE_MONITOR_SHOW_ALL_PACKAGES:
+            return self.all()
+        else:
+            qs = self.filter(has_installed_apps=True)
+            if PACKAGE_MONITOR_INCLUDE_PACKAGES:
+                qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
+            return qs
 
     def update_all(self) -> int:
         """Updates the list of relevant distribution packages in the database"""
@@ -52,31 +68,23 @@ class DistributionManager(models.Manager):
                     if dist.distribution.requires
                     else list()
                 )
-                version = version_parse(dist.distribution.version)
-                current = version if str(version) == dist.distribution.version else None
                 packages[dist.name] = {
                     "name": dist.name,
                     "apps": list(),
-                    "current": current,
+                    "current": dist.distribution.version,
                     "requirements": requirements,
                     "distribution": dist.distribution,
                 }
 
         packages = dict()
         for dist in cls._distribution_packages_amended():
+            create_or_update_package(dist, packages)
             for app in django_apps.get_app_configs():
                 my_file = app.module.__file__
                 for dist_file in dist.files:
                     if my_file.endswith(dist_file):
-                        create_or_update_package(dist, packages)
                         packages[dist.name]["apps"].append(app.name)
                         break
-
-                if PACKAGE_MONITOR_SHOW_ALL_PACKAGES or (
-                    PACKAGE_MONITOR_INCLUDE_PACKAGES
-                    and dist.name in PACKAGE_MONITOR_INCLUDE_PACKAGES
-                ):
-                    create_or_update_package(dist, packages)
 
         return packages
 
@@ -136,7 +144,7 @@ class DistributionManager(models.Manager):
                 latest = None
                 for release, _ in pypi_info["releases"].items():
                     my_release = version_parse(release)
-                    if not my_release.is_prerelease:
+                    if str(my_release) == str(release) and not my_release.is_prerelease:
                         if package_name in requirements:
                             is_valid = (
                                 my_release in requirements[package_name]["specifier"]
@@ -144,8 +152,10 @@ class DistributionManager(models.Manager):
                         else:
                             is_valid = True
 
-                        if is_valid and (not latest or my_release > latest):
-                            latest = my_release
+                        if is_valid and (
+                            not latest or my_release > version_parse(latest)
+                        ):
+                            latest = release
             else:
                 if r.status_code == 404:
                     logger.info(f"Package '{package_name}' is not registered in PyPI")
@@ -176,9 +186,13 @@ class DistributionManager(models.Manager):
         with transaction.atomic():
             self.all().delete()
             for package_name, package in packages.items():
+                current = package["current"]
+                latest = package["latest"]
                 is_outdated = (
-                    package["current"] < package["latest"]
-                    if package["current"] and package["latest"]
+                    version_parse(current) < version_parse(latest)
+                    if current
+                    and latest
+                    and str(current) == str(package["distribution"].version)
                     else None
                 )
                 used_by = (

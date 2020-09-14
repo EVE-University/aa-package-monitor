@@ -1,3 +1,4 @@
+import json
 from django.db import models
 
 from .managers import DistributionManager
@@ -22,6 +23,11 @@ class Distribution(models.Model):
     apps = models.TextField(
         default="",
         help_text="List of installed Django apps included in this package (JSON)",
+    )
+    has_installed_apps = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether this package has installed Django apps",
     )
     used_by = models.TextField(
         default="",
@@ -54,3 +60,7 @@ class Distribution(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.has_installed_apps = bool(json.loads(self.apps))
+        super().save(*args, **kwargs)

@@ -21,14 +21,15 @@ PACKAGE_LIST_FILTER_PARAM = "filter"
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
+    distributions_qs = Distribution.objects.currently_selected()
     context = {
         "app_title": __title__,
         "page_title": "Distribution packages",
         "updated_at": updated_at,
         "filter": request.GET.get(PACKAGE_LIST_FILTER_PARAM),
-        "all_count": Distribution.objects.count(),
-        "current_count": Distribution.objects.filter(is_outdated=False).count(),
-        "outdated_count": Distribution.objects.outdated_count(),
+        "all_count": distributions_qs.count(),
+        "current_count": distributions_qs.filter(is_outdated=False).count(),
+        "outdated_count": distributions_qs.outdated_count(),
         "include_packages": PACKAGE_MONITOR_INCLUDE_PACKAGES,
         "show_all_packages": PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
     }
@@ -42,7 +43,8 @@ def package_list_data(request) -> JsonResponse:
     Specify different subsets with the "filter" GET parameter
     """
     my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM, "")
-    distributions_qs = Distribution.objects.all()
+    distributions_qs = Distribution.objects.currently_selected()
+
     if my_filter == "outdated":
         distributions_qs = distributions_qs.filter(is_outdated=True)
     elif my_filter == "current":
