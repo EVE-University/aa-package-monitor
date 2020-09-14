@@ -52,10 +52,12 @@ class DistributionManager(models.Manager):
                     if dist.distribution.requires
                     else list()
                 )
+                version = version_parse(dist.distribution.version)
+                current = version if str(version) == dist.distribution.version else None
                 packages[dist.name] = {
                     "name": dist.name,
                     "apps": list(),
-                    "current": version_parse(dist.distribution.version),
+                    "current": current,
                     "requirements": requirements,
                     "distribution": dist.distribution,
                 }
@@ -176,7 +178,7 @@ class DistributionManager(models.Manager):
             for package_name, package in packages.items():
                 is_outdated = (
                     package["current"] < package["latest"]
-                    if package["latest"]
+                    if package["current"] and package["latest"]
                     else None
                 )
                 used_by = (
@@ -200,7 +202,7 @@ class DistributionManager(models.Manager):
                     name=package["distribution"].metadata["Name"],
                     apps=json.dumps(sorted(package["apps"], key=str.casefold)),
                     used_by=json.dumps(used_by),
-                    installed_version=str(package["current"]),
+                    installed_version=package["distribution"].version,
                     latest_version=str(package["latest"]) if package["latest"] else "",
                     is_outdated=is_outdated,
                     description=metadata_value(package["distribution"], "Summary"),
