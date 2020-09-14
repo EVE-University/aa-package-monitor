@@ -5,15 +5,6 @@
 
 {% block details %}
 
-    <span class="pull-right">        
-        Last updated {{ updated_at|naturaltime|default_if_none:"never" }}&nbsp;&nbsp;
-        <a class="btn btn-success" 
-            title="Refresh data now"
-            href="{% url 'package_monitor:update_distributions' %}">
-            <i class="fas fa-sync"></i>
-        </a>            
-    </span>
-
     <ul class="nav nav-tabs">
         <li role="presentation" class="{% if filter != 'current' and filter != 'outdated' %}active{% endif %}">
             <a href="{% url 'package_monitor:index' %}?filter=all">All&nbsp;({{ all_count|default:"-" }})</a>
@@ -54,6 +45,7 @@
             </div>
             <br>
             <p class="text-muted">
+                Last updated {{ updated_at|naturaltime|default_if_none:"never" }}<br>
                 {% if show_all_packages %}
                     Shows all known distribution packages.
                 {% else %}

@@ -13,6 +13,7 @@ An app for keeping track of installed packages and outstanding updates with Alli
 - [Installation](#installation)
 - [Settings](#settings)
 - [Permissions](#permissions)
+- [Management Commands](#management-commands)
 - [Change Log](CHANGELOG.md)
 
 ## Overview
@@ -98,3 +99,11 @@ This is an overview of all permissions used by this app. Note that all permissio
 Name | Purpose | Code
 -- | -- | --
 Can access this app and view | User can access the app and also request updates to the list of distribution packages |  `general.basic_access`
+
+## Management Commands
+
+The following management commands are included in this app:
+
+Command | Description
+-- | --
+`package_monitor_refresh`| Refreshes all data about distribution packages. This command does functionally the same as the hourly update and is helpful to use after you have completed updating outdated packages to quickly see the result of your actions on the website.
