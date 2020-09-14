@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import RequestFactory, TestCase
@@ -9,10 +10,12 @@ from allianceauth.tests.auth_utils import AuthUtils
 from .testdata import create_testdata
 from .. import views
 
-MODULE_PATH = "package_monitor.views"
+MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
-class TestStructureList(TestCase):
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+class TestPackageList(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()

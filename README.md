@@ -29,6 +29,7 @@ Features:
 - Shows the number of outdated packages as badge in the sidebar
 - Option to add distribution pages to the monitor which are not related to Django apps
 - Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
+- Copy the respective command for a package update to your clipboard directly from the package list
 
 While it is possible to monitor all installed distribution packages, for most users we recommend the default mode - which only monitors packages that relate to currently installed apps - and maybe add some important packages like celery and redis.
 
@@ -77,9 +78,13 @@ python manage.py collectstatic
 
 Restart your supervisor services for Auth
 
-### Step 5 - Manually load packages data
+### Step 5 - Initial data load
 
-Open the installed Package Monitor on your Auth website. If you just installed the app we recommend to manually refresh data by clicking on the green refresh icon. Note that it can take up to 1 minute before the result becomes available.
+Last, but not least perform an initial data load of all distribution packages by running the following command:
+
+```bash
+python manage.py package_monitor_refresh
+```
 
 ## Settings
 

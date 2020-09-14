@@ -20,3 +20,7 @@
     text-decoration:underline;
     text-decoration-style: dotted;
 }
+
+.copy_to_clipboard:hover {
+    cursor: pointer;
+}

@@ -62,6 +62,7 @@
                 <br>
                 The latest stable of a package is retrieved from PyPI. Will show as "?" if PyPI has no info about a package.
             </p>
+            <p class="copy_to_clipboard">Dummy</p>
         </div>        
     </div>
         
@@ -72,7 +73,30 @@
     <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
 
     <script type="text/javascript">
-        $(document).ready(function () {
+        
+        function copyToClipboard(text) {
+            if (window.clipboardData && window.clipboardData.setData) {
+                // IE specific code path to prevent textarea being shown while dialog is visible.
+                return clipboardData.setData("Text", text); 
+
+            } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+                var textarea = document.createElement("textarea");
+                textarea.textContent = text;
+                textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+                } catch (ex) {
+                    console.warn("Copy to clipboard failed.", ex);
+                    return false;
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+        }
+
+        $(document).ready(function () {            
             /* dataTable def */
             $('#tab_package_list').DataTable({
                 ajax: {
@@ -107,6 +131,11 @@
                     }
                 }
 
+            });
+
+            $('#tab_package_list').on('click', '.copy_to_clipboard', function(event) {
+                var text = event.currentTarget.getAttribute("data-text")
+                copyToClipboard(text)
             });
         });
     </script>

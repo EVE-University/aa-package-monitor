@@ -1,7 +1,7 @@
 import json
 
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, reverse
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, permission_required
 
 from . import __title__
@@ -10,8 +10,7 @@ from .app_settings import (
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
 from .models import Distribution
-from .tasks import update_distributions as task_update_distributions
-from .utils import add_no_wrap_html, create_link_html, messages_plus, yesno_str
+from .utils import add_no_wrap_html, create_link_html, yesno_str
 
 PACKAGE_LIST_FILTER_PARAM = "filter"
 
@@ -83,6 +82,17 @@ def package_list_data(request) -> JsonResponse:
         else:
             used_by_html = ""
 
+        if not dist.latest_version:
+            latest_html = "?"
+        else:
+            command = f"pip install {dist.name}=={dist.latest_version}"
+            latest_html = (
+                f'<span class="copy_to_clipboard" '
+                f'title="Click to copy install command to clipboard"'
+                f' data-text="{command}">{dist.latest_version}</span>'
+                # &nbsp;<i class="far fa-copy"></i>
+            )
+
         data.append(
             {
                 "name": dist.name,
@@ -90,7 +100,7 @@ def package_list_data(request) -> JsonResponse:
                 "apps": apps_html,
                 "used_by": used_by_html,
                 "current": dist.installed_version,
-                "latest": dist.latest_version if dist.latest_version else "?",
+                "latest": latest_html,
                 "is_outdated": dist.is_outdated,
                 "is_outdated_str": yesno_str(dist.is_outdated),
                 "description": dist.description,
