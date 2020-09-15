@@ -1,11 +1,13 @@
 from collections import namedtuple
 import json
+from typing import List
 
 from importlib_metadata import distributions
 
-from packaging.version import parse as version_parse
-from packaging.requirements import Requirement
+from packaging.markers import UndefinedEnvironmentName, UndefinedComparison
+from packaging.requirements import Requirement, InvalidRequirement
 from packaging.specifiers import SpecifierSet
+from packaging.version import parse as version_parse
 import requests
 
 from django.apps import apps as django_apps
@@ -23,6 +25,21 @@ from .utils import LoggerAddTag
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
+
+
+def _parse_requirements(requires: list) -> List[Requirement]:
+    """Parses requirements from a distribution and returns it.
+    Invalid requirements will be ignored
+    """
+    requirements = list()
+    if requires:
+        for r in requires:
+            try:
+                requirements.append(Requirement(r))
+            except InvalidRequirement:
+                pass
+
+    return requirements
 
 
 class DistributionQuerySet(models.QuerySet):
@@ -63,16 +80,11 @@ class DistributionManager(models.Manager):
 
         def create_or_update_package(dist, packages: dict) -> None:
             if dist.name not in packages:
-                requirements = (
-                    [Requirement(r) for r in dist.distribution.requires]
-                    if dist.distribution.requires
-                    else list()
-                )
                 packages[dist.name] = {
                     "name": dist.name,
                     "apps": list(),
                     "current": dist.distribution.version,
-                    "requirements": requirements,
+                    "requirements": _parse_requirements(dist.distribution.requires),
                     "distribution": dist.distribution,
                 }
 
@@ -110,9 +122,15 @@ class DistributionManager(models.Manager):
         requirements = dict()
         for dist in distributions():
             if dist.requires:
-                for requirement in [Requirement(r) for r in dist.requires]:
+                for requirement in _parse_requirements(dist.requires):
                     requirement_name = requirement.name.lower()
                     if requirement_name in packages:
+                        if requirement.marker:
+                            try:
+                                requirement.marker.evaluate()
+                            except (UndefinedEnvironmentName, UndefinedComparison):
+                                continue
+
                         if requirement_name not in requirements:
                             requirements[requirement_name] = {
                                 "specifier": SpecifierSet(),

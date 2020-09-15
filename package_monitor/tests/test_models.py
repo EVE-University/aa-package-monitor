@@ -60,15 +60,16 @@ def distributions_stub():
                 "dummy_2a/__init__.py",
                 "dummy_2b/__init__.py",
             ],
-            requires=["dummy-1<0.3.0"],
+            requires=["dummy-1<0.3.0", "dummy-3<0.4.0;python_version<3.5"],
             homepage_url="homepage-dummy-2",
-            description="package name starts with capital",
+            description="package name starts with capital, dependency to Python version",
         ),
         ImportlibDistributionStub(
             name="dummy-3",
             version="0.3.0",
             files=["dummy_3/file_3.py", "dummy_3/__init__.py"],
-            requires=["dummy-1>0.1.0", "dummy-4"],
+            requires=["dummy-1>0.1.0", "dummy-4", 'dummy-2==0.1.0; extra == "certs"'],
+            description="invalid extra requirement for dummy-2",
         ),
         ImportlibDistributionStub(
             name="dummy-4",
@@ -101,6 +102,26 @@ pypi_info = {
             "0.1.0": ["dummy"],
             "0.2.0": ["dummy"],
             "0.3.0b1": ["dummy"],
+            "0.3.0": ["dummy"],
+        },
+        "urls": None,
+    },
+    "dummy-2": {
+        "info": None,
+        "last_serial": "212345",
+        "releases": {
+            "0.1.0": ["dummy"],
+            "0.2.0": ["dummy"],
+            "0.3.0": ["dummy"],
+        },
+        "urls": None,
+    },
+    "dummy-3": {
+        "info": None,
+        "last_serial": "312345",
+        "releases": {
+            "0.5.0": ["dummy"],
+            "0.4.0": ["dummy"],
             "0.3.0": ["dummy"],
         },
         "urls": None,
@@ -261,6 +282,46 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         obj = Distribution.objects.get(name="dummy-1")
         self.assertEqual(obj.latest_version, "")
         self.assertIsNone(obj.is_outdated)
+
+    def test_invalid_extra_requirement(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when a package has an invalid extra requirement for another package
+        then requirement is ignored
+        """
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        result = Distribution.objects.update_all()
+        self.assertEqual(result, 5)
+
+        obj = Distribution.objects.get(name="dummy-2")
+        self.assertEqual(obj.installed_version, "0.2.0")
+        self.assertEqual(obj.latest_version, "0.3.0")
+        self.assertTrue(obj.is_outdated)
+
+    def test_handle_python_requirement(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when x
+        then y
+        """
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        result = Distribution.objects.update_all()
+        self.assertEqual(result, 5)
+
+        obj = Distribution.objects.get(name="dummy-3")
+        self.assertEqual(obj.installed_version, "0.3.0")
+        self.assertEqual(obj.latest_version, "0.5.0")
+        self.assertTrue(obj.is_outdated)
 
 
 class TestCurrentlySelected(NoSocketsTestCase):
