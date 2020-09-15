@@ -23,10 +23,10 @@ Package Monitor is an app for Alliance Auth that helps you keep your installatio
 Features:
 
 - Shows list of installed distributions packages with related Django apps (if any)
-- Checks for new releases of installed packages on PyPI
+- Identifies new valid releases for installed packages on PyPI
 - Notifies user which installed packages are outdated and should be updated
-- Takes into account the dependencies of all installed packages when recommending updates
 - Shows the number of outdated packages as badge in the sidebar
+- Takes into account the requirements of all installed packages and the current Python version when recommending updates
 - Option to add distribution pages to the monitor which are not related to Django apps
 - Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
 - Copy the respective command for a package update to your clipboard directly from the package list

@@ -1,6 +1,7 @@
 from collections import namedtuple
 import json
 from typing import List
+import sys
 
 from importlib_metadata import distributions
 
@@ -132,18 +133,11 @@ class DistributionManager(models.Manager):
                                 continue
 
                         if requirement_name not in requirements:
-                            requirements[requirement_name] = {
-                                "specifier": SpecifierSet(),
-                                "used_by": list(),
-                            }
+                            requirements[requirement_name] = dict()
 
-                        requirements[requirement_name]["used_by"].append(
+                        requirements[requirement_name][
                             dist.metadata["Name"]
-                        )
-                        if requirement.specifier:
-                            requirements[requirement_name][
-                                "specifier"
-                            ] &= requirement.specifier
+                        ] = requirement.specifier
 
         return requirements
 
@@ -152,7 +146,21 @@ class DistributionManager(models.Manager):
         """fetches the latest versions for given packages from PyPI in accordance
         with the given requirements and updates the packages
         """
+
+        def consolidate_requirements(package_name, requirements):
+            consolidated_requirements = SpecifierSet()
+            if package_name in requirements:
+                for _, specifier in requirements[package_name].items():
+                    consolidated_requirements &= specifier
+            return consolidated_requirements
+
+        current_python_version = version_parse(
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
         for package_name, package in packages.items():
+            consolidated_requirements = consolidate_requirements(
+                package_name, requirements
+            )
             current_version = version_parse(package["current"])
             current_is_prerelease = (
                 str(current_version) == str(package["current"])
@@ -165,25 +173,32 @@ class DistributionManager(models.Manager):
             if r.status_code == requests.codes.ok:
                 pypi_info = r.json()
                 latest = None
-                for release, _ in pypi_info["releases"].items():
-                    my_release = version_parse(release)
-                    if str(my_release) == str(release) and (
-                        current_is_prerelease or not my_release.is_prerelease
+                for release, release_details in pypi_info["releases"].items():
+                    release_detail = (
+                        release_details[-1] if len(release_details) > 0 else None
+                    )
+                    if not release_detail or (
+                        not release_detail["yanked"]
+                        and (
+                            "requires_python" not in release_detail
+                            or not release_detail["requires_python"]
+                            or current_python_version
+                            in SpecifierSet(release_detail["requires_python"])
+                        )
                     ):
-                        if (
-                            package_name in requirements
-                            and len(requirements[package_name]["specifier"]) > 0
+                        my_release = version_parse(release)
+                        if str(my_release) == str(release) and (
+                            current_is_prerelease or not my_release.is_prerelease
                         ):
-                            is_valid = (
-                                my_release in requirements[package_name]["specifier"]
-                            )
-                        else:
-                            is_valid = True
+                            if len(consolidated_requirements) > 0:
+                                is_valid = my_release in consolidated_requirements
+                            else:
+                                is_valid = True
 
-                        if is_valid and (
-                            not latest or my_release > version_parse(latest)
-                        ):
-                            latest = release
+                            if is_valid and (
+                                not latest or my_release > version_parse(latest)
+                            ):
+                                latest = release
             else:
                 if r.status_code == 404:
                     logger.info(f"Package '{package_name}' is not registered in PyPI")
@@ -232,7 +247,7 @@ class DistributionManager(models.Manager):
                             ),
                         }
                         for package_name in sorted(
-                            list(set(requirements[package_name]["used_by"])),
+                            list(set(requirements[package_name].keys())),
                             key=str.casefold,
                         )
                     ]

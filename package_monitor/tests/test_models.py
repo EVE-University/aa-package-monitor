@@ -1,3 +1,5 @@
+from collections import namedtuple
+from copy import copy
 import json
 import re
 from unittest.mock import patch, Mock
@@ -11,6 +13,9 @@ from ..utils import NoSocketsTestCase
 
 MODULE_PATH_MODELS = "package_monitor.models"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
+
+
+SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class ImportlibDistributionStub:
@@ -83,6 +88,18 @@ def distributions_stub():
             files=["dummy_5/file_5.py"],
             description="Invalid version number",
         ),
+        ImportlibDistributionStub(
+            name="dummy-6",
+            version="0.1.0",
+            files=["dummy_6/file_6.py"],
+            description="yanked release",
+        ),
+        ImportlibDistributionStub(
+            name="dummy-7",
+            version="0.1.0",
+            files=["dummy_7/file_7.py"],
+            description="Python version requirements",
+        ),
     ]
 
 
@@ -94,15 +111,19 @@ def get_app_configs_stub():
     ]
 
 
+generic_release_info = [
+    {"requires_python": None, "yanked": False, "yanked_reason": None}
+]
+
 pypi_info = {
     "dummy-1": {
         "info": None,
         "last_serial": "112345",
         "releases": {
-            "0.1.0": ["dummy"],
-            "0.2.0": ["dummy"],
-            "0.3.0b1": ["dummy"],
-            "0.3.0": ["dummy"],
+            "0.1.0": [],
+            "0.2.0": copy(generic_release_info),
+            "0.3.0b1": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
         },
         "urls": None,
     },
@@ -110,9 +131,9 @@ pypi_info = {
         "info": None,
         "last_serial": "212345",
         "releases": {
-            "0.1.0": ["dummy"],
-            "0.2.0": ["dummy"],
-            "0.3.0": ["dummy"],
+            "0.1.0": copy(generic_release_info),
+            "0.2.0": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
         },
         "urls": None,
     },
@@ -120,9 +141,9 @@ pypi_info = {
         "info": None,
         "last_serial": "312345",
         "releases": {
-            "0.5.0": ["dummy"],
-            "0.4.0": ["dummy"],
-            "0.3.0": ["dummy"],
+            "0.5.0": copy(generic_release_info),
+            "0.4.0": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
         },
         "urls": None,
     },
@@ -130,9 +151,9 @@ pypi_info = {
         "info": None,
         "last_serial": "512345",
         "releases": {
-            "1.0.0b1": ["dummy"],
-            "1.0.0b2": ["dummy"],
-            "1.0.0b3": ["dummy"],
+            "1.0.0b1": copy(generic_release_info),
+            "1.0.0b2": copy(generic_release_info),
+            "1.0.0b3": copy(generic_release_info),
         },
         "urls": None,
     },
@@ -140,9 +161,41 @@ pypi_info = {
         "info": None,
         "last_serial": "512345",
         "releases": {
-            "2010b": ["dummy"],
-            "2010c": ["dummy"],
-            "2010r": ["dummy"],
+            "2010b": copy(generic_release_info),
+            "2010c": copy(generic_release_info),
+            "2010r": copy(generic_release_info),
+        },
+        "urls": None,
+    },
+    "dummy-6": {
+        "info": None,
+        "last_serial": "612345",
+        "releases": {
+            "0.5.0": [
+                {
+                    "requires_python": "~=3.6",
+                    "yanked": True,
+                    "yanked_reason": None,
+                }
+            ],
+            "0.4.0": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
+        },
+        "urls": None,
+    },
+    "dummy-7": {
+        "info": None,
+        "last_serial": "612345",
+        "releases": {
+            "0.5.0": [
+                {
+                    "requires_python": "~=3.8",
+                    "yanked": False,
+                    "yanked_reason": None,
+                }
+            ],
+            "0.4.0": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
         },
         "urls": None,
     },
@@ -179,7 +232,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.codes.ok = 200
 
         result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        self.assertEqual(result, 7)
 
         obj = Distribution.objects.get(name="dummy-1")
         self.assertEqual(obj.installed_version, "0.1.1")
@@ -211,8 +264,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.get.side_effect = requests_get_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
         self.assertTrue(Distribution.objects.filter(name="Dummy-2").exists())
 
@@ -226,8 +278,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.get.side_effect = requests_get_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-5")
         self.assertEqual(obj.installed_version, "2009r")
@@ -249,8 +300,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.get.side_effect = requests_get_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-4")
         self.assertEqual(obj.installed_version, "1.0.0b2")
@@ -276,8 +326,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.get.side_effect = requests_get_error_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-1")
         self.assertEqual(obj.latest_version, "")
@@ -295,10 +344,9 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.get.side_effect = requests_get_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
-        obj = Distribution.objects.get(name="dummy-2")
+        obj = Distribution.objects.get(name="Dummy-2")
         self.assertEqual(obj.installed_version, "0.2.0")
         self.assertEqual(obj.latest_version, "0.3.0")
         self.assertTrue(obj.is_outdated)
@@ -307,20 +355,59 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self, mock_distributions, mock_django_apps, mock_requests
     ):
         """
-        when x
-        then y
+        when a requirement includes the "python_version" marker
+        then ignore it (currently the only option as the parser can not handle it)
         """
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
         mock_requests.get.side_effect = requests_get_stub
         mock_requests.codes.ok = 200
 
-        result = Distribution.objects.update_all()
-        self.assertEqual(result, 5)
+        Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-3")
         self.assertEqual(obj.installed_version, "0.3.0")
         self.assertEqual(obj.latest_version, "0.5.0")
+        self.assertTrue(obj.is_outdated)
+
+    def test_handle_yanked_release(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when a release on PyPI has been yanked
+        then ignore it
+        """
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        Distribution.objects.update_all()
+
+        obj = Distribution.objects.get(name="dummy-6")
+        self.assertEqual(obj.installed_version, "0.1.0")
+        self.assertEqual(obj.latest_version, "0.4.0")
+        self.assertTrue(obj.is_outdated)
+
+    @patch(MODULE_PATH_MANAGERS + ".sys")
+    def test_handle_release_with_python_requirement(
+        self, mock_sys, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when a release on PyPI has an incompatible Python version requirement
+        then ignore it
+        """
+        mock_sys.version_info = SysVersionInfo(3, 6, 9)
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        Distribution.objects.update_all()
+
+        obj = Distribution.objects.get(name="dummy-7")
+        self.assertEqual(obj.installed_version, "0.1.0")
+        self.assertEqual(obj.latest_version, "0.4.0")
         self.assertTrue(obj.is_outdated)
 
 

@@ -86,11 +86,12 @@ def package_list_data(request) -> JsonResponse:
             latest_html = "?"
         else:
             command = f"pip install {dist.name}=={dist.latest_version}"
-            latest_html = (
+            latest_html = add_no_wrap_html(
                 f'<span class="copy_to_clipboard" '
                 f'title="Click to copy install command to clipboard"'
-                f' data-text="{command}">{dist.latest_version}</span>'
-                # &nbsp;<i class="far fa-copy"></i>
+                f' data-text="{command}">'
+                f"{dist.latest_version}"
+                '&nbsp;&nbsp;<i class="far fa-copy"></i></span>'
             )
 
         data.append(
