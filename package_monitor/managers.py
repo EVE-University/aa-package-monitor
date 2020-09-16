@@ -128,16 +128,19 @@ class DistributionManager(models.Manager):
                     if requirement_name in packages:
                         if requirement.marker:
                             try:
-                                requirement.marker.evaluate()
+                                is_valid = requirement.marker.evaluate()
                             except (UndefinedEnvironmentName, UndefinedComparison):
-                                continue
+                                is_valid = False
+                        else:
+                            is_valid = True
 
-                        if requirement_name not in requirements:
-                            requirements[requirement_name] = dict()
+                        if is_valid:
+                            if requirement_name not in requirements:
+                                requirements[requirement_name] = dict()
 
-                        requirements[requirement_name][
-                            dist.metadata["Name"]
-                        ] = requirement.specifier
+                            requirements[requirement_name][
+                                dist.metadata["Name"]
+                            ] = requirement.specifier
 
         return requirements
 

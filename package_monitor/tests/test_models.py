@@ -65,7 +65,7 @@ def distributions_stub():
                 "dummy_2a/__init__.py",
                 "dummy_2b/__init__.py",
             ],
-            requires=["dummy-1<0.3.0", "dummy-3<0.4.0;python_version<3.5"],
+            requires=["dummy-1<0.3.0"],
             homepage_url="homepage-dummy-2",
             description="package name starts with capital, dependency to Python version",
         ),
@@ -92,13 +92,23 @@ def distributions_stub():
             name="dummy-6",
             version="0.1.0",
             files=["dummy_6/file_6.py"],
+            requires=[
+                "dummy-8<=0.4;python_version<'3.7'",
+                "dummy-8<=0.3;python_version<'2.0'",
+            ],
             description="yanked release",
         ),
         ImportlibDistributionStub(
             name="dummy-7",
             version="0.1.0",
             files=["dummy_7/file_7.py"],
-            description="Python version requirements",
+            description="Python version requirements on PyPI",
+        ),
+        ImportlibDistributionStub(
+            name="dummy-8",
+            version="0.1.0",
+            files=["dummy_8/file_8.py"],
+            description="Python version requirements as marker",
         ),
     ]
 
@@ -185,7 +195,7 @@ pypi_info = {
     },
     "dummy-7": {
         "info": None,
-        "last_serial": "612345",
+        "last_serial": "712345",
         "releases": {
             "0.5.0": [
                 {
@@ -194,6 +204,16 @@ pypi_info = {
                     "yanked_reason": None,
                 }
             ],
+            "0.4.0": copy(generic_release_info),
+            "0.3.0": copy(generic_release_info),
+        },
+        "urls": None,
+    },
+    "dummy-8": {
+        "info": None,
+        "last_serial": "812345",
+        "releases": {
+            "0.5.0": copy(generic_release_info),
             "0.4.0": copy(generic_release_info),
             "0.3.0": copy(generic_release_info),
         },
@@ -219,7 +239,7 @@ def requests_get_stub(*args, **kwargs):
 @patch(MODULE_PATH_MANAGERS + ".django_apps", spec=True)
 @patch(MODULE_PATH_MANAGERS + ".distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
-    def test_package_with_apps(
+    def test_all_packages_detected(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
         """
@@ -232,7 +252,34 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_requests.codes.ok = 200
 
         result = Distribution.objects.update_all()
-        self.assertEqual(result, 7)
+        self.assertEqual(result, 8)
+        self.assertSetEqual(
+            set(Distribution.objects.values_list("name", flat=True)),
+            {
+                "dummy-1",
+                "Dummy-2",
+                "dummy-3",
+                "dummy-4",
+                "dummy-5",
+                "dummy-6",
+                "dummy-7",
+                "dummy-8",
+            },
+        )
+
+    def test_package_with_apps(
+        self, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when a normal package with apps is processed
+        then the resulting object contains a list of apps
+        """
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-1")
         self.assertEqual(obj.installed_version, "0.1.1")
@@ -406,6 +453,28 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         Distribution.objects.update_all()
 
         obj = Distribution.objects.get(name="dummy-7")
+        self.assertEqual(obj.installed_version, "0.1.0")
+        self.assertEqual(obj.latest_version, "0.4.0")
+        self.assertTrue(obj.is_outdated)
+
+    @patch(MODULE_PATH_MANAGERS + ".sys")
+    def test_handle_requirement_with_python_marker(
+        self, mock_sys, mock_distributions, mock_django_apps, mock_requests
+    ):
+        """
+        when a package has a python marker requirement
+        and python version matched
+        then it is recognized
+        """
+        mock_sys.version_info = SysVersionInfo(3, 6, 9)
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        Distribution.objects.update_all()
+
+        obj = Distribution.objects.get(name="dummy-8")
         self.assertEqual(obj.installed_version, "0.1.0")
         self.assertEqual(obj.latest_version, "0.4.0")
         self.assertTrue(obj.is_outdated)
