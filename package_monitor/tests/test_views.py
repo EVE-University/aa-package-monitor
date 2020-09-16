@@ -10,6 +10,7 @@ from allianceauth.tests.auth_utils import AuthUtils
 from .testdata import create_testdata
 from .. import views
 
+MODULE_PATH_VIEWS = "package_monitor.views"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
@@ -80,3 +81,12 @@ class TestPackageList(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         package_names = [x["name"] for x in data]
         self.assertListEqual(package_names, ["dummy-3"])
+
+    @patch(MODULE_PATH_VIEWS + ".Distribution.objects.update_all")
+    def test_refresh_distributions_view(self, mock_update_all):
+        mock_update_all.return_value = 1
+
+        request = self.factory.get(reverse("package_monitor:refresh_distributions"))
+        request.user = self.user
+        response = views.refresh_distributions(request)
+        self.assertEqual(response.status_code, 200)

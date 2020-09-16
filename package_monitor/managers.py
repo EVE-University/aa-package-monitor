@@ -1,3 +1,4 @@
+import concurrent.futures
 from collections import namedtuple
 import json
 from typing import List
@@ -49,6 +50,10 @@ class DistributionQuerySet(models.QuerySet):
 
 
 class DistributionManager(models.Manager):
+
+    # max workers used when fetching info from PyPI for packages
+    MAX_THREAD_WORKERS = 10
+
     def get_queryset(self) -> models.QuerySet:
         return DistributionQuerySet(self.model, using=self._db)
 
@@ -66,11 +71,16 @@ class DistributionManager(models.Manager):
 
     def update_all(self) -> int:
         """Updates the list of relevant distribution packages in the database"""
+        logger.info(
+            f"Started refreshing approx. {self.count()} distribution packages..."
+        )
         packages = self._select_relevant_packages()
         requirements = self._compile_package_requirements(packages)
         self._fetch_versions_from_pypi(packages, requirements)
         self._save_packages(packages, requirements)
-        return len(packages)
+        packages_count = len(packages)
+        logger.info(f"Completed refreshing {packages_count} distribution packages")
+        return packages_count
 
     @classmethod
     def _select_relevant_packages(cls) -> dict:
@@ -144,26 +154,29 @@ class DistributionManager(models.Manager):
 
         return requirements
 
-    @staticmethod
-    def _fetch_versions_from_pypi(packages: dict, requirements: dict) -> None:
+    @classmethod
+    def _fetch_versions_from_pypi(cls, packages: dict, requirements: dict) -> None:
         """fetches the latest versions for given packages from PyPI in accordance
         with the given requirements and updates the packages
         """
 
-        def consolidate_requirements(package_name, requirements):
+        def thread_update_latest_from_pypi(package_name: str) -> None:
+            """Retrieves latest valid version from PyPI and updates packages
+
+            Note: This inner function runs as thread
+            """
+            nonlocal packages
+
+            current_python_version = version_parse(
+                f"{sys.version_info.major}.{sys.version_info.minor}"
+                f".{sys.version_info.micro}"
+            )
             consolidated_requirements = SpecifierSet()
             if package_name in requirements:
                 for _, specifier in requirements[package_name].items():
                     consolidated_requirements &= specifier
-            return consolidated_requirements
 
-        current_python_version = version_parse(
-            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        )
-        for package_name, package in packages.items():
-            consolidated_requirements = consolidate_requirements(
-                package_name, requirements
-            )
+            package = packages[package_name]
             current_version = version_parse(package["current"])
             current_is_prerelease = (
                 str(current_version) == str(package["current"])
@@ -172,7 +185,9 @@ class DistributionManager(models.Manager):
             logger.info(
                 f"Fetching info for distribution package '{package_name}' from PyPI"
             )
-            r = requests.get(f"https://pypi.org/pypi/{package_name}/json")
+            r = requests.get(
+                f"https://pypi.org/pypi/{package_name}/json", timeout=(5, 30)
+            )
             if r.status_code == requests.codes.ok:
                 pypi_info = r.json()
                 latest = None
@@ -214,6 +229,11 @@ class DistributionManager(models.Manager):
                 latest = None
 
             packages[package_name]["latest"] = latest
+
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=cls.MAX_THREAD_WORKERS
+        ) as executor:
+            executor.map(thread_update_latest_from_pypi, packages.keys())
 
     def _save_packages(self, packages: dict, requirements: dict) -> None:
         """Saves the given package information into the model"""
