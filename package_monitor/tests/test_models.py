@@ -457,6 +457,19 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.latest_version, "0.4.0")
         self.assertTrue(obj.is_outdated)
 
+    def test_with_threads(self, mock_distributions, mock_django_apps, mock_requests):
+        mock_distributions.side_effect = distributions_stub
+        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
+        mock_requests.get.side_effect = requests_get_stub
+        mock_requests.codes.ok = 200
+
+        Distribution.objects.update_all(use_threads=True)
+
+        obj = Distribution.objects.get(name="dummy-1")
+        self.assertEqual(obj.installed_version, "0.1.1")
+        self.assertEqual(obj.latest_version, "0.2.0")
+        self.assertTrue(obj.is_outdated)
+
     """
     TODO: Find a way to run this rest case reliably with tox and different Python versions
     @patch(MODULE_PATH_MANAGERS + ".sys")

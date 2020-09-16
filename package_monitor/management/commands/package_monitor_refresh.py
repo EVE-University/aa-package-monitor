@@ -16,7 +16,7 @@ class Command(BaseCommand):
             f"With {outdated_count} package(s) currently showing as outdated."
         )
         self.stdout.write("This can take a minute...Please wait")
-        package_count = Distribution.objects.update_all()
+        package_count = Distribution.objects.update_all(use_threads=True)
         outdated_count = Distribution.objects.currently_selected().outdated_count()
         self.stdout.write(
             self.style.SUCCESS(

@@ -69,14 +69,14 @@ class DistributionManager(models.Manager):
                 qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
             return qs
 
-    def update_all(self) -> int:
+    def update_all(self, use_threads=False) -> int:
         """Updates the list of relevant distribution packages in the database"""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
         packages = self._select_relevant_packages()
         requirements = self._compile_package_requirements(packages)
-        self._fetch_versions_from_pypi(packages, requirements)
+        self._fetch_versions_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")
@@ -155,7 +155,9 @@ class DistributionManager(models.Manager):
         return requirements
 
     @classmethod
-    def _fetch_versions_from_pypi(cls, packages: dict, requirements: dict) -> None:
+    def _fetch_versions_from_pypi(
+        cls, packages: dict, requirements: dict, use_threads=False
+    ) -> None:
         """fetches the latest versions for given packages from PyPI in accordance
         with the given requirements and updates the packages
         """
@@ -230,10 +232,14 @@ class DistributionManager(models.Manager):
 
             packages[package_name]["latest"] = latest
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=cls.MAX_THREAD_WORKERS
-        ) as executor:
-            executor.map(thread_update_latest_from_pypi, packages.keys())
+        if use_threads:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=cls.MAX_THREAD_WORKERS
+            ) as executor:
+                executor.map(thread_update_latest_from_pypi, packages.keys())
+        else:
+            for package_name in packages.keys():
+                thread_update_latest_from_pypi(package_name)
 
     def _save_packages(self, packages: dict, requirements: dict) -> None:
         """Saves the given package information into the model"""
@@ -251,6 +257,7 @@ class DistributionManager(models.Manager):
 
         with transaction.atomic():
             self.all().delete()
+            distributions = list()
             for package_name, package in packages.items():
                 current = package["current"]
                 latest = package["latest"]
@@ -277,8 +284,7 @@ class DistributionManager(models.Manager):
                     if package_name in requirements
                     else []
                 )
-
-                self.create(
+                obj = self.model(
                     name=package["distribution"].metadata["Name"],
                     apps=json.dumps(sorted(package["apps"], key=str.casefold)),
                     used_by=json.dumps(used_by),
@@ -288,3 +294,7 @@ class DistributionManager(models.Manager):
                     description=metadata_value(package["distribution"], "Summary"),
                     website_url=metadata_value(package["distribution"], "Home-page"),
                 )
+                obj.calc_has_installed_apps()
+                distributions.append(obj)
+
+            self.bulk_create(distributions)

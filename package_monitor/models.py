@@ -62,5 +62,8 @@ class Distribution(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.has_installed_apps = bool(json.loads(self.apps))
+        self.calc_has_installed_apps()
         super().save(*args, **kwargs)
+
+    def calc_has_installed_apps(self) -> None:
+        self.has_installed_apps = bool(json.loads(self.apps))
