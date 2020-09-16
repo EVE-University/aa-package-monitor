@@ -5,6 +5,32 @@
 
 {% block details %}
 
+    <span class="pull-right">        
+        Last updated {{ updated_at|naturaltime|default_if_none:"never" }}&nbsp;&nbsp;
+        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalRefreshingDistributions" title="Refresh data now">
+            <i class="fas fa-sync"></i>
+        </button>        
+    </span>
+
+    <!-- Modal for Refreshing Distributions -->
+    <div class="modal" id="modalRefreshingDistributions" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">                    
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Refreshing distributions...</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Refreshing data for {{ all_count }} distributions.<br>This can take a minute. Please wait.</p>
+                    <div id="modalLoadInfo">
+                        <img src="{% static 'package_monitor/Spinner-1s-64px.gif' %}"/>                    
+                        <p class="text-muted">When completed this window will automatically close and the page will reload.</p>
+                    </div>
+                </div>                
+            </div>
+        </div>
+    </div>
+
     <ul class="nav nav-tabs">
         <li role="presentation" class="{% if filter != 'current' and filter != 'outdated' and filter != 'unknown' %}active{% endif %}">
             <a href="{% url 'package_monitor:index' %}?filter=all">All&nbsp;({{ all_count|default:"-" }})</a>
@@ -49,8 +75,7 @@
                 </table>
             </div>
             <br>
-            <p class="text-muted">
-                Last updated {{ updated_at|naturaltime|default_if_none:"never" }}<br>
+            <p class="text-muted">                
                 {% if show_all_packages %}
                     Shows all known distribution packages.
                 {% else %}
@@ -132,10 +157,26 @@
 
             });
 
-            $('#tab_package_list').on('click', '.copy_to_clipboard', function(event) {
+            $('#tab_package_list').on('click', '.copy_to_clipboard', function (event) {
                 var text = event.currentTarget.getAttribute("data-text")
                 copyToClipboard(text)
             });
+
+            $('#modalRefreshingDistributions').on('show.bs.modal', function (event) {                
+                $.get('{% url "package_monitor:refresh_distributions" %}', function (data, status, request) {
+                    if (status == "success") {
+                        window.location.reload(true)
+                    }
+                    else {                        
+                        $('#modalLoadInfo').html(
+                            '<p class="text-danger">An unexpected error occured. HTTP code: ' 
+                            + request.status 
+                            + '</p>'
+                        )
+                    }
+
+                });
+            })
         });
     </script>
 {% endblock extra_javascript %}

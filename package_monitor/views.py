@@ -1,6 +1,6 @@
 import json
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, permission_required
 
@@ -109,3 +109,10 @@ def package_list_data(request) -> JsonResponse:
         )
 
     return JsonResponse(data, safe=False)
+
+
+@login_required
+@permission_required("package_monitor.basic_access")
+def refresh_distributions(request):
+    Distribution.objects.update_all()
+    return HttpResponse("ok")
