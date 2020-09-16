@@ -1,4 +1,4 @@
 default_app_config = "package_monitor.apps.PackageMonitorConfig"
 
-__version__ = "0.1.0a10"
+__version__ = "1.0.0b1"
 __title__ = "Package Monitor"

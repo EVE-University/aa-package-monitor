@@ -1,7 +1,5 @@
 # Package Monitor
 
-**WARNING - This app is currently in alpha state and not yet released - use at your own risk**
-
 An app for keeping track of installed packages and outstanding updates with Alliance Auth.
 
 ![release](https://img.shields.io/pypi/v/aa-package-monitor?label=release) ![python](https://img.shields.io/pypi/pyversions/aa-package-monitor) ![django](https://img.shields.io/pypi/djversions/aa-package-monitor?label=django) ![pipeline](https://gitlab.com/ErikKalkoken/aa-package-monitor/badges/master/pipeline.svg) ![coverage](https://gitlab.com/ErikKalkoken/aa-package-monitor/badges/master/coverage.svg) ![license](https://img.shields.io/badge/license-MIT-green) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
@@ -11,6 +9,7 @@ An app for keeping track of installed packages and outstanding updates with Alli
 - [Overview](#overview)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
+- [User Guide](#user-guide)
 - [Settings](#settings)
 - [Permissions](#permissions)
 - [Management Commands](#management-commands)
@@ -30,8 +29,6 @@ Features:
 - Option to add distribution pages to the monitor which are not related to Django apps
 - Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
 - Copy the respective command for a package update to your clipboard directly from the package list
-
-While it is possible to monitor all installed distribution packages, for most users we recommend the default mode - which only monitors packages that relate to currently installed apps - and maybe add some important packages like celery and redis.
 
 ## Screenshot
 
@@ -85,6 +82,36 @@ Last, but not least perform an initial data load of all distribution packages by
 ```bash
 python manage.py package_monitor_refresh
 ```
+
+## User Guide
+
+This section explains how to use the app.
+
+### Terminology
+
+To avoid any confusion here are definitions some important terms:
+
+- App: A Django application, always part of a distribution package
+- Distribution package: A Python package that can be installed via pip or setuptools. Distribution packages can contain several apps.
+
+### Operation modes
+
+You can run Package Monitor in one of two modes:
+
+- A. Keep apps and selected distribution packages updated only
+- B. Keep everything updated
+
+In mode A we will monitor only those distribution packages that contain actually installed Django apps. In this mode you will be informed if there an update to any of your apps. In addition you can add some other distributions to the monitor, that you like to watch, for example you might want to add celery.
+
+In mode B we will monitor all known distribution packages. This mode will inform you about updates to any of your distribution packages and will help you keep all of them up-to-date.
+
+### Latest version
+
+The app will automatically determine a latest version for a distribution package from PyPI. Note that this can differ from the latest version shown on PyPI, because of additional considerations:
+
+First, it will take into account all requirements of the other known distribution packages. For example if the app Alliance Auth has the requirement "Django<3", the it will only show Django 2.x as latest, since Django 3.x would not be compatible with Alliance Auth.
+
+Second, it will ignore pre-releases and only show stable releases. The only exception is if the current package also is a pre release. For example Black may only exist as beta release, therefore the app will also suggest newer beta releases.
 
 ## Settings
 
