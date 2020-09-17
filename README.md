@@ -89,29 +89,42 @@ This section explains how to use the app.
 
 ### Terminology
 
-To avoid any confusion here are definitions some important terms:
+To avoid any confusion here are our definitions of some important terms:
 
-- App: A Django application, always part of a distribution package
-- Distribution package: A Python package that can be installed via pip or setuptools. Distribution packages can contain several apps.
+- **App**: A Django application. An app is always part of a distribution package
+- **Distribution package** A Python package that can be installed via pip or setuptools. Distribution packages can contain several apps.
+- **Requirement**: A requirement is a condition that distribution packages can define to specify dependencies to environments or other distribution packages with specific versions. For example the distribution package django-eveuniverse can have the requirement `"django-esi>=2.0"`, which means is requires the package django-esi in at leasts version 2.0
 
 ### Operation modes
 
 You can run Package Monitor in one of two modes:
 
-- A. Keep apps and selected distribution packages updated only
+- A. Keep apps and selected distribution packages updated
 - B. Keep everything updated
 
-In mode A we will monitor only those distribution packages that contain actually installed Django apps. In this mode you will be informed if there an update to any of your apps. In addition you can add some other distributions to the monitor, that you like to watch, for example you might want to add celery.
+#### Mode A
 
-In mode B we will monitor all known distribution packages. This mode will inform you about updates to any of your distribution packages and will help you keep all of them up-to-date.
+In mode A Package Monitor will monitor only those distribution packages that contain actually installed Django apps. In this mode you will be informed if there is an update to any of your apps. Note that in mode A other installed distributions packages will not be shown.
+
+To activate mode A set `PACKAGE_MONITOR_SHOW_ALL_PACKAGES` to `False` in your local settings. Note that this is the default mode.
+
+You can also add some additional distributions to be monitored. For example you might want to add celery.
+
+#### Mode B
+
+In mode B Package Monitor will monitor all installed distribution packages. In this mode you will be informed you about updates to any of your distribution packages.
+
+To activate mode B set `PACKAGE_MONITOR_SHOW_ALL_PACKAGES` to `True` in your local settings.
+
+See also [Settings](#settings) for an overview of all settings.
 
 ### Latest version
 
-The app will automatically determine a latest version for a distribution package from PyPI. Note that this can differ from the latest version shown on PyPI, because of additional considerations:
+Package Monitor will automatically determine a latest version for a distribution package from PyPI. Note that this can differ from the latest version shown on PyPI, because of additional considerations:
 
-First, it will take into account all requirements of the other known distribution packages. For example if the app Alliance Auth has the requirement "Django<3", the it will only show Django 2.x as latest, since Django 3.x would not be compatible with Alliance Auth.
+First, Package Monitor will take into account all requirements of all installed distribution packages. For example if the Alliance Auth has the requirement "Django<3", then it will only show Django 2.x as latest, since Django 3.x would not fullfil the requirement set by Alliance Auth.
 
-Second, it will ignore pre-releases and only show stable releases. The only exception is if the current package also is a pre release. For example Black may only exist as beta release, therefore the app will also suggest newer beta releases.
+Second, Package Monitor will in general ignore pre-releases and consider stable releases for updates only. The only exception is if the current package also is a pre release. For example you may have Black installed as beta release, therefore the app will also suggest newer beta releases.
 
 ## Settings
 
@@ -122,7 +135,7 @@ Note that all settings are optional and the app will use the documented default 
 Name | Description | Default
 -- | -- | --
 `PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`  | `None`
-`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to show all distribution packages, as opposed to only showing packages that contain Django apps  | `False`
+`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps  | `False`
 
 ## Permissions
 
