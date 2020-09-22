@@ -43,7 +43,7 @@ setup(
     ],
     python_requires="~=3.6",
     install_requires=[
-        "django>=2.2,<3.0",
+        "allianceauth>=2.7.3",
         "importlib_metadata",
         "packaging>=20.1,<21",
         "requests",

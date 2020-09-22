@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.0.0b2] - 2020-09-22
 
+### Changed
+
+- Removed dependency conflict with Auth and Django 3
+
 ### Fixed
 
 - Did not always recognize packages with capitals correctly (e.g. "Django").
