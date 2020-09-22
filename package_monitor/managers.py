@@ -184,11 +184,13 @@ class DistributionManager(models.Manager):
                 str(current_version) == str(package["current"])
                 and current_version.is_prerelease
             )
+            package_name_with_case = package["distribution"].metadata["Name"]
             logger.info(
-                f"Fetching info for distribution package '{package_name}' from PyPI"
+                f"Fetching info for distribution package '{package_name_with_case}' "
+                "from PyPI"
             )
             r = requests.get(
-                f"https://pypi.org/pypi/{package_name}/json", timeout=(5, 30)
+                f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
             )
             if r.status_code == requests.codes.ok:
                 pypi_info = r.json()
@@ -219,13 +221,22 @@ class DistributionManager(models.Manager):
                                 not latest or my_release > version_parse(latest)
                             ):
                                 latest = release
+
+                if not latest:
+                    logger.warning(
+                        f"Could not find a release of '{package_name_with_case}' "
+                        f"that matches all requirements: '{consolidated_requirements}''"
+                    )
             else:
                 if r.status_code == 404:
-                    logger.info(f"Package '{package_name}' is not registered in PyPI")
+                    logger.info(
+                        f"Package '{package_name_with_case}' is not registered in PyPI"
+                    )
                 else:
                     logger.warning(
                         "Failed to retrive infos from PyPI for "
-                        f"package '{package_name}'. Status code: {r.status_code}, "
+                        f"package '{package_name_with_case}'. "
+                        f"Status code: {r.status_code}, "
                         f"response: {r.content}"
                     )
                 latest = None

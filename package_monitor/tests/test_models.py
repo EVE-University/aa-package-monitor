@@ -137,7 +137,7 @@ pypi_info = {
         },
         "urls": None,
     },
-    "dummy-2": {
+    "Dummy-2": {
         "info": None,
         "last_serial": "212345",
         "releases": {

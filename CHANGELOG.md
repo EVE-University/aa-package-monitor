@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.0.0b2] - 2020-09-22
+
+### Fixed
+
+- Did not always recognize packages with capitals correctly (e.g. "Django").
+
 ## [1.0.0b1] - 2020-09-16
 
 ### Important Note for alpha users
