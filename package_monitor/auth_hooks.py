@@ -17,7 +17,7 @@ class PackageMonitorMenuItem(MenuItemHook):
             _(__title__),
             "fas fa-code-branch fa-fw",
             "package_monitor:index",
-            navactive=["package_monitor:index"],
+            navactive=["package_monitor:"],
         )
 
     def render(self, request):

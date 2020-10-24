@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.0.0] - 2020-10-24
+
+### Changed
+
+- Will now show "update available" tab as default if there are updates
+- Improved styling
+- Improved text matrix
+
 ## [1.0.0b2] - 2020-09-22
 
 ### Changed

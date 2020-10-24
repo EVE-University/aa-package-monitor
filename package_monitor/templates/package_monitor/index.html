@@ -7,7 +7,7 @@
 
     <span class="pull-right">        
         Last updated {{ updated_at|naturaltime|default_if_none:"never" }}&nbsp;&nbsp;
-        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalRefreshingDistributions" title="Refresh data now">
+        <button type="button" class="btn btn-success btn-tabs" data-toggle="modal" data-target="#modalRefreshingDistributions" title="Refresh data now">
             <i class="fas fa-sync"></i>
         </button>        
     </span>
@@ -48,7 +48,7 @@
         </li>
     </ul>
 
-    <div class="panel panel-default">
+    <div class="panel panel-default panel-tabs">
         <div class="panel-body" style="min-height: 100px;">  
             <div class="table-responsive">
                 <table id="tab_package_list" class="table table-striped">
@@ -184,6 +184,7 @@
 {% block extra_css %}    
     {% include 'bundles/datatables-css.html' %}
     
+    <link rel="stylesheet" href="{% static 'package_monitor/global.css' %}" type="text/css" media="screen">
     <link rel="stylesheet" href="{% static 'package_monitor/package_list.css' %}" type="text/css" media="screen">    
 {% endblock extra_css %}
 
