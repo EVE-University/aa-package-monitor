@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.0.1] - 2020-11-05
+
+### Fixed
+
+- Spinner optimizes for light/dark mode
+- Does no longer show vertical slider on full page
+- Does no longer try to process distribution packages that have no name
+- Fix white spaces and EOF in all files
+
 ## [1.0.0] - 2020-10-24
 
 ### Changed

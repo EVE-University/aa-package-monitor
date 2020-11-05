@@ -1,10 +1,10 @@
-/* 
-Global styles shared by all Kalkoken apps - Version 0.2.0
+/*
+Global styles shared by all Kalkoken apps - Version 0.3.0
 */
 
 @media all {
-    
-    /* Bootstrap Tabs */    
+
+    /* Bootstrap Tabs */
     .template-light-mode .nav-tabs > li.active > a{
         background-color: rgb(236, 240, 241) !important;
         color: black !important;
@@ -38,6 +38,11 @@ Global styles shared by all Kalkoken apps - Version 0.2.0
     /* other */
     .nowrap {
         white-space: nowrap;
+    }
+
+    /* fix for responsive tables to not show a vertical slider on large pages */
+    .table-responsive-fix {
+        width: 100% !important;
     }
 }
 

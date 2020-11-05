@@ -123,6 +123,7 @@ class DistributionManager(models.Manager):
                 ],
             )
             for dist in distributions()
+            if dist.metadata["Name"]
         ]
 
     @staticmethod

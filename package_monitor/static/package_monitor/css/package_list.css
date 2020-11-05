@@ -1,10 +1,10 @@
-#tab_package_list thead th 
+#tab_package_list thead th
 {
-    text-align: left; 
+    text-align: left;
     vertical-align: middle;
     white-space: nowrap;
 }
-#tab_package_list tbody td 
+#tab_package_list tbody td
 {
     text-align: left;
     vertical-align: middle;
