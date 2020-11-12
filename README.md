@@ -84,7 +84,7 @@ Last, but not least perform an initial data load of all distribution packages by
 python manage.py package_monitor_refresh
 ```
 
-## updating
+## Updating 
 ```
 pip install -U aa-package-monitor 
 
