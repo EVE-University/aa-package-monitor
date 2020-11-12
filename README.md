@@ -92,6 +92,7 @@ python manage.py collectstatic
 
 python manage.py migrate
 ```
+Finally restart your AA supervisor services.
 
 ## User Guide
 
