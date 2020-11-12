@@ -9,6 +9,7 @@ An app for keeping track of installed packages and outstanding updates with Alli
 - [Overview](#overview)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
+- [Updating](#updating)
 - [User Guide](#user-guide)
 - [Settings](#settings)
 - [Permissions](#permissions)
@@ -81,6 +82,15 @@ Last, but not least perform an initial data load of all distribution packages by
 
 ```bash
 python manage.py package_monitor_refresh
+```
+
+## updating
+```
+pip install -U aa-package-monitor 
+
+python manage.py collectstatic
+
+python manage.py migrate
 ```
 
 ## User Guide
