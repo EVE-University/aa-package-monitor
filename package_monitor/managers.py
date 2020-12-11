@@ -271,8 +271,8 @@ class DistributionManager(models.Manager):
             self.all().delete()
             distributions = list()
             for package_name, package in packages.items():
-                current = package["current"]
-                latest = package["latest"]
+                current = package.get("current")
+                latest = package.get("latest")
                 is_outdated = (
                     version_parse(current) < version_parse(latest)
                     if current
