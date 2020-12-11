@@ -10,6 +10,7 @@ from packaging.markers import UndefinedEnvironmentName, UndefinedComparison
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse as version_parse
+from packaging.utils import canonicalize_name
 import requests
 
 from django.apps import apps as django_apps
@@ -116,7 +117,7 @@ class DistributionManager(models.Manager):
         """returns the list of all known distribution packages with amended infos"""
         return [
             _DistributionInfo(
-                name=dist.metadata["Name"].lower(),
+                name=canonicalize_name(dist.metadata["Name"]),
                 distribution=dist,
                 files=[
                     "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
@@ -135,7 +136,7 @@ class DistributionManager(models.Manager):
         for dist in distributions():
             if dist.requires:
                 for requirement in _parse_requirements(dist.requires):
-                    requirement_name = requirement.name.lower()
+                    requirement_name = canonicalize_name(requirement.name)
                     if requirement_name in packages:
                         if requirement.marker:
                             try:
@@ -257,15 +258,15 @@ class DistributionManager(models.Manager):
         """Saves the given package information into the model"""
 
         def metadata_value(dist, prop: str) -> str:
-            return dist.metadata[prop] if dist.metadata[prop] != "UNKNOWN" else ""
-
-        def metadata_value_2(packages: dict, name: str, prop: str) -> str:
-            name = name.lower()
             return (
-                metadata_value(packages[name]["distribution"], prop)
-                if name in packages
+                dist.metadata[prop]
+                if dist and dist.metadata.get(prop) != "UNKNOWN"
                 else ""
             )
+
+        def packages_lookup(packages: dict, name: str, attr: str, default=None):
+            package = packages.get(canonicalize_name(name))
+            return package.get(attr) if package else default
 
         with transaction.atomic():
             self.all().delete()
@@ -280,22 +281,23 @@ class DistributionManager(models.Manager):
                     and str(current) == str(package["distribution"].version)
                     else None
                 )
-                used_by = (
-                    [
+                if package_name in requirements:
+                    used_by = [
                         {
                             "name": package_name,
-                            "homepage_url": metadata_value_2(
-                                packages, package_name, "Home-page"
+                            "homepage_url": metadata_value(
+                                packages_lookup(packages, package_name, "distribution"),
+                                "Home-page",
                             ),
+                            "requirements": [str(obj) for obj in package_requirements],
                         }
-                        for package_name in sorted(
-                            list(set(requirements[package_name].keys())),
-                            key=str.casefold,
-                        )
+                        for package_name, package_requirements in requirements[
+                            package_name
+                        ].items()
                     ]
-                    if package_name in requirements
-                    else []
-                )
+                else:
+                    used_by = []
+
                 obj = self.model(
                     name=package["distribution"].metadata["Name"],
                     apps=json.dumps(sorted(package["apps"], key=str.casefold)),

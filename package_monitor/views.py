@@ -1,8 +1,9 @@
 import json
 
+from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required, permission_required
+from django.utils.html import format_html
 
 from . import __title__
 from .app_settings import (
@@ -74,14 +75,19 @@ def package_list_data(request) -> JsonResponse:
             apps_html = ""
 
         if dist.used_by:
+            used_by_sorted = sorted(json.loads(dist.used_by), key=lambda k: k["name"])
             used_by_html = "<br>".join(
                 [
-                    add_no_wrap_html(
+                    format_html(
+                        '<span title="{}" style="white-space: nowrap;">{}</span>',
+                        ", ".join(row["requirements"])
+                        if row["requirements"]
+                        else "ANY",
                         create_link_html(row["homepage_url"], row["name"])
                         if row["homepage_url"]
-                        else row["name"]
+                        else row["name"],
                     )
-                    for row in json.loads(dist.used_by)
+                    for row in used_by_sorted
                 ]
             )
         else:

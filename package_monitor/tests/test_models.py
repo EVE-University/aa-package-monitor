@@ -291,8 +291,16 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
             obj.used_by,
             json.dumps(
                 [
-                    {"name": "Dummy-2", "homepage_url": "homepage-dummy-2"},
-                    {"name": "dummy-3", "homepage_url": ""},
+                    {
+                        "name": "Dummy-2",
+                        "homepage_url": "homepage-dummy-2",
+                        "requirements": ["<0.3.0"],
+                    },
+                    {
+                        "name": "dummy-3",
+                        "homepage_url": "",
+                        "requirements": [">0.1.0"],
+                    },
                 ]
             ),
         )
