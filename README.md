@@ -84,9 +84,9 @@ Last, but not least perform an initial data load of all distribution packages by
 python manage.py package_monitor_refresh
 ```
 
-## Updating 
+## Updating
 ```
-pip install -U aa-package-monitor 
+pip install -U aa-package-monitor
 
 python manage.py collectstatic
 

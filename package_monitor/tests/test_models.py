@@ -25,13 +25,13 @@ class ImportlibDistributionStub:
         version: str,
         files: list,
         requires: list = None,
-        homepage_url: str = None,
-        description: str = None,
+        homepage_url: str = "",
+        description: str = "",
     ) -> None:
         self.metadata = {
             "Name": name,
-            "Home-page": homepage_url if homepage_url else "UNKNOWN",
-            "Summary": description if description else "UNKNOWN",
+            "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
+            "Summary": description if description != "" else "UNKNOWN",
         }
         self.version = version
         self.files = [PackagePath(f) for f in files]
@@ -104,11 +104,13 @@ def distributions_stub():
             files=["dummy_7/file_7.py"],
             description="Python version requirements on PyPI",
         ),
+        # Python version requirements as marker
         ImportlibDistributionStub(
             name="dummy-8",
             version="0.1.0",
             files=["dummy_8/file_8.py"],
-            description="Python version requirements as marker",
+            homepage_url=None,
+            description=None,
         ),
     ]
 
@@ -502,7 +504,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
     """
 
 
-class TestCurrentlySelected(NoSocketsTestCase):
+class TestDistributionCurrentlySelected(NoSocketsTestCase):
     def setUp(self) -> None:
         create_testdata()
 

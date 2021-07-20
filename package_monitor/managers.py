@@ -28,6 +28,13 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
 
 
+def _none_2_empty(text) -> str:
+    """Translate None to empty string."""
+    if text is None:
+        return ""
+    return text
+
+
 def _parse_requirements(requires: list) -> List[Requirement]:
     """Parses requirements from a distribution and returns it.
     Invalid requirements will be ignored
@@ -296,15 +303,28 @@ class DistributionManager(models.Manager):
                 else:
                     used_by = []
 
+                name = _none_2_empty(package["distribution"].metadata["Name"])
+                apps = _none_2_empty(
+                    json.dumps(sorted(package["apps"], key=str.casefold))
+                )
+                used_by = _none_2_empty(json.dumps(used_by))
+                installed_version = _none_2_empty(package["distribution"].version)
+                latest_version = str(package["latest"]) if package["latest"] else ""
+                description = _none_2_empty(
+                    metadata_value(package["distribution"], "Summary")
+                )
+                website_url = _none_2_empty(
+                    metadata_value(package["distribution"], "Home-page")
+                )
                 obj = self.model(
-                    name=package["distribution"].metadata["Name"],
-                    apps=json.dumps(sorted(package["apps"], key=str.casefold)),
-                    used_by=json.dumps(used_by),
-                    installed_version=package["distribution"].version,
-                    latest_version=str(package["latest"]) if package["latest"] else "",
+                    name=name,
+                    apps=apps,
+                    used_by=used_by,
+                    installed_version=installed_version,
+                    latest_version=latest_version,
                     is_outdated=is_outdated,
-                    description=metadata_value(package["distribution"], "Summary"),
-                    website_url=metadata_value(package["distribution"], "Home-page"),
+                    description=description,
+                    website_url=website_url,
                 )
                 obj.calc_has_installed_apps()
                 distributions.append(obj)

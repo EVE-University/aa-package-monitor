@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Removed support for Django 2
 - Add isort to CI
 
+### Fixed
+
+- Fix "Column 'website_url' cannot be null" (#5)
+
 ## [1.1.0] - 2020-11-11
 
 ### Added
