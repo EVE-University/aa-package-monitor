@@ -13,12 +13,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-## [1.2.0] - tbd.
+## [1.2.0] - 2021-07-20
 
 ### Changed
 
 - Removed support for Django 2
 - Add isort to CI
+- Integrated allianceauth-app-utils
 
 ### Fixed
 

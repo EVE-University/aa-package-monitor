@@ -5,13 +5,14 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.html import format_html
 
+from app_utils.views import link_html, no_wrap_html, yesno_str
+
 from . import __title__
 from .app_settings import (
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
 from .models import Distribution
-from .utils import add_no_wrap_html, create_link_html, yesno_str
 
 PACKAGE_LIST_FILTER_PARAM = "filter"
 
@@ -61,15 +62,13 @@ def package_list_data(request) -> JsonResponse:
     data = list()
     for dist in distributions_qs.order_by("name"):
         name_link_html = (
-            create_link_html(dist.website_url, dist.name)
-            if dist.website_url
-            else dist.name
+            link_html(dist.website_url, dist.name) if dist.website_url else dist.name
         )
         if dist.is_outdated:
             name_link_html += '&nbsp;<i class="fas fa-exclamation-circle" title="Update available"></i>'
 
         if dist.apps:
-            _lst = [add_no_wrap_html(row) for row in json.loads(dist.apps)]
+            _lst = [no_wrap_html(row) for row in json.loads(dist.apps)]
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
@@ -83,7 +82,7 @@ def package_list_data(request) -> JsonResponse:
                         ", ".join(row["requirements"])
                         if row["requirements"]
                         else "ANY",
-                        create_link_html(row["homepage_url"], row["name"])
+                        link_html(row["homepage_url"], row["name"])
                         if row["homepage_url"]
                         else row["name"],
                     )
@@ -97,7 +96,7 @@ def package_list_data(request) -> JsonResponse:
             latest_html = "?"
         else:
             command = f"pip install {dist.pip_install_version}"
-            latest_html = add_no_wrap_html(
+            latest_html = no_wrap_html(
                 f'<span class="copy_to_clipboard" '
                 f'title="Click to copy install command to clipboard"'
                 f' data-text="{command}">'
@@ -108,7 +107,7 @@ def package_list_data(request) -> JsonResponse:
         data.append(
             {
                 "name": dist.name,
-                "name_link": add_no_wrap_html(name_link_html),
+                "name_link": no_wrap_html(name_link_html),
                 "apps": apps_html,
                 "used_by": used_by_html,
                 "current": dist.installed_version,

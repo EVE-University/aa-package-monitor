@@ -16,13 +16,13 @@ from django.apps import apps as django_apps
 from django.db import models, transaction
 
 from allianceauth.services.hooks import get_extension_logger
+from app_utils.logging import LoggerAddTag
 
 from . import __title__
 from .app_settings import (
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
-from .utils import LoggerAddTag
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])

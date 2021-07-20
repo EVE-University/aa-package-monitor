@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 
-from ..utils import NoSocketsTestCase
+from app_utils.testing import NoSocketsTestCase
 
 PACKAGE_PATH = "package_monitor.management.commands"
 

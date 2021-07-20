@@ -7,8 +7,9 @@ from unittest.mock import Mock, patch
 import requests
 from importlib_metadata import PackagePath
 
+from app_utils.testing import NoSocketsTestCase
+
 from ..models import Distribution
-from ..utils import NoSocketsTestCase
 from .testdata import create_testdata
 
 MODULE_PATH_MODELS = "package_monitor.models"

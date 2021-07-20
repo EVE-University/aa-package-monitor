@@ -1,4 +1,4 @@
-from .utils import clean_setting
+from app_utils.django import clean_setting
 
 # Names of additional distribution packages to be monitored
 PACKAGE_MONITOR_INCLUDE_PACKAGES = clean_setting(
