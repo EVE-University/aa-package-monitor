@@ -68,3 +68,9 @@ class Distribution(models.Model):
 
     def calc_has_installed_apps(self) -> None:
         self.has_installed_apps = bool(json.loads(self.apps))
+
+    @property
+    def pip_install_version(self) -> str:
+        return (
+            f"{self.name}=={self.latest_version}" if self.latest_version else self.name
+        )
