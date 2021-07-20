@@ -1,9 +1,9 @@
-import socket
-from datetime import datetime, timedelta
 import json
 import logging
 import os
 import re
+import socket
+from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urljoin
 
@@ -11,9 +11,9 @@ from pytz import timezone
 
 from django.apps import apps
 from django.conf import settings
-from django.contrib.auth.models import User, Permission
-from django.contrib.messages.constants import DEBUG, ERROR, SUCCESS, WARNING, INFO
 from django.contrib import messages
+from django.contrib.auth.models import Permission, User
+from django.contrib.messages.constants import DEBUG, ERROR, INFO, SUCCESS, WARNING
 from django.db import models
 from django.db.models import Q
 from django.test import TestCase

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Removed support for Django 2
+- Add isort to CI
 
 ## [1.1.0] - 2020-11-11
 

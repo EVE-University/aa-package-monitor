@@ -1,7 +1,7 @@
 import json
 
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.html import format_html
 

@@ -7,8 +7,8 @@ from django.urls import reverse
 
 from allianceauth.tests.auth_utils import AuthUtils
 
-from .testdata import create_testdata
 from .. import views
+from .testdata import create_testdata
 
 MODULE_PATH_VIEWS = "package_monitor.views"
 MODULE_PATH_MANAGERS = "package_monitor.managers"

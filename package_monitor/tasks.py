@@ -6,7 +6,6 @@ from . import __title__
 from .models import Distribution
 from .utils import LoggerAddTag
 
-
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 

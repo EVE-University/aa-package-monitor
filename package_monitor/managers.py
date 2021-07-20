@@ -1,17 +1,16 @@
 import concurrent.futures
-from collections import namedtuple
 import json
-from typing import List
 import sys
+from collections import namedtuple
+from typing import List
 
-from importlib_metadata import distributions
-
-from packaging.markers import UndefinedEnvironmentName, UndefinedComparison
-from packaging.requirements import Requirement, InvalidRequirement
-from packaging.specifiers import SpecifierSet
-from packaging.version import parse as version_parse
-from packaging.utils import canonicalize_name
 import requests
+from importlib_metadata import distributions
+from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import parse as version_parse
 
 from django.apps import apps as django_apps
 from django.db import models, transaction
@@ -24,7 +23,6 @@ from .app_settings import (
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
 from .utils import LoggerAddTag
-
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])

@@ -1,15 +1,15 @@
-from collections import namedtuple
-from copy import copy
 import json
 import re
-from unittest.mock import patch, Mock
+from collections import namedtuple
+from copy import copy
+from unittest.mock import Mock, patch
 
-from importlib_metadata import PackagePath
 import requests
+from importlib_metadata import PackagePath
 
 from ..models import Distribution
-from .testdata import create_testdata
 from ..utils import NoSocketsTestCase
+from .testdata import create_testdata
 
 MODULE_PATH_MODELS = "package_monitor.models"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
