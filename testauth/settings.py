@@ -10,6 +10,7 @@ If you wish to make changes, overload the setting in your project's settings fil
 import os
 
 from django.contrib import messages
+
 from celery.schedules import crontab
 
 INSTALLED_APPS = [
@@ -98,7 +99,6 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
-                "allianceauth.notifications.context_processors.user_notification_count",
                 "allianceauth.context_processors.auth_settings",
             ],
         },

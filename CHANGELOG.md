@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.2.0] - tbd.
+
+### Changed
+
+- Removed support for Django 2
+
 ## [1.1.0] - 2020-11-11
 
 ### Added
