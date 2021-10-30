@@ -45,7 +45,6 @@ setup(
     install_requires=[
         "allianceauth>=2.8.0",
         "importlib_metadata",
-        "packaging>=20.1,<21",
         "allianceauth-app-utils>=1.8",
         "requests",
     ],
