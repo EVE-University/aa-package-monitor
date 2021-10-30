@@ -18,6 +18,5 @@ starbases_raw*.json
 customs_offices_raw*.json
 notifications_raw*.json
 structures_raw*.json
-starbases_raw*.json
 todos.md
 .mypy_cache
