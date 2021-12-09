@@ -167,19 +167,21 @@
             });
 
             $('#modalRefreshingDistributions').on('show.bs.modal', function (event) {
-                $.get('{% url "package_monitor:refresh_distributions" %}', function (data, status, request) {
-                    if (status == "success") {
-                        window.location.reload(true)
-                    }
-                    else {
+                $('#modalLoadInfo').html("");
+                $.get('{% url "package_monitor:refresh_distributions" %}x')
+                    .done(function() {
+                        window.location.reload(true);
+                    })
+                    .fail(function( jqXHR ) {
+                        console.log(jqXHR);
                         $('#modalLoadInfo').html(
-                            '<p class="text-danger">An unexpected error occured. HTTP code: '
-                            + request.status
+                            '<p class="text-danger">An unexpected error occured: '
+                            + jqXHR.status
+                            + ' '
+                            + jqXHR.statusText
                             + '</p>'
-                        )
-                    }
-
-                });
+                        );
+                    });
             })
         });
     </script>
