@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.2.2] - 2021-12-09
+
+### Fixed
+
+- Modal for refreshing distributions now shows an error when the server is not reachable
+
 ## [1.2.1] - 2021-10-30
 
 ### Changed
