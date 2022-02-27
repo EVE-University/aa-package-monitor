@@ -18,10 +18,10 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="myModalLabel">Refreshing distributions...</h4>
+                    <h4 class="modal-title" id="myModalLabel">Refreshing distributions</h4>
                 </div>
                 <div class="modal-body">
-                    <p>Refreshing data for approx. {{ all_count }} distributions.<br>This can take a minute. Please wait.</p>
+                    <p>Refreshing data for approx. {{ all_count }} distributions...</p>
                     <div id="modalLoadInfo">
                         {% if NIGHT_MODE %}
                             <img src="{% static 'package_monitor/images/Spinner-1s-64px-dark.gif' %}"/>
@@ -30,6 +30,7 @@
                         {% endif %}
                         <p class="text-muted">When completed this window will automatically close and the page will reload.</p>
                     </div>
+                    <div id="modalLoadError"></div>
                 </div>
             </div>
         </div>
@@ -167,19 +168,22 @@
             });
 
             $('#modalRefreshingDistributions').on('show.bs.modal', function (event) {
-                $('#modalLoadInfo').html("");
-                $.get('{% url "package_monitor:refresh_distributions" %}x')
-                    .done(function() {
+                $('#modalLoadError').html("");
+                $('#modalLoadInfo').show();
+                $.get('{% url "package_monitor:refresh_distributions" %}')
+                    .done(() => {
                         window.location.reload(true);
                     })
-                    .fail(function( jqXHR ) {
+                    .fail(( jqXHR ) => {
+                        $('#modalLoadInfo').hide();
                         console.log(jqXHR);
-                        $('#modalLoadInfo').html(
+                        $('#modalLoadError').html(
                             '<p class="text-danger">An unexpected error occured: '
                             + jqXHR.status
                             + ' '
                             + jqXHR.statusText
-                            + '</p>'
+                            + '</p><p class="text-danger">'
+                            + 'Please close this window and try again.</p>'
                         );
                     });
             })
