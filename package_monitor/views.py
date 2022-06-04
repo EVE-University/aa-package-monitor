@@ -28,7 +28,8 @@ def index(request):
         app_count = Distribution.objects.currently_selected().outdated_count()
         filter = "outdated" if app_count and app_count > 0 else "current"
     outdated_install_command = (
-        Distribution.objects.filter(is_outdated=True)
+        Distribution.objects.currently_selected()
+        .filter(is_outdated=True)
         .order_by("name")
         .build_install_command()
     )
