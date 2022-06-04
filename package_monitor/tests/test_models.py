@@ -10,6 +10,7 @@ from importlib_metadata import PackagePath
 from app_utils.testing import NoSocketsTestCase
 
 from ..models import Distribution
+from .factories import DistributionFactory
 from .testdata import create_testdata
 
 MODULE_PATH_MODELS = "package_monitor.models"
@@ -530,3 +531,26 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         self.assertEqual(
             set(result.values_list("name", flat=True)), {"dummy-1", "dummy-3"}
         )
+
+
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+class TestDistributionBuildInstallCommand(NoSocketsTestCase):
+    def test_all_packages(self):
+        # given
+        DistributionFactory(name="alpha", latest_version="1.2.0")
+        DistributionFactory(name="bravo", latest_version="2.1.0")
+        # when
+        result = Distribution.objects.order_by("name").build_install_command()
+        # then
+        self.assertEqual(result, "pip install alpha==1.2.0 bravo==2.1.0")
+
+    def test_should_stay_within_max_line_length(self):
+        # given
+        DistributionFactory.create_batch(size=500)
+        # when
+        result = Distribution.objects.all().build_install_command()
+        # then
+        print(result)
+        print(len(result))
+        self.assertLessEqual(len(result), 4095)

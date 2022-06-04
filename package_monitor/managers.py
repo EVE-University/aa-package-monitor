@@ -24,6 +24,8 @@ from .app_settings import (
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
 
+TERMINAL_MAX_LINE_LENGTH = 4095
+
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 _DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
 
@@ -54,14 +56,21 @@ class DistributionQuerySet(models.QuerySet):
     def outdated_count(self) -> int:
         return self.filter(is_outdated=True).count()
 
+    def build_install_command(self) -> str:
+        """Build install command from all distribution packages in this query."""
+        result = "pip install"
+        for dist in self.exclude(latest_version=""):
+            version_string = dist.pip_install_version
+            if len(result) + len(version_string) + 1 > TERMINAL_MAX_LINE_LENGTH:
+                break
+            result = f"{result} {version_string}"
+        return result
 
-class DistributionManager(models.Manager):
+
+class DistributionManagerBase(models.Manager):
 
     # max workers used when fetching info from PyPI for packages
-    MAX_THREAD_WORKERS = 10
-
-    def get_queryset(self) -> models.QuerySet:
-        return DistributionQuerySet(self.model, using=self._db)
+    MAX_THREAD_WORKERS = 30
 
     def currently_selected(self) -> models.QuerySet:
         """Currently selected packages based on global settings,
@@ -69,11 +78,10 @@ class DistributionManager(models.Manager):
         """
         if PACKAGE_MONITOR_SHOW_ALL_PACKAGES:
             return self.all()
-        else:
-            qs = self.filter(has_installed_apps=True)
-            if PACKAGE_MONITOR_INCLUDE_PACKAGES:
-                qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
-            return qs
+        qs = self.filter(has_installed_apps=True)
+        if PACKAGE_MONITOR_INCLUDE_PACKAGES:
+            qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
+        return qs
 
     def update_all(self, use_threads=False) -> int:
         """Updates the list of relevant distribution packages in the database"""
@@ -330,3 +338,6 @@ class DistributionManager(models.Manager):
                 distributions.append(obj)
 
             self.bulk_create(distributions)
+
+
+DistributionManager = DistributionManagerBase.from_queryset(DistributionQuerySet)

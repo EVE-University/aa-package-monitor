@@ -27,7 +27,11 @@ def index(request):
     if not filter:
         app_count = Distribution.objects.currently_selected().outdated_count()
         filter = "outdated" if app_count and app_count > 0 else "current"
-
+    outdated_install_command = (
+        Distribution.objects.filter(is_outdated=True)
+        .order_by("name")
+        .build_install_command()
+    )
     context = {
         "app_title": __title__,
         "page_title": "Distribution packages",
@@ -39,6 +43,7 @@ def index(request):
         "unknown_count": distributions_qs.filter(is_outdated__isnull=True).count(),
         "include_packages": PACKAGE_MONITOR_INCLUDE_PACKAGES,
         "show_all_packages": PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
+        "outdated_install_command": outdated_install_command,
     }
     return render(request, "package_monitor/index.html", context)
 
@@ -78,7 +83,7 @@ def package_list_data(request) -> JsonResponse:
             used_by_html = "<br>".join(
                 [
                     format_html(
-                        '<span title="{}" style="white-space: nowrap;">{}</span>',
+                        '<span title="{}" class="text-nowrap;">{}</span>',
                         ", ".join(row["requirements"])
                         if row["requirements"]
                         else "ANY",
@@ -98,7 +103,7 @@ def package_list_data(request) -> JsonResponse:
             command = f"pip install {dist.pip_install_version}"
             latest_html = no_wrap_html(
                 f'<span class="copy_to_clipboard" '
-                f'title="Click to copy install command to clipboard"'
+                f'title="{command}"'
                 f' data-text="{command}">'
                 f"{dist.latest_version}"
                 '&nbsp;&nbsp;<i class="far fa-copy"></i></span>'

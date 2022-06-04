@@ -7,7 +7,12 @@
 
     <span class="pull-right">
         Last updated {{ updated_at|naturaltime|default_if_none:"never" }}&nbsp;&nbsp;
-        <button type="button" class="btn btn-success btn-tabs" data-toggle="modal" data-target="#modalRefreshingDistributions" title="Refresh data now">
+        <button
+            type="button"
+            class="btn btn-success btn-tabs"
+            data-toggle="modal"
+            data-target="#modalRefreshingDistributions"
+            title="Refresh data now">
             <i class="fas fa-sync"></i>
         </button>
     </span>
@@ -92,6 +97,13 @@
                 <br>
                 The latest stable of a package is retrieved from PyPI. Will show as "?" if PyPI has no info about a package.
             </p>
+            {% if outdated_count %}
+                <p class="copy_to_clipboard" data-text="{{ outdated_install_command }}" title="{{ outdated_install_command }}">
+                    Command for installing all {{ outdated_count }} outdated packages&nbsp;&nbsp;<i class="far fa-copy"></i>
+                </p>
+            {% else %}
+                <p class="text-muted">No outdated packages to install.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -102,27 +114,13 @@
     <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
 
     <script type="text/javascript">
-
-        function copyToClipboard(text) {
-            if (window.clipboardData && window.clipboardData.setData) {
-                // IE specific code path to prevent textarea being shown while dialog is visible.
-                return clipboardData.setData("Text", text);
-
-            } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
-                const textarea = document.createElement("textarea");
-                textarea.textContent = text;
-                textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    return document.execCommand("copy");  // Security exception may be thrown by some browsers.
-                } catch (ex) {
-                    console.warn("Copy to clipboard failed.", ex);
-                    return false;
-                } finally {
-                    document.body.removeChild(textarea);
-                }
-            }
+        /** copy install command to clipboard */
+        function copyCommandToClipboard(event) {
+            const text = event.currentTarget.getAttribute("data-text")
+            navigator.clipboard.writeText(text).then(function() {
+            }, function() {
+                console.error("Failed to copy to clipboard");
+            });
         }
 
         $(document).ready(function () {
@@ -162,10 +160,14 @@
 
             });
 
-            $('#tab_package_list').on('click', '.copy_to_clipboard', function (event) {
-                var text = event.currentTarget.getAttribute("data-text")
-                copyToClipboard(text)
+            $(".copy_to_clipboard").click(function (event) {
+                copyCommandToClipboard(event);
             });
+
+            $('#tab_package_list').on('click', '.copy_to_clipboard', function (event) {
+                copyCommandToClipboard(event);
+            });
+
 
             $('#modalRefreshingDistributions').on('show.bs.modal', function (event) {
                 $('#modalLoadError').html("");

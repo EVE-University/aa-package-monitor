@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.4.0] - 2022-06-04
+
+### Added
+
+- It is now possible to get the pip install command for installing all outdated packages together.
+
+### Changed
+
+- Install command is now shown in the tooltip
+
 ## [1.3.0] - 2022-03-01
 
 ### Changed
