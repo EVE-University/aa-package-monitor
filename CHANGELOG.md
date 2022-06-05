@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.4.1] - 2022-06-05
 
+### Changed
+
+- Reverted copy-to-clipboard logic back execCommand approach. While this approach is officially deprecated, it works in more scenarios (e.g. does not requires HTTPS).
+
 ### Fixed
 
 - `KeyError: 'latest'`

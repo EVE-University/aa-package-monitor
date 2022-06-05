@@ -114,13 +114,34 @@
     <script type="text/javascript" src="{% static 'js/filterDropDown/filterDropDown.min.js' %}"></script>
 
     <script type="text/javascript">
-        /** copy install command to clipboard */
+
+        /** Copy given text to the clipboard */
+        function copyToClipboard(text) {
+            if (window.clipboardData && window.clipboardData.setData) {
+                // IE specific code path to prevent textarea being shown while dialog is visible.
+                return clipboardData.setData("Text", text);
+
+            } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+                const textarea = document.createElement("textarea");
+                textarea.textContent = text;
+                textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+                } catch (ex) {
+                    console.warn("Copy to clipboard failed.", ex);
+                    return false;
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+        }
+
+        /** Copy install command to clipboard */
         function copyCommandToClipboard(event) {
             const text = event.currentTarget.getAttribute("data-text")
-            navigator.clipboard.writeText(text).then(function() {
-            }, function() {
-                console.error("Failed to copy to clipboard");
-            });
+            copyToClipboard(text)
         }
 
         $(document).ready(function () {
