@@ -13,6 +13,7 @@ from ..models import Distribution
 from .factories import DistributionFactory
 from .testdata import create_testdata
 
+MODULE_PATH_CORE = "package_monitor.core"
 MODULE_PATH_MODELS = "package_monitor.models"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
 
@@ -240,8 +241,8 @@ def requests_get_stub(*args, **kwargs):
 
 
 @patch(MODULE_PATH_MANAGERS + ".requests", auto_spec=True)
-@patch(MODULE_PATH_MANAGERS + ".django_apps", spec=True)
-@patch(MODULE_PATH_MANAGERS + ".distributions", spec=True)
+@patch(MODULE_PATH_CORE + ".django_apps", spec=True)
+@patch(MODULE_PATH_CORE + ".distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_all_packages_detected(
         self, mock_distributions, mock_django_apps, mock_requests

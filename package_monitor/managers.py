@@ -1,18 +1,13 @@
 import concurrent.futures
 import json
 import sys
-from collections import namedtuple
-from typing import Dict, List
+from typing import Dict
 
 import requests
-from importlib_metadata import distributions
-from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
-from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
-from django.apps import apps as django_apps
 from django.db import models, transaction
 
 from allianceauth.services.hooks import get_extension_logger
@@ -23,12 +18,15 @@ from .app_settings import (
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
-from .core import DistributionPackage
+from .core import (
+    DistributionPackage,
+    compile_package_requirements,
+    select_relevant_packages,
+)
 
 TERMINAL_MAX_LINE_LENGTH = 4095
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
-_DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
 
 
 def _none_2_empty(text) -> str:
@@ -36,21 +34,6 @@ def _none_2_empty(text) -> str:
     if text is None:
         return ""
     return text
-
-
-def _parse_requirements(requires: list) -> List[Requirement]:
-    """Parses requirements from a distribution and returns it.
-    Invalid requirements will be ignored
-    """
-    requirements = list()
-    if requires:
-        for r in requires:
-            try:
-                requirements.append(Requirement(r))
-            except InvalidRequirement:
-                pass
-
-    return requirements
 
 
 class DistributionQuerySet(models.QuerySet):
@@ -89,82 +72,13 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        packages = self._select_relevant_packages()
-        requirements = self._compile_package_requirements(packages)
+        packages = select_relevant_packages()
+        requirements = compile_package_requirements(packages)
         self._fetch_versions_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")
         return packages_count
-
-    @classmethod
-    def _select_relevant_packages(cls) -> Dict[str, DistributionPackage]:
-        """returns subset of distribution packages with packages of interest
-
-        Interesting packages are related to installed apps or explicitely defined
-        """
-        packages = dict()
-        for dist in cls._distribution_packages_amended():
-            if dist.name not in packages:
-                packages[dist.name] = DistributionPackage(
-                    **{
-                        "name": dist.name,
-                        "current": dist.distribution.version,
-                        "requirements": _parse_requirements(dist.distribution.requires),
-                        "distribution": dist.distribution,
-                    }
-                )
-            for dist_file in dist.files:
-                for app in django_apps.get_app_configs():
-                    my_file = app.module.__file__
-                    if my_file.endswith(dist_file):
-                        packages[dist.name].apps.append(app.name)
-                        break
-        return packages
-
-    @staticmethod
-    def _distribution_packages_amended() -> list:
-        """returns the list of all known distribution packages with amended infos"""
-        return [
-            _DistributionInfo(
-                name=canonicalize_name(dist.metadata["Name"]),
-                distribution=dist,
-                files=[
-                    "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
-                ],
-            )
-            for dist in distributions()
-            if dist.metadata["Name"]
-        ]
-
-    @staticmethod
-    def _compile_package_requirements(packages: dict) -> dict:
-        """returns all requirements in consolidated from all known distributions
-        for given packages
-        """
-        requirements = dict()
-        for dist in distributions():
-            if dist.requires:
-                for requirement in _parse_requirements(dist.requires):
-                    requirement_name = canonicalize_name(requirement.name)
-                    if requirement_name in packages:
-                        if requirement.marker:
-                            try:
-                                is_valid = requirement.marker.evaluate()
-                            except (UndefinedEnvironmentName, UndefinedComparison):
-                                is_valid = False
-                        else:
-                            is_valid = True
-
-                        if is_valid:
-                            if requirement_name not in requirements:
-                                requirements[requirement_name] = dict()
-
-                            requirements[requirement_name][
-                                dist.metadata["Name"]
-                            ] = requirement.specifier
-
-        return requirements
 
     @classmethod
     def _fetch_versions_from_pypi(
@@ -282,7 +196,7 @@ class DistributionManagerBase(models.Manager):
 
         with transaction.atomic():
             self.all().delete()
-            distributions = list()
+            objs = list()
             for package_name, package in packages.items():
                 is_outdated = (
                     version_parse(package.current) < version_parse(package.latest)
@@ -330,9 +244,8 @@ class DistributionManagerBase(models.Manager):
                     website_url=website_url,
                 )
                 obj.calc_has_installed_apps()
-                distributions.append(obj)
-
-            self.bulk_create(distributions)
+                objs.append(obj)
+            self.bulk_create(objs)
 
 
 DistributionManager = DistributionManagerBase.from_queryset(DistributionQuerySet)
