@@ -66,9 +66,10 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        distributions = importlib_metadata.distributions()
-        packages = fetch_relevant_packages(distributions)
-        requirements = compile_package_requirements(packages, distributions)
+        packages = fetch_relevant_packages(importlib_metadata.distributions())
+        requirements = compile_package_requirements(
+            packages, importlib_metadata.distributions()
+        )
         update_packages_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)

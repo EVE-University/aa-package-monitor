@@ -52,70 +52,76 @@ class DjangoAppConfigStub:
 
 
 def distributions_stub():
-    return [
-        ImportlibDistributionStub(
-            name="dummy-1",
-            version="0.1.1",
-            files=["dummy_1/file_1.py", "dummy_1/__init__.py"],
-            homepage_url="homepage-dummy-1",
-            description="description-dummy-1",
-        ),
-        ImportlibDistributionStub(
-            name="Dummy-2",
-            version="0.2.0",
-            files=[
-                "dummy_2/file_2.py",
-                "dummy_2a/__init__.py",
-                "dummy_2b/__init__.py",
-            ],
-            requires=["dummy-1<0.3.0"],
-            homepage_url="homepage-dummy-2",
-            description="package name starts with capital, dependency to Python version",
-        ),
-        ImportlibDistributionStub(
-            name="dummy-3",
-            version="0.3.0",
-            files=["dummy_3/file_3.py", "dummy_3/__init__.py"],
-            requires=["dummy-1>0.1.0", "dummy-4", 'dummy-2==0.1.0; extra == "certs"'],
-            description="invalid extra requirement for dummy-2",
-        ),
-        ImportlibDistributionStub(
-            name="dummy-4",
-            version="1.0.0b2",
-            files=["dummy_4/file_4.py"],
-            description="only prereleases",
-        ),
-        ImportlibDistributionStub(
-            name="dummy-5",
-            version="2009r",
-            files=["dummy_5/file_5.py"],
-            description="Invalid version number",
-        ),
-        ImportlibDistributionStub(
-            name="dummy-6",
-            version="0.1.0",
-            files=["dummy_6/file_6.py"],
-            requires=[
-                "dummy-8<=0.4;python_version<'3.7'",
-                "dummy-8<=0.3;python_version<'2.0'",
-            ],
-            description="yanked release",
-        ),
-        ImportlibDistributionStub(
-            name="dummy-7",
-            version="0.1.0",
-            files=["dummy_7/file_7.py"],
-            description="Python version requirements on PyPI",
-        ),
-        # Python version requirements as marker
-        ImportlibDistributionStub(
-            name="dummy-8",
-            version="0.1.0",
-            files=["dummy_8/file_8.py"],
-            homepage_url=None,
-            description=None,
-        ),
-    ]
+    return iter(
+        [
+            ImportlibDistributionStub(
+                name="dummy-1",
+                version="0.1.1",
+                files=["dummy_1/file_1.py", "dummy_1/__init__.py"],
+                homepage_url="homepage-dummy-1",
+                description="description-dummy-1",
+            ),
+            ImportlibDistributionStub(
+                name="Dummy-2",
+                version="0.2.0",
+                files=[
+                    "dummy_2/file_2.py",
+                    "dummy_2a/__init__.py",
+                    "dummy_2b/__init__.py",
+                ],
+                requires=["dummy-1<0.3.0"],
+                homepage_url="homepage-dummy-2",
+                description="package name starts with capital, dependency to Python version",
+            ),
+            ImportlibDistributionStub(
+                name="dummy-3",
+                version="0.3.0",
+                files=["dummy_3/file_3.py", "dummy_3/__init__.py"],
+                requires=[
+                    "dummy-1>0.1.0",
+                    "dummy-4",
+                    'dummy-2==0.1.0; extra == "certs"',
+                ],
+                description="invalid extra requirement for dummy-2",
+            ),
+            ImportlibDistributionStub(
+                name="dummy-4",
+                version="1.0.0b2",
+                files=["dummy_4/file_4.py"],
+                description="only prereleases",
+            ),
+            ImportlibDistributionStub(
+                name="dummy-5",
+                version="2009r",
+                files=["dummy_5/file_5.py"],
+                description="Invalid version number",
+            ),
+            ImportlibDistributionStub(
+                name="dummy-6",
+                version="0.1.0",
+                files=["dummy_6/file_6.py"],
+                requires=[
+                    "dummy-8<=0.4;python_version<'3.7'",
+                    "dummy-8<=0.3;python_version<'2.0'",
+                ],
+                description="yanked release",
+            ),
+            ImportlibDistributionStub(
+                name="dummy-7",
+                version="0.1.0",
+                files=["dummy_7/file_7.py"],
+                description="Python version requirements on PyPI",
+            ),
+            # Python version requirements as marker
+            ImportlibDistributionStub(
+                name="dummy-8",
+                version="0.1.0",
+                files=["dummy_8/file_8.py"],
+                homepage_url=None,
+                description=None,
+            ),
+        ]
+    )
 
 
 def get_app_configs_stub():
