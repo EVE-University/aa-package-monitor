@@ -29,9 +29,9 @@
                     <p>Refreshing data for approx. {{ all_count }} distributions...</p>
                     <div id="modalLoadInfo">
                         {% if NIGHT_MODE %}
-                            <img src="{% static 'package_monitor/images/Spinner-1s-64px-dark.gif' %}"/>
+                            <img src="{% static 'package_monitor/images/Spinner-1s-64px-dark.gif' %}" alt="Loading Data">
                         {% else %}
-                            <img src="{% static 'package_monitor/images/Spinner-1s-64px-light.gif' %}"/>
+                            <img src="{% static 'package_monitor/images/Spinner-1s-64px-light.gif' %}" alt="Loading Data">
                         {% endif %}
                         <p class="text-muted">When completed this window will automatically close and the page will reload.</p>
                     </div>
