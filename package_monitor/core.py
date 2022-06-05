@@ -1,7 +1,7 @@
 import concurrent.futures
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import importlib_metadata
 import requests
@@ -43,10 +43,12 @@ class DistributionWrapped:
         )
 
     @classmethod
-    def from_distributions(cls) -> "DistributionWrapped":
+    def from_distributions(
+        cls, distributions: Iterable[importlib_metadata.Distribution]
+    ) -> "DistributionWrapped":
         return [
             DistributionWrapped.from_distribution(dist)
-            for dist in importlib_metadata.distributions()
+            for dist in distributions
             if dist.metadata["Name"]
         ]
 
@@ -63,10 +65,12 @@ class DistributionPackage:
     latest: str = ""
 
 
-def fetch_relevant_packages() -> Dict[str, DistributionPackage]:
+def fetch_relevant_packages(
+    distributions: Iterable[importlib_metadata.Distribution],
+) -> Dict[str, DistributionPackage]:
     """Fetch distribution packages with packages relevant for this Django installation"""
     packages = dict()
-    for dist in DistributionWrapped.from_distributions():
+    for dist in DistributionWrapped.from_distributions(distributions):
         if dist.name not in packages:
             packages[dist.name] = DistributionPackage(
                 **{
@@ -100,10 +104,13 @@ def _parse_requirements(requires: list) -> List[Requirement]:
     return requirements
 
 
-def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
-    """Consolidate requirements from all known distributions for known packages"""
+def compile_package_requirements(
+    packages: Dict[str, DistributionPackage],
+    distributions: Iterable[importlib_metadata.Distribution],
+) -> dict:
+    """Consolidate requirements from all known distributions and known packages"""
     requirements = dict()
-    for dist in importlib_metadata.distributions():
+    for dist in distributions:
         if dist.requires:
             for requirement in _parse_requirements(dist.requires):
                 requirement_name = canonicalize_name(requirement.name)
@@ -127,11 +134,11 @@ def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> di
     return requirements
 
 
-def fetch_versions_from_pypi(
-    packages: dict, requirements: dict, use_threads=False
+def update_packages_from_pypi(
+    packages: Dict[str, DistributionPackage], requirements: dict, use_threads=False
 ) -> None:
-    """fetches the latest versions for given packages from PyPI in accordance
-    with the given requirements and updates the packages
+    """Fetch the latest versions for given packages from PyPI in accordance
+    with the given requirements and updates the packages.
     """
 
     def thread_update_latest_from_pypi(package_name: str) -> None:

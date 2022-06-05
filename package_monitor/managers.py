@@ -1,6 +1,7 @@
 import json
 from typing import Dict
 
+import importlib_metadata
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
@@ -18,7 +19,7 @@ from .core import (
     DistributionPackage,
     compile_package_requirements,
     fetch_relevant_packages,
-    fetch_versions_from_pypi,
+    update_packages_from_pypi,
 )
 
 TERMINAL_MAX_LINE_LENGTH = 4095
@@ -65,9 +66,10 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        packages = fetch_relevant_packages()
-        requirements = compile_package_requirements(packages)
-        fetch_versions_from_pypi(packages, requirements, use_threads)
+        distributions = importlib_metadata.distributions()
+        packages = fetch_relevant_packages(distributions)
+        requirements = compile_package_requirements(packages, distributions)
+        update_packages_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")

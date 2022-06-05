@@ -242,7 +242,7 @@ def requests_get_stub(*args, **kwargs):
 
 @patch(MODULE_PATH_CORE + ".requests", auto_spec=True)
 @patch(MODULE_PATH_CORE + ".django_apps", spec=True)
-@patch(MODULE_PATH_CORE + ".importlib_metadata.distributions", spec=True)
+@patch(MODULE_PATH_MANAGERS + ".importlib_metadata.distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_all_packages_detected(
         self, mock_distributions, mock_django_apps, mock_requests
