@@ -240,9 +240,9 @@ def requests_get_stub(*args, **kwargs):
     return r
 
 
-@patch(MODULE_PATH_MANAGERS + ".requests", auto_spec=True)
+@patch(MODULE_PATH_CORE + ".requests", auto_spec=True)
 @patch(MODULE_PATH_CORE + ".django_apps", spec=True)
-@patch(MODULE_PATH_CORE + ".distributions", spec=True)
+@patch(MODULE_PATH_CORE + ".importlib_metadata.distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_all_packages_detected(
         self, mock_distributions, mock_django_apps, mock_requests
@@ -449,7 +449,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.latest_version, "0.4.0")
         self.assertTrue(obj.is_outdated)
 
-    @patch(MODULE_PATH_MANAGERS + ".sys")
+    @patch(MODULE_PATH_CORE + ".sys")
     def test_handle_release_with_python_requirement(
         self, mock_sys, mock_distributions, mock_django_apps, mock_requests
     ):

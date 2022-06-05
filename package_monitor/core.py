@@ -1,20 +1,60 @@
-from collections import namedtuple
+import concurrent.futures
+import sys
 from dataclasses import dataclass, field
 from typing import Dict, List
 
 import importlib_metadata
-from importlib_metadata import distributions
+import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
+from packaging.version import parse as version_parse
 
 from django.apps import apps as django_apps
 
-_DistributionInfo = namedtuple("_DistributionInfo", ["name", "files", "distribution"])
+from allianceauth.services.hooks import get_extension_logger
+from app_utils.logging import LoggerAddTag
+
+from . import __title__
+
+logger = LoggerAddTag(get_extension_logger(__name__), __title__)
+
+# max workers used when fetching info from PyPI for packages
+MAX_THREAD_WORKERS = 30
+
+
+@dataclass
+class DistributionWrapped:
+    """Distribution with some additional information."""
+
+    name: str
+    distribution: importlib_metadata.Distribution
+    files: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_distribution(
+        cls, dist: importlib_metadata.Distribution
+    ) -> "DistributionWrapped":
+        return cls(
+            name=canonicalize_name(dist.metadata["Name"]),
+            distribution=dist,
+            files=["/" + str(f) for f in dist.files if str(f).endswith("__init__.py")],
+        )
+
+    @classmethod
+    def from_distributions(cls) -> "DistributionWrapped":
+        return [
+            DistributionWrapped.from_distribution(dist)
+            for dist in importlib_metadata.distributions()
+            if dist.metadata["Name"]
+        ]
 
 
 @dataclass
 class DistributionPackage:
+    """A distribution package."""
+
     name: str
     current: str
     distribution: importlib_metadata.Distribution
@@ -23,13 +63,10 @@ class DistributionPackage:
     latest: str = ""
 
 
-def select_relevant_packages() -> Dict[str, DistributionPackage]:
-    """returns subset of distribution packages with packages of interest
-
-    Interesting packages are related to installed apps or explicitely defined
-    """
+def fetch_relevant_packages() -> Dict[str, DistributionPackage]:
+    """Fetch distribution packages with packages relevant for this Django installation"""
     packages = dict()
-    for dist in _distribution_packages_amended():
+    for dist in DistributionWrapped.from_distributions():
         if dist.name not in packages:
             packages[dist.name] = DistributionPackage(
                 **{
@@ -48,22 +85,10 @@ def select_relevant_packages() -> Dict[str, DistributionPackage]:
     return packages
 
 
-def _distribution_packages_amended() -> list:
-    """returns the list of all known distribution packages with amended infos"""
-    return [
-        _DistributionInfo(
-            name=canonicalize_name(dist.metadata["Name"]),
-            distribution=dist,
-            files=["/" + str(f) for f in dist.files if str(f).endswith("__init__.py")],
-        )
-        for dist in distributions()
-        if dist.metadata["Name"]
-    ]
-
-
 def _parse_requirements(requires: list) -> List[Requirement]:
-    """Parses requirements from a distribution and returns it.
-    Invalid requirements will be ignored
+    """Parse requirements from a distribution and return them.
+
+    Invalid requirements will be ignored.
     """
     requirements = list()
     if requires:
@@ -72,16 +97,13 @@ def _parse_requirements(requires: list) -> List[Requirement]:
                 requirements.append(Requirement(r))
             except InvalidRequirement:
                 pass
-
     return requirements
 
 
-def compile_package_requirements(packages: dict) -> dict:
-    """returns all requirements in consolidated from all known distributions
-    for given packages
-    """
+def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
+    """Consolidate requirements from all known distributions for known packages"""
     requirements = dict()
-    for dist in distributions():
+    for dist in importlib_metadata.distributions():
         if dist.requires:
             for requirement in _parse_requirements(dist.requires):
                 requirement_name = canonicalize_name(requirement.name)
@@ -103,3 +125,101 @@ def compile_package_requirements(packages: dict) -> dict:
                         ] = requirement.specifier
 
     return requirements
+
+
+def fetch_versions_from_pypi(
+    packages: dict, requirements: dict, use_threads=False
+) -> None:
+    """fetches the latest versions for given packages from PyPI in accordance
+    with the given requirements and updates the packages
+    """
+
+    def thread_update_latest_from_pypi(package_name: str) -> None:
+        """Retrieves latest valid version from PyPI and updates packages
+
+        Note: This inner function runs as thread
+        """
+        nonlocal packages
+
+        current_python_version = version_parse(
+            f"{sys.version_info.major}.{sys.version_info.minor}"
+            f".{sys.version_info.micro}"
+        )
+        consolidated_requirements = SpecifierSet()
+        if package_name in requirements:
+            for _, specifier in requirements[package_name].items():
+                consolidated_requirements &= specifier
+
+        package = packages[package_name]
+        current_version = version_parse(package.current)
+        current_is_prerelease = (
+            str(current_version) == str(package.current)
+            and current_version.is_prerelease
+        )
+        package_name_with_case = package.distribution.metadata["Name"]
+        logger.info(
+            f"Fetching info for distribution package '{package_name_with_case}' "
+            "from PyPI"
+        )
+        r = requests.get(
+            f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
+        )
+        if r.status_code == requests.codes.ok:
+            pypi_info = r.json()
+            latest = ""
+            for release, release_details in pypi_info["releases"].items():
+                release_detail = (
+                    release_details[-1] if len(release_details) > 0 else None
+                )
+                if not release_detail or (
+                    not release_detail["yanked"]
+                    and (
+                        "requires_python" not in release_detail
+                        or not release_detail["requires_python"]
+                        or current_python_version
+                        in SpecifierSet(release_detail["requires_python"])
+                    )
+                ):
+                    my_release = version_parse(release)
+                    if str(my_release) == str(release) and (
+                        current_is_prerelease or not my_release.is_prerelease
+                    ):
+                        if len(consolidated_requirements) > 0:
+                            is_valid = my_release in consolidated_requirements
+                        else:
+                            is_valid = True
+
+                        if is_valid and (
+                            not latest or my_release > version_parse(latest)
+                        ):
+                            latest = release
+
+            if not latest:
+                logger.warning(
+                    f"Could not find a release of '{package_name_with_case}' "
+                    f"that matches all requirements: '{consolidated_requirements}''"
+                )
+        else:
+            if r.status_code == 404:
+                logger.info(
+                    f"Package '{package_name_with_case}' is not registered in PyPI"
+                )
+            else:
+                logger.warning(
+                    "Failed to retrive infos from PyPI for "
+                    f"package '{package_name_with_case}'. "
+                    f"Status code: {r.status_code}, "
+                    f"response: {r.content}"
+                )
+            latest = ""
+
+        packages[package_name].latest = latest
+
+    if use_threads:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=MAX_THREAD_WORKERS
+        ) as executor:
+            executor.map(thread_update_latest_from_pypi, packages.keys())
+    else:
+        for package_name in packages.keys():
+            thread_update_latest_from_pypi(package_name)

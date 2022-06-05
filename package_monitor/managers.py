@@ -1,10 +1,6 @@
-import concurrent.futures
 import json
-import sys
 from typing import Dict
 
-import requests
-from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
@@ -21,7 +17,8 @@ from .app_settings import (
 from .core import (
     DistributionPackage,
     compile_package_requirements,
-    select_relevant_packages,
+    fetch_relevant_packages,
+    fetch_versions_from_pypi,
 )
 
 TERMINAL_MAX_LINE_LENGTH = 4095
@@ -52,10 +49,6 @@ class DistributionQuerySet(models.QuerySet):
 
 
 class DistributionManagerBase(models.Manager):
-
-    # max workers used when fetching info from PyPI for packages
-    MAX_THREAD_WORKERS = 30
-
     def currently_selected(self) -> models.QuerySet:
         """Currently selected packages based on global settings,
         e.g. related to installed apps vs. all packages
@@ -72,111 +65,13 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        packages = select_relevant_packages()
+        packages = fetch_relevant_packages()
         requirements = compile_package_requirements(packages)
-        self._fetch_versions_from_pypi(packages, requirements, use_threads)
+        fetch_versions_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")
         return packages_count
-
-    @classmethod
-    def _fetch_versions_from_pypi(
-        cls, packages: dict, requirements: dict, use_threads=False
-    ) -> None:
-        """fetches the latest versions for given packages from PyPI in accordance
-        with the given requirements and updates the packages
-        """
-
-        def thread_update_latest_from_pypi(package_name: str) -> None:
-            """Retrieves latest valid version from PyPI and updates packages
-
-            Note: This inner function runs as thread
-            """
-            nonlocal packages
-
-            current_python_version = version_parse(
-                f"{sys.version_info.major}.{sys.version_info.minor}"
-                f".{sys.version_info.micro}"
-            )
-            consolidated_requirements = SpecifierSet()
-            if package_name in requirements:
-                for _, specifier in requirements[package_name].items():
-                    consolidated_requirements &= specifier
-
-            package = packages[package_name]
-            current_version = version_parse(package.current)
-            current_is_prerelease = (
-                str(current_version) == str(package.current)
-                and current_version.is_prerelease
-            )
-            package_name_with_case = package.distribution.metadata["Name"]
-            logger.info(
-                f"Fetching info for distribution package '{package_name_with_case}' "
-                "from PyPI"
-            )
-            r = requests.get(
-                f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
-            )
-            if r.status_code == requests.codes.ok:
-                pypi_info = r.json()
-                latest = ""
-                for release, release_details in pypi_info["releases"].items():
-                    release_detail = (
-                        release_details[-1] if len(release_details) > 0 else None
-                    )
-                    if not release_detail or (
-                        not release_detail["yanked"]
-                        and (
-                            "requires_python" not in release_detail
-                            or not release_detail["requires_python"]
-                            or current_python_version
-                            in SpecifierSet(release_detail["requires_python"])
-                        )
-                    ):
-                        my_release = version_parse(release)
-                        if str(my_release) == str(release) and (
-                            current_is_prerelease or not my_release.is_prerelease
-                        ):
-                            if len(consolidated_requirements) > 0:
-                                is_valid = my_release in consolidated_requirements
-                            else:
-                                is_valid = True
-
-                            if is_valid and (
-                                not latest or my_release > version_parse(latest)
-                            ):
-                                latest = release
-
-                if not latest:
-                    logger.warning(
-                        f"Could not find a release of '{package_name_with_case}' "
-                        f"that matches all requirements: '{consolidated_requirements}''"
-                    )
-            else:
-                if r.status_code == 404:
-                    logger.info(
-                        f"Package '{package_name_with_case}' is not registered in PyPI"
-                    )
-                else:
-                    logger.warning(
-                        "Failed to retrive infos from PyPI for "
-                        f"package '{package_name_with_case}'. "
-                        f"Status code: {r.status_code}, "
-                        f"response: {r.content}"
-                    )
-                latest = ""
-
-            packages[package_name].latest = latest
-
-        if use_threads:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=cls.MAX_THREAD_WORKERS
-            ) as executor:
-                executor.map(thread_update_latest_from_pypi, packages.keys())
-        else:
-            for package_name in packages.keys():
-                thread_update_latest_from_pypi(package_name)
 
     def _save_packages(
         self, packages: Dict[str, DistributionPackage], requirements: dict
