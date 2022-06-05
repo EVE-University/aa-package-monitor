@@ -2,7 +2,7 @@ import concurrent.futures
 import json
 import sys
 from collections import namedtuple
-from typing import List
+from typing import Dict, List
 
 import requests
 from importlib_metadata import distributions
@@ -23,6 +23,7 @@ from .app_settings import (
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
+from .core import DistributionPackage
 
 TERMINAL_MAX_LINE_LENGTH = 4095
 
@@ -97,32 +98,28 @@ class DistributionManagerBase(models.Manager):
         return packages_count
 
     @classmethod
-    def _select_relevant_packages(cls) -> dict:
+    def _select_relevant_packages(cls) -> Dict[str, DistributionPackage]:
         """returns subset of distribution packages with packages of interest
 
         Interesting packages are related to installed apps or explicitely defined
         """
-
-        def create_or_update_package(dist, packages: dict) -> None:
-            if dist.name not in packages:
-                packages[dist.name] = {
-                    "name": dist.name,
-                    "apps": list(),
-                    "current": dist.distribution.version,
-                    "requirements": _parse_requirements(dist.distribution.requires),
-                    "distribution": dist.distribution,
-                }
-
         packages = dict()
         for dist in cls._distribution_packages_amended():
-            create_or_update_package(dist, packages)
-            for app in django_apps.get_app_configs():
-                my_file = app.module.__file__
-                for dist_file in dist.files:
+            if dist.name not in packages:
+                packages[dist.name] = DistributionPackage(
+                    **{
+                        "name": dist.name,
+                        "current": dist.distribution.version,
+                        "requirements": _parse_requirements(dist.distribution.requires),
+                        "distribution": dist.distribution,
+                    }
+                )
+            for dist_file in dist.files:
+                for app in django_apps.get_app_configs():
+                    my_file = app.module.__file__
                     if my_file.endswith(dist_file):
-                        packages[dist.name]["apps"].append(app.name)
+                        packages[dist.name].apps.append(app.name)
                         break
-
         return packages
 
     @staticmethod
@@ -194,12 +191,12 @@ class DistributionManagerBase(models.Manager):
                     consolidated_requirements &= specifier
 
             package = packages[package_name]
-            current_version = version_parse(package["current"])
+            current_version = version_parse(package.current)
             current_is_prerelease = (
-                str(current_version) == str(package["current"])
+                str(current_version) == str(package.current)
                 and current_version.is_prerelease
             )
-            package_name_with_case = package["distribution"].metadata["Name"]
+            package_name_with_case = package.distribution.metadata["Name"]
             logger.info(
                 f"Fetching info for distribution package '{package_name_with_case}' "
                 "from PyPI"
@@ -209,7 +206,7 @@ class DistributionManagerBase(models.Manager):
             )
             if r.status_code == requests.codes.ok:
                 pypi_info = r.json()
-                latest = None
+                latest = ""
                 for release, release_details in pypi_info["releases"].items():
                     release_detail = (
                         release_details[-1] if len(release_details) > 0 else None
@@ -254,9 +251,9 @@ class DistributionManagerBase(models.Manager):
                         f"Status code: {r.status_code}, "
                         f"response: {r.content}"
                     )
-                latest = None
+                latest = ""
 
-            packages[package_name]["latest"] = latest
+            packages[package_name].latest = latest
 
         if use_threads:
             with concurrent.futures.ThreadPoolExecutor(
@@ -267,7 +264,9 @@ class DistributionManagerBase(models.Manager):
             for package_name in packages.keys():
                 thread_update_latest_from_pypi(package_name)
 
-    def _save_packages(self, packages: dict, requirements: dict) -> None:
+    def _save_packages(
+        self, packages: Dict[str, DistributionPackage], requirements: dict
+    ) -> None:
         """Saves the given package information into the model"""
 
         def metadata_value(dist, prop: str) -> str:
@@ -279,19 +278,17 @@ class DistributionManagerBase(models.Manager):
 
         def packages_lookup(packages: dict, name: str, attr: str, default=None):
             package = packages.get(canonicalize_name(name))
-            return package.get(attr) if package else default
+            return getattr(package, attr) if package else default
 
         with transaction.atomic():
             self.all().delete()
             distributions = list()
             for package_name, package in packages.items():
-                current = package.get("current")
-                latest = package.get("latest")
                 is_outdated = (
-                    version_parse(current) < version_parse(latest)
-                    if current
-                    and latest
-                    and str(current) == str(package["distribution"].version)
+                    version_parse(package.current) < version_parse(package.latest)
+                    if package.current
+                    and package.latest
+                    and str(package.current) == str(package.distribution.version)
                     else None
                 )
                 if package_name in requirements:
@@ -311,18 +308,16 @@ class DistributionManagerBase(models.Manager):
                 else:
                     used_by = []
 
-                name = _none_2_empty(package["distribution"].metadata["Name"])
-                apps = _none_2_empty(
-                    json.dumps(sorted(package["apps"], key=str.casefold))
-                )
+                name = _none_2_empty(package.distribution.metadata["Name"])
+                apps = _none_2_empty(json.dumps(sorted(package.apps, key=str.casefold)))
                 used_by = _none_2_empty(json.dumps(used_by))
-                installed_version = _none_2_empty(package["distribution"].version)
-                latest_version = str(package["latest"]) if package["latest"] else ""
+                installed_version = _none_2_empty(package.distribution.version)
+                latest_version = str(package.latest) if package.latest else ""
                 description = _none_2_empty(
-                    metadata_value(package["distribution"], "Summary")
+                    metadata_value(package.distribution, "Summary")
                 )
                 website_url = _none_2_empty(
-                    metadata_value(package["distribution"], "Home-page")
+                    metadata_value(package.distribution, "Home-page")
                 )
                 obj = self.model(
                     name=name,
