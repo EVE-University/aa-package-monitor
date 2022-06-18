@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.4.2] - 2022-06-18
+
+### Changed
+
+- Migrated to clipboard-js library (Thank you @ppfeufer for the contribution)
+- Add wheel to PyPI deployment
+
 ## [1.4.1] - 2022-06-05
 
 ### Changed
