@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Migrated to clipboard-js library
+- Migrated to clipboard-js library (Thank you @ppfeufer for the contribution)
+- Add wheel to PyPI deployment
 
 ## [1.4.1] - 2022-06-05
 
