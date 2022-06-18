@@ -105,7 +105,7 @@ def package_list_data(request) -> JsonResponse:
             latest_html = no_wrap_html(
                 f'<span class="copy_to_clipboard" '
                 f'title="{command}"'
-                f' data-text="{command}">'
+                f' data-clipboard-text="{command}">'
                 f"{dist.latest_version}"
                 '&nbsp;&nbsp;<i class="far fa-copy"></i></span>'
             )
