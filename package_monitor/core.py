@@ -168,9 +168,15 @@ def update_packages_from_pypi(
             f"Fetching info for distribution package '{package_name_with_case}' "
             "from PyPI"
         )
+        uniserve = True
         r = requests.get(
-            f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
+        f"https://pypi.eveuniversity.org/{package_name_with_case}/json", timeout=(5, 30)
         )
+        if r.status_code != requests.codes.ok:
+            uniserve = False
+            r = requests.get(
+                f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
+            )
         if r.status_code == requests.codes.ok:
             pypi_info = r.json()
             latest = ""
@@ -178,6 +184,8 @@ def update_packages_from_pypi(
                 release_detail = (
                     release_details[-1] if len(release_details) > 0 else None
                 )
+                if uniserve:
+                    release_detail["yanked"] = False
                 if not release_detail or (
                     not release_detail["yanked"]
                     and (
