@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.4.3] - 2022-08-02
+
+### Changed
+
+- Changing the default to showing all packages.
+- Unused `filterDropDown.js` removed from template (!6)
+
 ## [1.4.2] - 2022-06-18
 
 ### Changed

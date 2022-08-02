@@ -85,6 +85,7 @@ python manage.py package_monitor_refresh
 ```
 
 ## Updating
+
 ```
 pip install -U aa-package-monitor
 
@@ -92,6 +93,7 @@ python manage.py collectstatic
 
 python manage.py migrate
 ```
+
 Finally restart your AA supervisor services.
 
 ## User Guide
@@ -145,8 +147,8 @@ Note that all settings are optional and the app will use the documented default 
 
 Name | Description | Default
 -- | -- | --
-`PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`  | `None`
-`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps  | `False`
+`PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `None`
+`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps  | `True`
 
 ## Permissions
 
