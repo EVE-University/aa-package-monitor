@@ -53,17 +53,16 @@ pip install aa-package-monitor
 
 ### Step 3 - Configure settings
 
-- Add `'package_monitor'` to `INSTALLED_APPS`
-- Add the following lines to your local.py to enable checking for updates:
+Add `'package_monitor'` to `INSTALLED_APPS`.
 
-    ```Python
-    CELERYBEAT_SCHEDULE['package_monitor_update_distributions'] = {
-        'task': 'package_monitor.tasks.update_distributions',
-        'schedule': crontab(minute='*/60'),
-    }
-    ```
+Add the following lines to your `local.py` to enable regular checking for updates:
 
-- Optional: Add additional settings if you want to change any defaults. See [Settings](#settings) for the full list.
+```Python
+CELERYBEAT_SCHEDULE['package_monitor_update_distributions'] = {
+    'task': 'package_monitor.tasks.update_distributions',
+    'schedule': crontab(minute='*/60'),
+}
+```
 
 ### Step 4 - Finalize installation
 
@@ -86,7 +85,7 @@ python manage.py package_monitor_refresh
 
 ## Updating
 
-```
+```bash
 pip install -U aa-package-monitor
 
 python manage.py collectstatic
@@ -112,22 +111,22 @@ To avoid any confusion here are our definitions of some important terms:
 
 You can run Package Monitor in one of two modes:
 
-- A. Keep apps and selected distribution packages updated
-- B. Keep everything updated
+- Keep everything updated
+- Keep apps and selected distribution packages updated
 
-#### Mode A
+#### Keep everything updated
 
-In mode A Package Monitor will monitor only those distribution packages that contain actually installed Django apps. In this mode you will be informed if there is an update to any of your apps. Note that in mode A other installed distributions packages will not be shown.
+In this mode Package Monitor will monitor all installed distribution packages. In this mode you will be informed you about updates to any of your distribution packages.
 
-To activate mode A set `PACKAGE_MONITOR_SHOW_ALL_PACKAGES` to `False` in your local settings. Note that this is the default mode.
+This is the default operation mode.
+
+#### Keep apps and selected distribution packages updated
+
+With this mode Package Monitor will monitor only those distribution packages that contain actually installed Django apps. In this mode you will be informed if there is an update to any of your apps. Note that in mode A other installed distributions packages will not be shown.
+
+To activate this mode set `PACKAGE_MONITOR_SHOW_ALL_PACKAGES` to `False` in your local settings.
 
 You can also add some additional distributions to be monitored. For example you might want to add celery.
-
-#### Mode B
-
-In mode B Package Monitor will monitor all installed distribution packages. In this mode you will be informed you about updates to any of your distribution packages.
-
-To activate mode B set `PACKAGE_MONITOR_SHOW_ALL_PACKAGES` to `True` in your local settings.
 
 See also [Settings](#settings) for an overview of all settings.
 
