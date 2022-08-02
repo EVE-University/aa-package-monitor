@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.4.3] - 2022-08-02
+
+### Update notes
+
+This patch is changing the default to showing all packages. So if you have been using the default you might suddenly see a lot of missing updates after installing this patch. This is normal. Our main rationale for changing this is that during the update to AA3 we have seen many users running outdated packages, which have caused problems.
+
+### Changed
+
+- Changing the default to showing all packages.
+- Unused `filterDropDown.js` removed from template (!6)
+
 ## [1.4.2] - 2022-06-18
 
 ### Changed
