@@ -67,6 +67,7 @@ class Distribution(models.Model):
         super().save(*args, **kwargs)
 
     def calc_has_installed_apps(self) -> None:
+        """Calculate if this distribution has apps."""
         self.has_installed_apps = bool(json.loads(self.apps))
 
     @property
