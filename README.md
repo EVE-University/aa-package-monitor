@@ -2,7 +2,15 @@
 
 An app for keeping track of installed packages and outstanding updates with Alliance Auth.
 
-![release](https://img.shields.io/pypi/v/aa-package-monitor?label=release) ![python](https://img.shields.io/pypi/pyversions/aa-package-monitor) ![django](https://img.shields.io/pypi/djversions/aa-package-monitor?label=django) ![pipeline](https://gitlab.com/ErikKalkoken/aa-package-monitor/badges/master/pipeline.svg) ![coverage](https://gitlab.com/ErikKalkoken/aa-package-monitor/badges/master/coverage.svg) ![license](https://img.shields.io/badge/license-MIT-green) ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![release](https://img.shields.io/pypi/v/aa-package-monitor?label=release)](https://pypi.org/project/aa-package-monitor/)
+[![python](https://img.shields.io/pypi/pyversions/aa-package-monitor)](https://pypi.org/project/aa-package-monitor/)
+[![django](https://img.shields.io/pypi/djversions/aa-package-monitor?label=django)](https://pypi.org/project/aa-package-monitor/)
+[![pipeline](https://gitlab.com/ErikKalkoken/aa-package-monitor/badges/master/pipeline.svg)](https://gitlab.com/ErikKalkoken/aa-package-monitor/-/pipelines)
+[![codecov](https://codecov.io/gl/ErikKalkoken/aa-package-monitor/branch/master/graph/badge.svg?token=IIV0I6UGBH)](https://codecov.io/gl/ErikKalkoken/aa-package-monitor)
+[![license](https://img.shields.io/badge/license-MIT-green)](https://gitlab.com/ErikKalkoken/aa-package-monitor/-/blob/master/LICENSE)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![chat](https://img.shields.io/discord/790364535294132234)](https://discord.gg/zmh52wnfvM)
 
 ## Contents
 
