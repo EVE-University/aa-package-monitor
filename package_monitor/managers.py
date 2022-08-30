@@ -1,4 +1,3 @@
-import json
 from typing import Dict, Set
 
 import importlib_metadata
@@ -127,8 +126,7 @@ class DistributionManagerBase(models.Manager):
                     used_by = []
 
                 name = _none_2_empty(package.distribution.metadata["Name"])
-                apps = _none_2_empty(json.dumps(sorted(package.apps, key=str.casefold)))
-                used_by = _none_2_empty(json.dumps(used_by))
+                apps = sorted(package.apps, key=str.casefold)
                 installed_version = _none_2_empty(package.distribution.version)
                 latest_version = str(package.latest) if package.latest else ""
                 description = _none_2_empty(

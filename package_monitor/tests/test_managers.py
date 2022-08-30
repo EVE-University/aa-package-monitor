@@ -1,4 +1,3 @@
-import json
 import re
 from collections import namedtuple
 from copy import copy
@@ -294,24 +293,22 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "0.1.1")
         self.assertEqual(obj.latest_version, "0.2.0")
         self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps(["dummy_1"]))
+        self.assertListEqual(obj.apps, ["dummy_1"])
         self.assertTrue(obj.has_installed_apps)
-        self.assertEqual(
+        self.assertListEqual(
             obj.used_by,
-            json.dumps(
-                [
-                    {
-                        "name": "Dummy-2",
-                        "homepage_url": "homepage-dummy-2",
-                        "requirements": ["<0.3.0"],
-                    },
-                    {
-                        "name": "dummy-3",
-                        "homepage_url": "",
-                        "requirements": [">0.1.0"],
-                    },
-                ]
-            ),
+            [
+                {
+                    "name": "Dummy-2",
+                    "homepage_url": "homepage-dummy-2",
+                    "requirements": ["<0.3.0"],
+                },
+                {
+                    "name": "dummy-3",
+                    "homepage_url": "",
+                    "requirements": [">0.1.0"],
+                },
+            ],
         )
         self.assertEqual(obj.website_url, "homepage-dummy-1")
         self.assertEqual(obj.description, "description-dummy-1")
@@ -350,7 +347,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "2009r")
         self.assertEqual(obj.latest_version, "")
         self.assertIsNone(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps([]))
+        self.assertListEqual(obj.apps, [])
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
@@ -373,7 +370,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "1.0.0b2")
         self.assertEqual(obj.latest_version, "1.0.0b3")
         self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps([]))
+        self.assertListEqual(obj.apps, [])
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
@@ -536,7 +533,7 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     def test_should_have_apps_only(self):
         # given
-        obj_1 = DistributionFactory(app_list=["app_1"])
+        obj_1 = DistributionFactory(apps=["app_1"])
         DistributionFactory()
         # when
         result = Distribution.objects.filter_visible()
@@ -547,7 +544,7 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["include-me"])
     def test_should_have_apps_plus_included(self):
         # given
-        obj_1 = DistributionFactory(app_list=["app_1"])
+        obj_1 = DistributionFactory(apps=["app_1"])
         obj_2 = DistributionFactory(name="include-me")
         DistributionFactory()
         # when

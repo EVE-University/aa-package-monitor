@@ -1,5 +1,3 @@
-import json
-
 from app_utils.testing import NoSocketsTestCase
 
 from .factories import DistributionFactory
@@ -16,7 +14,7 @@ class TestDistribution(NoSocketsTestCase):
 
     def test_should_update_has_installed_apps_2(self):
         # given
-        obj = DistributionFactory(apps=json.dumps(["dummy"]))
+        obj = DistributionFactory(apps=["dummy"])
         # when
         obj.calc_has_installed_apps()
         # then
@@ -30,6 +28,6 @@ class TestDistribution(NoSocketsTestCase):
 
     def test_should_update_has_installed_apps_when_saved_2(self):
         # when
-        obj = DistributionFactory(apps=json.dumps(["dummy"]))
+        obj = DistributionFactory(apps=["dummy"])
         # then
         self.assertTrue(obj.has_installed_apps)

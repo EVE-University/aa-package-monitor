@@ -1,5 +1,3 @@
-import json
-
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -73,13 +71,13 @@ def package_list_data(request) -> JsonResponse:
             name_link_html += '&nbsp;<i class="fas fa-exclamation-circle" title="Update available"></i>'
 
         if dist.apps:
-            _lst = [no_wrap_html(row) for row in json.loads(dist.apps)]
+            _lst = [no_wrap_html(row) for row in dist.apps]
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
 
         if dist.used_by:
-            used_by_sorted = sorted(json.loads(dist.used_by), key=lambda k: k["name"])
+            used_by_sorted = sorted(dist.used_by, key=lambda k: k["name"])
             used_by_html = "<br>".join(
                 [
                     format_html(

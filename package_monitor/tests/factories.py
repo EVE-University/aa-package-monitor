@@ -1,5 +1,3 @@
-import json
-
 import factory
 import factory.fuzzy
 
@@ -17,9 +15,6 @@ class DistributionFactory(factory.django.DjangoModelFactory):
     is_outdated = False
     website_url = factory.Faker("uri")
 
-    class Params:
-        app_list = []
-
     @factory.lazy_attribute
     def installed_version(self):
         int_fuzzer = factory.fuzzy.FuzzyInteger(0, 20)
@@ -27,7 +22,3 @@ class DistributionFactory(factory.django.DjangoModelFactory):
         minor = int_fuzzer.fuzz()
         patch = int_fuzzer.fuzz()
         return f"{major}.{minor}.{patch}"
-
-    @factory.lazy_attribute
-    def apps(self):
-        return json.dumps(self.app_list)
