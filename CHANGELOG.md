@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Ability to exclude distribution packages via new setting
+- Ability to exclude editable packages via new setting
+
+### Changed
+
+- No longer shows editable packages by default
 
 ## [1.5.0] - 2022-08-02
 

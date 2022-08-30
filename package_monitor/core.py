@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List
@@ -63,6 +64,14 @@ class DistributionPackage:
     requirements: List[Requirement] = field(default_factory=list)
     apps: List[str] = field(default_factory=list)
     latest: str = ""
+
+    def is_editable(self):
+        """Is distribution an editable install?"""
+        for path_item in sys.path:
+            egg_link = os.path.join(path_item, self.name + ".egg-link")
+            if os.path.isfile(egg_link):
+                return True
+        return False
 
 
 def fetch_relevant_packages(

@@ -156,7 +156,8 @@ Name | Description | Default
 -- | -- | --
 `PACKAGE_MONITOR_EXCLUDE_PACKAGES`| Names of distribution packages to excluded from monitoring.  | `[]`
 `PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `[]`
-`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps  | `True`
+`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps.  | `True`
+`PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES`| Whether to show distribution packages installed as editable. Since version information about editable packages is often outdated, this type of packages are not shown by default. | `False`
 
 ## Permissions
 

@@ -14,6 +14,7 @@ from .app_settings import (
     PACKAGE_MONITOR_EXCLUDE_PACKAGES,
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
+    PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
 from .core import (
     DistributionPackage,
@@ -58,6 +59,8 @@ class DistributionQuerySet(models.QuerySet):
             qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
         if PACKAGE_MONITOR_EXCLUDE_PACKAGES:
             qs = qs.exclude(name__in=PACKAGE_MONITOR_EXCLUDE_PACKAGES)
+        if not PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES:
+            qs = qs.exclude(is_editable=True)
         return qs
 
     def names(self) -> Set[str]:
@@ -142,6 +145,7 @@ class DistributionManagerBase(models.Manager):
                     installed_version=installed_version,
                     latest_version=latest_version,
                     is_outdated=is_outdated,
+                    is_editable=package.is_editable(),
                     description=description,
                     website_url=website_url,
                 )

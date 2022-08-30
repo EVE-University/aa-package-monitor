@@ -4,12 +4,11 @@ from copy import copy
 from unittest.mock import Mock, patch
 
 import requests
-from importlib_metadata import PackagePath
 
 from app_utils.testing import NoSocketsTestCase
 
 from ..models import Distribution
-from .factories import DistributionFactory
+from .factories import DistributionFactory, ImportlibDistributionStub
 
 MODULE_PATH_CORE = "package_monitor.core"
 MODULE_PATH_MODELS = "package_monitor.models"
@@ -17,26 +16,6 @@ MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
 SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
-
-
-class ImportlibDistributionStub:
-    def __init__(
-        self,
-        name: str,
-        version: str,
-        files: list,
-        requires: list = None,
-        homepage_url: str = "",
-        description: str = "",
-    ) -> None:
-        self.metadata = {
-            "Name": name,
-            "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
-            "Summary": description if description != "" else "UNKNOWN",
-        }
-        self.version = version
-        self.files = [PackagePath(f) for f in files]
-        self.requires = requires if requires else None
 
 
 class DjangoAppConfigStub:
@@ -517,9 +496,11 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
     """
 
 
-class TestDistributionCurrentlySelected(NoSocketsTestCase):
+class TestDistributionFilterVisible(NoSocketsTestCase):
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
     def test_should_have_all_packages(self):
         # given
         obj_1 = DistributionFactory()
@@ -530,7 +511,9 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         self.assertEqual(result.names(), {obj_1.name, obj_2.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
     def test_should_have_apps_only(self):
         # given
         obj_1 = DistributionFactory(apps=["app_1"])
@@ -541,7 +524,9 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         self.assertEqual(result.names(), {obj_1.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["include-me"])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
     def test_should_have_apps_plus_included(self):
         # given
         obj_1 = DistributionFactory(apps=["app_1"])
@@ -553,6 +538,8 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         self.assertEqual(result.names(), {obj_1.name, obj_2.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", ["exclude-me"])
     def test_should_have_all_packages_minus_excluded(self):
         # given
@@ -563,9 +550,24 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         # then
         self.assertEqual(result.names(), {obj_1.name})
 
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_all_packages_minus_editable(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me", is_editable=True)
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
+
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
 class TestDistributionBuildInstallCommand(NoSocketsTestCase):
     def test_all_packages(self):
         # given
