@@ -1,5 +1,3 @@
-import json
-
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -22,13 +20,13 @@ PACKAGE_LIST_FILTER_PARAM = "filter"
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
-    distributions_qs = Distribution.objects.currently_selected()
+    distributions_qs = Distribution.objects.filter_visible()
     filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM)
     if not filter:
-        app_count = Distribution.objects.currently_selected().outdated_count()
+        app_count = Distribution.objects.filter_visible().outdated_count()
         filter = "outdated" if app_count and app_count > 0 else "current"
     outdated_install_command = (
-        Distribution.objects.currently_selected()
+        Distribution.objects.filter_visible()
         .filter(is_outdated=True)
         .order_by("name")
         .build_install_command()
@@ -56,8 +54,7 @@ def package_list_data(request) -> JsonResponse:
     Specify different subsets with the "filter" GET parameter
     """
     my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM, "")
-    distributions_qs = Distribution.objects.currently_selected()
-
+    distributions_qs = Distribution.objects.filter_visible()
     if my_filter == "outdated":
         distributions_qs = distributions_qs.filter(is_outdated=True)
     elif my_filter == "current":
@@ -74,13 +71,13 @@ def package_list_data(request) -> JsonResponse:
             name_link_html += '&nbsp;<i class="fas fa-exclamation-circle" title="Update available"></i>'
 
         if dist.apps:
-            _lst = [no_wrap_html(row) for row in json.loads(dist.apps)]
+            _lst = [no_wrap_html(row) for row in dist.apps]
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
 
         if dist.used_by:
-            used_by_sorted = sorted(json.loads(dist.used_by), key=lambda k: k["name"])
+            used_by_sorted = sorted(dist.used_by, key=lambda k: k["name"])
             used_by_html = "<br>".join(
                 [
                     format_html(

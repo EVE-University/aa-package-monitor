@@ -1,4 +1,3 @@
-import json
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -6,6 +5,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from allianceauth.tests.auth_utils import AuthUtils
+from app_utils.testing import json_response_to_python
 
 from .. import views
 from .testdata import create_testdata
@@ -15,7 +15,7 @@ MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
 class TestPackageList(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -42,7 +42,7 @@ class TestPackageList(TestCase):
         response = views.package_list_data(request)
         self.assertEqual(response.status_code, 200)
 
-        data = json.loads(response.content.decode("utf-8"))
+        data = json_response_to_python(response)
         package_names = [x["name"] for x in data]
         self.assertListEqual(package_names, ["dummy-1", "dummy-2", "dummy-3"])
 
@@ -54,7 +54,7 @@ class TestPackageList(TestCase):
         response = views.package_list_data(request)
         self.assertEqual(response.status_code, 200)
 
-        data = json.loads(response.content.decode("utf-8"))
+        data = json_response_to_python(response)
         package_names = [x["name"] for x in data]
         self.assertListEqual(package_names, ["dummy-2"])
 
@@ -66,7 +66,7 @@ class TestPackageList(TestCase):
         response = views.package_list_data(request)
         self.assertEqual(response.status_code, 200)
 
-        data = json.loads(response.content.decode("utf-8"))
+        data = json_response_to_python(response)
         package_names = [x["name"] for x in data]
         self.assertListEqual(package_names, ["dummy-1"])
 
@@ -78,7 +78,7 @@ class TestPackageList(TestCase):
         response = views.package_list_data(request)
         self.assertEqual(response.status_code, 200)
 
-        data = json.loads(response.content.decode("utf-8"))
+        data = json_response_to_python(response)
         package_names = [x["name"] for x in data]
         self.assertListEqual(package_names, ["dummy-3"])
 

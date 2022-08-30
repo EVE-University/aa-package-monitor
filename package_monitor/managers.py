@@ -1,5 +1,4 @@
-import json
-from typing import Dict
+from typing import Dict, Set
 
 import importlib_metadata
 from packaging.utils import canonicalize_name
@@ -12,8 +11,10 @@ from app_utils.logging import LoggerAddTag
 
 from . import __title__
 from .app_settings import (
+    PACKAGE_MONITOR_EXCLUDE_PACKAGES,
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
+    PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
 from .core import (
     DistributionPackage,
@@ -48,21 +49,28 @@ class DistributionQuerySet(models.QuerySet):
             result = f"{result} {version_string}"
         return result
 
-
-class DistributionManagerBase(models.Manager):
-    def currently_selected(self) -> models.QuerySet:
-        """Currently selected packages based on global settings,
-        e.g. related to installed apps vs. all packages
-        """
+    def filter_visible(self) -> models.QuerySet:
+        """Filter to include visible packages only based on current settings."""
         if PACKAGE_MONITOR_SHOW_ALL_PACKAGES:
-            return self.all()
-        qs = self.filter(has_installed_apps=True)
+            qs = self.all()
+        else:
+            qs = self.filter(has_installed_apps=True)
         if PACKAGE_MONITOR_INCLUDE_PACKAGES:
             qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
+        if PACKAGE_MONITOR_EXCLUDE_PACKAGES:
+            qs = qs.exclude(name__in=PACKAGE_MONITOR_EXCLUDE_PACKAGES)
+        if not PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES:
+            qs = qs.exclude(is_editable=True)
         return qs
 
+    def names(self) -> Set[str]:
+        """Return QS as set of names."""
+        return set(self.values_list("name", flat=True))
+
+
+class DistributionManagerBase(models.Manager):
     def update_all(self, use_threads=False) -> int:
-        """Updates the list of relevant distribution packages in the database"""
+        """Update the list of relevant distribution packages in the database."""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
@@ -79,7 +87,7 @@ class DistributionManagerBase(models.Manager):
     def _save_packages(
         self, packages: Dict[str, DistributionPackage], requirements: dict
     ) -> None:
-        """Saves the given package information into the model"""
+        """Save the given package information into the model."""
 
         def metadata_value(dist, prop: str) -> str:
             return (
@@ -121,8 +129,7 @@ class DistributionManagerBase(models.Manager):
                     used_by = []
 
                 name = _none_2_empty(package.distribution.metadata["Name"])
-                apps = _none_2_empty(json.dumps(sorted(package.apps, key=str.casefold)))
-                used_by = _none_2_empty(json.dumps(used_by))
+                apps = sorted(package.apps, key=str.casefold)
                 installed_version = _none_2_empty(package.distribution.version)
                 latest_version = str(package.latest) if package.latest else ""
                 description = _none_2_empty(
@@ -138,6 +145,7 @@ class DistributionManagerBase(models.Manager):
                     installed_version=installed_version,
                     latest_version=latest_version,
                     is_outdated=is_outdated,
+                    is_editable=package.is_editable(),
                     description=description,
                     website_url=website_url,
                 )

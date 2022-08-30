@@ -10,7 +10,7 @@ def create_testdata():
     )
     DistributionFactory(
         name="dummy-1",
-        app_list=["app_1"],
+        apps=["app_1"],
         installed_version="0.1.0",
         latest_version="0.1.0",
         is_outdated=False,

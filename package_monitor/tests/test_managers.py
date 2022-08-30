@@ -1,17 +1,14 @@
-import json
 import re
 from collections import namedtuple
 from copy import copy
 from unittest.mock import Mock, patch
 
 import requests
-from importlib_metadata import PackagePath
 
 from app_utils.testing import NoSocketsTestCase
 
 from ..models import Distribution
-from .factories import DistributionFactory
-from .testdata import create_testdata
+from .factories import DistributionFactory, ImportlibDistributionStub
 
 MODULE_PATH_CORE = "package_monitor.core"
 MODULE_PATH_MODELS = "package_monitor.models"
@@ -19,26 +16,6 @@ MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
 SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
-
-
-class ImportlibDistributionStub:
-    def __init__(
-        self,
-        name: str,
-        version: str,
-        files: list,
-        requires: list = None,
-        homepage_url: str = "",
-        description: str = "",
-    ) -> None:
-        self.metadata = {
-            "Name": name,
-            "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
-            "Summary": description if description != "" else "UNKNOWN",
-        }
-        self.version = version
-        self.files = [PackagePath(f) for f in files]
-        self.requires = requires if requires else None
 
 
 class DjangoAppConfigStub:
@@ -295,24 +272,22 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "0.1.1")
         self.assertEqual(obj.latest_version, "0.2.0")
         self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps(["dummy_1"]))
+        self.assertListEqual(obj.apps, ["dummy_1"])
         self.assertTrue(obj.has_installed_apps)
-        self.assertEqual(
+        self.assertListEqual(
             obj.used_by,
-            json.dumps(
-                [
-                    {
-                        "name": "Dummy-2",
-                        "homepage_url": "homepage-dummy-2",
-                        "requirements": ["<0.3.0"],
-                    },
-                    {
-                        "name": "dummy-3",
-                        "homepage_url": "",
-                        "requirements": [">0.1.0"],
-                    },
-                ]
-            ),
+            [
+                {
+                    "name": "Dummy-2",
+                    "homepage_url": "homepage-dummy-2",
+                    "requirements": ["<0.3.0"],
+                },
+                {
+                    "name": "dummy-3",
+                    "homepage_url": "",
+                    "requirements": [">0.1.0"],
+                },
+            ],
         )
         self.assertEqual(obj.website_url, "homepage-dummy-1")
         self.assertEqual(obj.description, "description-dummy-1")
@@ -351,7 +326,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "2009r")
         self.assertEqual(obj.latest_version, "")
         self.assertIsNone(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps([]))
+        self.assertListEqual(obj.apps, [])
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
@@ -374,7 +349,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.installed_version, "1.0.0b2")
         self.assertEqual(obj.latest_version, "1.0.0b3")
         self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.apps, json.dumps([]))
+        self.assertListEqual(obj.apps, [])
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
@@ -521,35 +496,78 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
     """
 
 
-class TestDistributionCurrentlySelected(NoSocketsTestCase):
-    def setUp(self) -> None:
-        create_testdata()
+class TestDistributionFilterVisible(NoSocketsTestCase):
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_all_packages(self):
+        # given
+        obj_1 = DistributionFactory()
+        obj_2 = DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_apps_only(self):
+        # given
+        obj_1 = DistributionFactory(apps=["app_1"])
+        DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["include-me"])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_apps_plus_included(self):
+        # given
+        obj_1 = DistributionFactory(apps=["app_1"])
+        obj_2 = DistributionFactory(name="include-me")
+        DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
-    def test_all_packages(self):
-        result = Distribution.objects.currently_selected()
-        self.assertEqual(result.count(), 3)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", ["exclude-me"])
+    def test_should_have_all_packages_minus_excluded(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me")
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
 
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
-    def test_apps_related_packages(self):
-        result = Distribution.objects.currently_selected()
-        self.assertEqual(result.count(), 1)
-        self.assertEqual(set(result.values_list("name", flat=True)), {"dummy-1"})
-
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["dummy-3"])
-    def test_apps_related_packages_plus_addons(self):
-        result = Distribution.objects.currently_selected()
-        self.assertEqual(result.count(), 2)
-        self.assertEqual(
-            set(result.values_list("name", flat=True)), {"dummy-1", "dummy-3"}
-        )
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_all_packages_minus_editable(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me", is_editable=True)
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
 
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
 class TestDistributionBuildInstallCommand(NoSocketsTestCase):
     def test_all_packages(self):
         # given

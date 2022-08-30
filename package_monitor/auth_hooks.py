@@ -23,7 +23,7 @@ class PackageMonitorMenuItem(MenuItemHook):
 
     def render(self, request):
         if request.user.has_perm("package_monitor.basic_access"):
-            app_count = Distribution.objects.currently_selected().outdated_count()
+            app_count = Distribution.objects.filter_visible().outdated_count()
             self.count = app_count if app_count and app_count > 0 else None
             return MenuItemHook.render(self, request)
         return ""
