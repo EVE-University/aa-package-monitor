@@ -527,21 +527,27 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
-    def test_all_packages(self):
-        result = Distribution.objects.currently_selected()
+    def test_should_have_all_packages(self):
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
         self.assertEqual(result.count(), 3)
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
-    def test_apps_related_packages(self):
-        result = Distribution.objects.currently_selected()
+    def test_should_have_apps_only(self):
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
         self.assertEqual(result.count(), 1)
         self.assertEqual(set(result.values_list("name", flat=True)), {"dummy-1"})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["dummy-3"])
-    def test_apps_related_packages_plus_addons(self):
-        result = Distribution.objects.currently_selected()
+    def test_should_have_apps_plus_included(self):
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
         self.assertEqual(result.count(), 2)
         self.assertEqual(
             set(result.values_list("name", flat=True)), {"dummy-1", "dummy-3"}

@@ -48,12 +48,8 @@ class DistributionQuerySet(models.QuerySet):
             result = f"{result} {version_string}"
         return result
 
-
-class DistributionManagerBase(models.Manager):
-    def currently_selected(self) -> models.QuerySet:
-        """Currently selected packages based on global settings,
-        e.g. related to installed apps vs. all packages
-        """
+    def filter_visible(self) -> models.QuerySet:
+        """Filter to include visible packages only based on current settings."""
         if PACKAGE_MONITOR_SHOW_ALL_PACKAGES:
             return self.all()
         qs = self.filter(has_installed_apps=True)
@@ -61,8 +57,10 @@ class DistributionManagerBase(models.Manager):
             qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
         return qs
 
+
+class DistributionManagerBase(models.Manager):
     def update_all(self, use_threads=False) -> int:
-        """Updates the list of relevant distribution packages in the database"""
+        """Update the list of relevant distribution packages in the database."""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
@@ -79,7 +77,7 @@ class DistributionManagerBase(models.Manager):
     def _save_packages(
         self, packages: Dict[str, DistributionPackage], requirements: dict
     ) -> None:
-        """Saves the given package information into the model"""
+        """Save the given package information into the model."""
 
         def metadata_value(dist, prop: str) -> str:
             return (

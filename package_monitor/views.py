@@ -22,13 +22,13 @@ PACKAGE_LIST_FILTER_PARAM = "filter"
 def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
-    distributions_qs = Distribution.objects.currently_selected()
+    distributions_qs = Distribution.objects.filter_visible()
     filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM)
     if not filter:
-        app_count = Distribution.objects.currently_selected().outdated_count()
+        app_count = Distribution.objects.filter_visible().outdated_count()
         filter = "outdated" if app_count and app_count > 0 else "current"
     outdated_install_command = (
-        Distribution.objects.currently_selected()
+        Distribution.objects.filter_visible()
         .filter(is_outdated=True)
         .order_by("name")
         .build_install_command()
@@ -56,8 +56,7 @@ def package_list_data(request) -> JsonResponse:
     Specify different subsets with the "filter" GET parameter
     """
     my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM, "")
-    distributions_qs = Distribution.objects.currently_selected()
-
+    distributions_qs = Distribution.objects.filter_visible()
     if my_filter == "outdated":
         distributions_qs = distributions_qs.filter(is_outdated=True)
     elif my_filter == "current":
