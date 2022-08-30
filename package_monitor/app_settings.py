@@ -11,3 +11,8 @@ PACKAGE_MONITOR_SHOW_ALL_PACKAGES = clean_setting(
 """Whether to show all distribution packages,
 as opposed to only showing packages that contain Django apps.
 """
+
+PACKAGE_MONITOR_EXCLUDE_PACKAGES = clean_setting(
+    "PACKAGE_MONITOR_EXCLUDE_PACKAGES", default_value=[]
+)
+"""Names of distribution packages to be excluded."""

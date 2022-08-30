@@ -11,7 +11,6 @@ from app_utils.testing import NoSocketsTestCase
 
 from ..models import Distribution
 from .factories import DistributionFactory
-from .testdata import create_testdata
 
 MODULE_PATH_CORE = "package_monitor.core"
 MODULE_PATH_MODELS = "package_monitor.models"
@@ -522,36 +521,50 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
 
 class TestDistributionCurrentlySelected(NoSocketsTestCase):
-    def setUp(self) -> None:
-        create_testdata()
-
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     def test_should_have_all_packages(self):
+        # given
+        obj_1 = DistributionFactory()
+        obj_2 = DistributionFactory()
         # when
         result = Distribution.objects.filter_visible()
         # then
-        self.assertEqual(result.count(), 3)
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     def test_should_have_apps_only(self):
+        # given
+        obj_1 = DistributionFactory(app_list=["app_1"])
+        DistributionFactory()
         # when
         result = Distribution.objects.filter_visible()
         # then
-        self.assertEqual(result.count(), 1)
-        self.assertEqual(set(result.values_list("name", flat=True)), {"dummy-1"})
+        self.assertEqual(result.names(), {obj_1.name})
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["dummy-3"])
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["include-me"])
     def test_should_have_apps_plus_included(self):
+        # given
+        obj_1 = DistributionFactory(app_list=["app_1"])
+        obj_2 = DistributionFactory(name="include-me")
+        DistributionFactory()
         # when
         result = Distribution.objects.filter_visible()
         # then
-        self.assertEqual(result.count(), 2)
-        self.assertEqual(
-            set(result.values_list("name", flat=True)), {"dummy-1", "dummy-3"}
-        )
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
+
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", ["exclude-me"])
+    def test_should_have_all_packages_minus_excluded(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me")
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
 
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)

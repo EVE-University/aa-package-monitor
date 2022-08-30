@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, Set
 
 import importlib_metadata
 from packaging.utils import canonicalize_name
@@ -12,6 +12,7 @@ from app_utils.logging import LoggerAddTag
 
 from . import __title__
 from .app_settings import (
+    PACKAGE_MONITOR_EXCLUDE_PACKAGES,
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
 )
@@ -51,11 +52,18 @@ class DistributionQuerySet(models.QuerySet):
     def filter_visible(self) -> models.QuerySet:
         """Filter to include visible packages only based on current settings."""
         if PACKAGE_MONITOR_SHOW_ALL_PACKAGES:
-            return self.all()
-        qs = self.filter(has_installed_apps=True)
+            qs = self.all()
+        else:
+            qs = self.filter(has_installed_apps=True)
         if PACKAGE_MONITOR_INCLUDE_PACKAGES:
             qs |= self.filter(name__in=PACKAGE_MONITOR_INCLUDE_PACKAGES)
+        if PACKAGE_MONITOR_EXCLUDE_PACKAGES:
+            qs = qs.exclude(name__in=PACKAGE_MONITOR_EXCLUDE_PACKAGES)
         return qs
+
+    def names(self) -> Set[str]:
+        """Return QS as set of names."""
+        return set(self.values_list("name", flat=True))
 
 
 class DistributionManagerBase(models.Manager):

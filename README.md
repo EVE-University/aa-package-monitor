@@ -39,7 +39,7 @@ Features:
 - Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
 - Copy the respective command for a package update to your clipboard directly from the package list
 
-## Screenshot
+## Screenshots
 
 ![screenshot](https://i.imgur.com/9ZMz1ji.png)
 
@@ -154,7 +154,8 @@ Note that all settings are optional and the app will use the documented default 
 
 Name | Description | Default
 -- | -- | --
-`PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `None`
+`PACKAGE_MONITOR_EXCLUDE_PACKAGES`| Names of distribution packages to excluded from monitoring.  | `[]`
+`PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `[]`
 `PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps  | `True`
 
 ## Permissions

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Ability to exclude distribution packages via new setting
+
 ### Changed
 
 ### Fixed
