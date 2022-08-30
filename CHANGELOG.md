@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Ability to exclude distribution packages via new setting
-
 ### Changed
 
 ### Fixed
+
+## [1.6.0] - 2022-08-30
+
+### Added
+
+- Ability to exclude distribution packages via new setting
 
 ## [1.5.0] - 2022-08-02
 
