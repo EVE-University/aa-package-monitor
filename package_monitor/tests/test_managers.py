@@ -526,7 +526,7 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         create_testdata()
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     def test_should_have_all_packages(self):
         # when
         result = Distribution.objects.filter_visible()
@@ -534,7 +534,7 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
         self.assertEqual(result.count(), 3)
 
     @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
-    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+    @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
     def test_should_have_apps_only(self):
         # when
         result = Distribution.objects.filter_visible()
@@ -555,7 +555,7 @@ class TestDistributionCurrentlySelected(NoSocketsTestCase):
 
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
 class TestDistributionBuildInstallCommand(NoSocketsTestCase):
     def test_all_packages(self):
         # given

@@ -15,7 +15,7 @@ MODULE_PATH_MANAGERS = "package_monitor.managers"
 
 
 @patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
-@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", None)
+@patch(MODULE_PATH_MANAGERS + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
 class TestPackageList(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
