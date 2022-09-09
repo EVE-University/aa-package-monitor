@@ -1,5 +1,4 @@
 import re
-from collections import namedtuple
 from copy import copy
 from unittest.mock import Mock, patch
 
@@ -13,9 +12,6 @@ from .factories import DistributionFactory, ImportlibDistributionStub
 MODULE_PATH_CORE = "package_monitor.core"
 MODULE_PATH_MODELS = "package_monitor.models"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
-
-
-SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class DjangoAppConfigStub:
@@ -227,32 +223,6 @@ def requests_get_stub(*args, **kwargs):
 @patch(MODULE_PATH_CORE + ".django_apps", spec=True)
 @patch(MODULE_PATH_CORE + ".importlib_metadata.distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
-    def test_should_create_all_detected_packages(
-        self, mock_distributions, mock_django_apps, mock_requests
-    ):
-        # given
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_stub
-        mock_requests.codes.ok = 200
-        # when
-        result = Distribution.objects.update_all()
-        # then
-        self.assertEqual(result, 8)
-        self.assertSetEqual(
-            set(Distribution.objects.values_list("name", flat=True)),
-            {
-                "dummy-1",
-                "Dummy-2",
-                "dummy-3",
-                "dummy-4",
-                "dummy-5",
-                "dummy-6",
-                "dummy-7",
-                "dummy-8",
-            },
-        )
-
     def test_package_with_apps(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
@@ -291,19 +261,6 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         )
         self.assertEqual(obj.website_url, "homepage-dummy-1")
         self.assertEqual(obj.description, "description-dummy-1")
-
-    def test_should_retain_package_name_with_capitals(
-        self, mock_distributions, mock_django_apps, mock_requests
-    ):
-        # given
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_stub
-        mock_requests.codes.ok = 200
-        # when
-        Distribution.objects.update_all()
-        # then
-        self.assertTrue(Distribution.objects.filter(name="Dummy-2").exists())
 
     def test_invalid_version(self, mock_distributions, mock_django_apps, mock_requests):
         """
@@ -349,29 +306,6 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertFalse(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "")
 
-    def test_pypi_is_offline(self, mock_distributions, mock_django_apps, mock_requests):
-        """
-        when pypi is offline
-        then last_version for all packages is empty and is_outdated is set to None
-        """
-
-        def requests_get_error_stub(*args, **kwargs):
-            r = Mock(spec=requests.Response)
-            r.status_code = 500
-            return r
-
-        # given
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_error_stub
-        mock_requests.codes.ok = 200
-        # when
-        Distribution.objects.update_all()
-        # then
-        obj = Distribution.objects.get(name="dummy-1")
-        self.assertEqual(obj.latest_version, "")
-        self.assertIsNone(obj.is_outdated)
-
     def test_invalid_extra_requirement(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
@@ -410,48 +344,6 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         obj = Distribution.objects.get(name="dummy-3")
         self.assertEqual(obj.installed_version, "0.3.0")
         self.assertEqual(obj.latest_version, "0.5.0")
-        self.assertTrue(obj.is_outdated)
-
-    def test_handle_yanked_release(
-        self, mock_distributions, mock_django_apps, mock_requests
-    ):
-        """
-        when a release on PyPI has been yanked
-        then ignore it
-        """
-        # given
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_stub
-        mock_requests.codes.ok = 200
-        # when
-        Distribution.objects.update_all()
-        # then
-        obj = Distribution.objects.get(name="dummy-6")
-        self.assertEqual(obj.installed_version, "0.1.0")
-        self.assertEqual(obj.latest_version, "0.4.0")
-        self.assertTrue(obj.is_outdated)
-
-    @patch(MODULE_PATH_CORE + ".sys")
-    def test_handle_release_with_python_requirement(
-        self, mock_sys, mock_distributions, mock_django_apps, mock_requests
-    ):
-        """
-        when a release on PyPI has an incompatible Python version requirement
-        then ignore it
-        """
-        # given
-        mock_sys.version_info = SysVersionInfo(3, 6, 9)
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_stub
-        mock_requests.codes.ok = 200
-        # when
-        Distribution.objects.update_all()
-        # then
-        obj = Distribution.objects.get(name="dummy-7")
-        self.assertEqual(obj.installed_version, "0.1.0")
-        self.assertEqual(obj.latest_version, "0.4.0")
         self.assertTrue(obj.is_outdated)
 
     def test_with_threads(self, mock_distributions, mock_django_apps, mock_requests):

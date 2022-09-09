@@ -1,3 +1,4 @@
+from collections import namedtuple
 from unittest import mock
 
 import requests_mock
@@ -5,7 +6,11 @@ from packaging.specifiers import SpecifierSet
 
 from app_utils.testing import NoSocketsTestCase
 
-from package_monitor.core import compile_package_requirements, update_packages_from_pypi
+from package_monitor.core import (
+    compile_package_requirements,
+    fetch_relevant_packages,
+    update_packages_from_pypi,
+)
 
 from .factories import (
     DistributionPackageFactory,
@@ -16,6 +21,8 @@ from .factories import (
 )
 
 MODULE_PATH = "package_monitor.core"
+
+SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
@@ -35,6 +42,27 @@ class TestDistributionPackage(NoSocketsTestCase):
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
+class TestFetchRelevantPackages(NoSocketsTestCase):
+    def test_should_fetch_all_packages(self, mock_distributions):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha")
+        dist_bravo = ImportlibDistributionStubFactory(
+            name="bravo", requires=["alpha>=1.0.0"]
+        )
+        distributions = lambda: iter([dist_alpha, dist_bravo])  # noqa: E731
+        packages = distributions_to_packages(distributions())
+        mock_distributions.side_effect = distributions
+        # when
+        result = fetch_relevant_packages()
+        # then
+        self.assertSetEqual(set(packages.keys()), set(result.keys()))
+
+    def test_should_detect_django_apps(self, mock_distributions):
+        ...
+        # TODO
+
+
+@mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestCompilePackageRequirements(NoSocketsTestCase):
     def test_should_compile_requirements(self, mock_distributions):
         # given
@@ -51,6 +79,19 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
 
+    def test_should_ignore_invalid_requirements(self, mock_distributions):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha")
+        dist_bravo = ImportlibDistributionStubFactory(name="bravo", requires=["2009r"])
+        distributions = lambda: iter([dist_alpha, dist_bravo])  # noqa: E731
+        packages = distributions_to_packages(distributions())
+        mock_distributions.side_effect = distributions
+        # when
+        result = compile_package_requirements(packages)
+        # then
+        expected = {}
+        self.assertDictEqual(expected, result)
+
 
 @requests_mock.Mocker()
 class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
@@ -59,7 +100,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
         distributions = lambda: iter([dist_alpha])  # noqa: E731
         packages = distributions_to_packages(distributions())
-        requirements = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
+        requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
         requests_mocker.register_uri(
@@ -71,3 +112,64 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.1.0")
+
+    def test_should_set_latest_to_empty_string_on_network_error(self, requests_mocker):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
+        distributions = lambda: iter([dist_alpha])  # noqa: E731
+        packages = distributions_to_packages(distributions())
+        requirements = {}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        requests_mocker.register_uri(
+            "GET",
+            "https://pypi.org/pypi/alpha/json",
+            status_code=500,
+            reason="Test error",
+        )
+        # when
+        update_packages_from_pypi(
+            packages=packages, requirements=requirements, use_threads=False
+        )
+        # then
+        self.assertEqual(packages["alpha"].latest, "")
+
+    def test_should_ignore_yanked_releases(self, requests_mocker):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
+        distributions = lambda: iter([dist_alpha])  # noqa: E731
+        packages = distributions_to_packages(distributions())
+        requirements = {}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(yanked=True)]
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+        )
+        # when
+        update_packages_from_pypi(
+            packages=packages, requirements=requirements, use_threads=False
+        )
+        # then
+        self.assertEqual(packages["alpha"].latest, "1.0.0")
+
+    @mock.patch(MODULE_PATH + ".sys")
+    def test_should_ignore_releases_with_incompatible_python_requirement(
+        self, requests_mocker, mock_sys
+    ):
+        # given
+        mock_sys.version_info = SysVersionInfo(3, 6, 9)
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
+        distributions = lambda: iter([dist_alpha])  # noqa: E731
+        packages = distributions_to_packages(distributions())
+        requirements = {}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.7")]
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+        )
+        # when
+        update_packages_from_pypi(
+            packages=packages, requirements=requirements, use_threads=False
+        )
+        # then
+        self.assertEqual(packages["alpha"].latest, "1.0.0")

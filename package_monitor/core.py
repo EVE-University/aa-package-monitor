@@ -75,7 +75,7 @@ class DistributionPackage:
 
 
 def fetch_relevant_packages() -> Dict[str, DistributionPackage]:
-    """Fetch distribution packages with packages relevant for this Django installation"""
+    """Fetch distribution packages and detect Django apps."""
     packages = dict()
     for dist in DistributionWrapped.from_distributions(
         importlib_metadata.distributions()
@@ -219,7 +219,7 @@ def update_packages_from_pypi(
                 )
             else:
                 logger.warning(
-                    "Failed to retrive infos from PyPI for "
+                    "Failed to retrieve infos from PyPI for "
                     f"package '{package_name_with_case}'. "
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
