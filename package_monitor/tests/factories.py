@@ -1,3 +1,6 @@
+from dataclasses import asdict, dataclass, field
+from typing import Dict, List
+
 import factory
 import factory.fuzzy
 from importlib_metadata import PackagePath
@@ -6,6 +9,93 @@ from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
 
 faker = factory.faker.faker.Faker()
+
+
+@dataclass
+class PypiUrl:
+    url: str
+    # incomplete
+
+
+@dataclass
+class PypiRelease:
+    comment_text: str
+    yanked: bool
+    requires_python: str = ""
+    # yanked_reason: str = None
+    # incomplete
+
+
+@dataclass
+class PypiInfo:
+    name: str
+    version: str
+    description: str = ""
+    home_page: str = ""
+    # summary: str
+    # author: str
+    # author_email: str
+    # license: str
+    # yanked: bool
+    # yanked_reason: str = None
+    # maintainer: str = None
+    # maintainer_email: str = None
+    # ...
+
+
+@dataclass
+class Pypi:
+    info: PypiInfo
+    last_serial: int
+    releases: Dict[str, PypiRelease]
+    urls: List[PypiUrl]
+    requires_dist: List[str] = field(default=list)
+    requires_python: str = ""
+
+    def asdict(self) -> dict:
+        return asdict(self)
+
+
+class PypiReleaseFactory(factory.Factory):
+    class Meta:
+        model = PypiRelease
+
+    comment_text = factory.faker.Faker("sentence")
+    yanked = False
+
+
+class PypiUrlFactory(factory.Factory):
+    class Meta:
+        model = PypiUrl
+
+    url = factory.faker.Faker("url")
+
+
+class PypiInfoFactory(factory.Factory):
+    class Meta:
+        model = PypiInfo
+
+
+class PypiFactory(factory.Factory):
+    class Meta:
+        model = Pypi
+        exclude = ("distribution",)
+
+    info = factory.LazyAttribute(
+        lambda o: PypiInfoFactory(
+            name=o.distribution.metadata["Name"],
+            version=o.distribution.version,
+            description=o.distribution.metadata["Summary"],
+            home_page=o.distribution.metadata["Home-page"],
+        )
+    )
+    last_serial = factory.fuzzy.FuzzyInteger(1_000_000, 10_000_000)
+    requires_dist = factory.LazyAttribute(lambda o: o.distribution.requires)
+    requires_python = "~=3.7"
+    releases = factory.LazyAttribute(
+        lambda o: {o.distribution.version: [PypiReleaseFactory()]}
+    )
+    urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
 
 
 class ImportlibDistributionStub:
@@ -50,6 +140,15 @@ class ImportlibDistributionStubFactory(factory.Factory):
         path = faker.words(1)[0]
         files = faker.words(3)
         return [f"{path}/{file}.py" for file in files]
+
+    @classmethod
+    def _adjust_kwargs(cls, **kwargs):
+        requires = kwargs.get("requires")
+        if requires and (
+            isinstance(requires, str) or not hasattr(requires, "__iter__")
+        ):
+            raise RuntimeError(f"requires need to be an iterable: {requires}")
+        return kwargs
 
 
 class DistributionPackageFactory(factory.Factory):

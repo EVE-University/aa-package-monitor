@@ -227,7 +227,7 @@ def requests_get_stub(*args, **kwargs):
 @patch(MODULE_PATH_CORE + ".django_apps", spec=True)
 @patch(MODULE_PATH_MANAGERS + ".importlib_metadata.distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
-    def test_all_packages_detected(
+    def test_should_create_all_detected_packages(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
         # given
@@ -292,13 +292,9 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.website_url, "homepage-dummy-1")
         self.assertEqual(obj.description, "description-dummy-1")
 
-    def test_package_name_with_capitals(
+    def test_should_retain_package_name_with_capitals(
         self, mock_distributions, mock_django_apps, mock_requests
     ):
-        """
-        when package name has capitals
-        those are retained for the saved distribution object
-        """
         # given
         mock_distributions.side_effect = distributions_stub
         mock_django_apps.get_app_configs.side_effect = get_app_configs_stub

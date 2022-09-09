@@ -153,7 +153,7 @@ def update_packages_from_pypi(
     def thread_update_latest_from_pypi(package_name: str) -> None:
         """Retrieves latest valid version from PyPI and updates packages
 
-        Note: This inner function runs as thread
+        Note: This inner function can run as thread
         """
         nonlocal packages
 
