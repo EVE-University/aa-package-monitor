@@ -1,6 +1,5 @@
 from typing import Dict, Set
 
-import importlib_metadata
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
@@ -74,10 +73,8 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        packages = fetch_relevant_packages(importlib_metadata.distributions())
-        requirements = compile_package_requirements(
-            packages, importlib_metadata.distributions()
-        )
+        packages = fetch_relevant_packages()
+        requirements = compile_package_requirements(packages)
         update_packages_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)
         packages_count = len(packages)

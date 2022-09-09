@@ -74,12 +74,12 @@ class DistributionPackage:
         return False
 
 
-def fetch_relevant_packages(
-    distributions: Iterable[importlib_metadata.Distribution],
-) -> Dict[str, DistributionPackage]:
+def fetch_relevant_packages() -> Dict[str, DistributionPackage]:
     """Fetch distribution packages with packages relevant for this Django installation"""
     packages = dict()
-    for dist in DistributionWrapped.from_distributions(distributions):
+    for dist in DistributionWrapped.from_distributions(
+        importlib_metadata.distributions()
+    ):
         if dist.name not in packages:
             packages[dist.name] = DistributionPackage(
                 **{
@@ -113,13 +113,10 @@ def _parse_requirements(requires: list) -> List[Requirement]:
     return requirements
 
 
-def compile_package_requirements(
-    packages: Dict[str, DistributionPackage],
-    distributions: Iterable[importlib_metadata.Distribution],
-) -> dict:
+def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = dict()
-    for dist in distributions:
+    for dist in importlib_metadata.distributions():
         if dist.requires:
             for requirement in _parse_requirements(dist.requires):
                 requirement_name = canonicalize_name(requirement.name)

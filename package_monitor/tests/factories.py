@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import factory
 import factory.fuzzy
@@ -179,3 +179,16 @@ class DistributionFactory(factory.django.DjangoModelFactory):
         minor = int_fuzzer.fuzz()
         patch = int_fuzzer.fuzz()
         return f"{major}.{minor}.{patch}"
+
+
+def distributions_to_packages(
+    distributions: Iterable[ImportlibDistributionStub],
+) -> Dict[str, DistributionPackage]:
+    """Convert list of distributions to packages."""
+    return {
+        obj.name: obj
+        for obj in [
+            DistributionPackageFactory(distribution=distribution)
+            for distribution in distributions
+        ]
+    }

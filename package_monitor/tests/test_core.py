@@ -12,19 +12,10 @@ from .factories import (
     ImportlibDistributionStubFactory,
     PypiFactory,
     PypiReleaseFactory,
+    distributions_to_packages,
 )
 
 MODULE_PATH = "package_monitor.core"
-
-
-def distributions_to_packages(distributions):
-    return {
-        obj.name: obj
-        for obj in [
-            DistributionPackageFactory(distribution=distribution)
-            for distribution in distributions
-        ]
-    }
 
 
 class TestDistributionPackage(NoSocketsTestCase):
@@ -43,8 +34,9 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertTrue(obj.is_editable())
 
 
+@mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestCompilePackageRequirements(NoSocketsTestCase):
-    def test_should_compile_requirements(self):
+    def test_should_compile_requirements(self, mock_distributions):
         # given
         dist_alpha = ImportlibDistributionStubFactory(name="alpha")
         dist_bravo = ImportlibDistributionStubFactory(
@@ -52,8 +44,9 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         )
         distributions = lambda: iter([dist_alpha, dist_bravo])  # noqa: E731
         packages = distributions_to_packages(distributions())
+        mock_distributions.side_effect = distributions
         # when
-        result = compile_package_requirements(packages, distributions())
+        result = compile_package_requirements(packages)
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
@@ -66,7 +59,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
         distributions = lambda: iter([dist_alpha])  # noqa: E731
         packages = distributions_to_packages(distributions())
-        requirements = compile_package_requirements(packages, distributions())
+        requirements = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
         requests_mocker.register_uri(
