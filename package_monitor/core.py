@@ -74,8 +74,8 @@ class DistributionPackage:
         return False
 
 
-def fetch_relevant_packages() -> Dict[str, DistributionPackage]:
-    """Fetch distribution packages and detect Django apps."""
+def gather_distribution_packages() -> Dict[str, DistributionPackage]:
+    """Gather distribution packages and detect Django apps."""
     packages = dict()
     for dist in DistributionWrapped.from_distributions(
         importlib_metadata.distributions()

@@ -18,7 +18,7 @@ from .app_settings import (
 from .core import (
     DistributionPackage,
     compile_package_requirements,
-    fetch_relevant_packages,
+    gather_distribution_packages,
     update_packages_from_pypi,
 )
 
@@ -73,7 +73,7 @@ class DistributionManagerBase(models.Manager):
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
-        packages = fetch_relevant_packages()
+        packages = gather_distribution_packages()
         requirements = compile_package_requirements(packages)
         update_packages_from_pypi(packages, requirements, use_threads)
         self._save_packages(packages, requirements)

@@ -17,11 +17,11 @@ MODULE_PATH = "package_monitor.managers"
 
 @mock.patch(MODULE_PATH + ".update_packages_from_pypi", spec=True)
 @mock.patch(MODULE_PATH + ".compile_package_requirements", spec=True)
-@mock.patch(MODULE_PATH + ".fetch_relevant_packages", spec=True)
+@mock.patch(MODULE_PATH + ".gather_distribution_packages", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
     def test_should_create_new_packages_from_scratch(
         self,
-        mock_fetch_relevant_packages,
+        mock_gather_distribution_packages,
         mock_compile_package_requirements,
         mock_update_packages_from_pypi,
     ):
@@ -39,7 +39,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         )
         packages = distributions_to_packages([dist_alpha, dist_bravo])
         packages["alpha"].apps = ["alpha_app"]
-        mock_fetch_relevant_packages.return_value = packages
+        mock_gather_distribution_packages.return_value = packages
         mock_compile_package_requirements.return_value = {
             "alpha": {"bravo": SpecifierSet(">=1.0.0")}
         }
@@ -67,13 +67,13 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
     def test_should_retain_package_name_with_capitals(
         self,
-        mock_fetch_relevant_packages,
+        mock_gather_distribution_packages,
         mock_compile_package_requirements,
         mock_update_packages_from_pypi,
     ):
         # given
         dist_alpha = ImportlibDistributionStubFactory(name="Alpha", version="1.0.0")
-        mock_fetch_relevant_packages.return_value = distributions_to_packages(
+        mock_gather_distribution_packages.return_value = distributions_to_packages(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -88,13 +88,13 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
     def test_should_update_existing_packages(
         self,
-        mock_fetch_relevant_packages,
+        mock_gather_distribution_packages,
         mock_compile_package_requirements,
         mock_update_packages_from_pypi,
     ):
         # given
         dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        mock_fetch_relevant_packages.return_value = distributions_to_packages(
+        mock_gather_distribution_packages.return_value = distributions_to_packages(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -109,13 +109,13 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
     def test_should_remove_stale_packages(
         self,
-        mock_fetch_relevant_packages,
+        mock_gather_distribution_packages,
         mock_compile_package_requirements,
         mock_update_packages_from_pypi,
     ):
         # given
         dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        mock_fetch_relevant_packages.return_value = distributions_to_packages(
+        mock_gather_distribution_packages.return_value = distributions_to_packages(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -131,13 +131,13 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
 
     def test_should_set_is_outdated_to_none_when_no_pypi_infos(
         self,
-        mock_fetch_relevant_packages,
+        mock_gather_distribution_packages,
         mock_compile_package_requirements,
         mock_update_packages_from_pypi,
     ):
         # given
         dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="")
-        mock_fetch_relevant_packages.return_value = distributions_to_packages(
+        mock_gather_distribution_packages.return_value = distributions_to_packages(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}

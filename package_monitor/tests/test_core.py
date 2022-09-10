@@ -8,7 +8,7 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core import (
     compile_package_requirements,
-    fetch_relevant_packages,
+    gather_distribution_packages,
     update_packages_from_pypi,
 )
 
@@ -54,7 +54,7 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
         packages = distributions_to_packages(distributions())
         mock_distributions.side_effect = distributions
         # when
-        result = fetch_relevant_packages()
+        result = gather_distribution_packages()
         # then
         self.assertSetEqual(set(packages.keys()), set(result.keys()))
 
@@ -70,7 +70,7 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
             DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
         ]
         # when
-        result = fetch_relevant_packages()
+        result = gather_distribution_packages()
         # then
         package_alpha = result["alpha"]
         self.assertEqual(package_alpha.apps, ["alpha_app"])
