@@ -11,6 +11,16 @@ from package_monitor.models import Distribution
 faker = factory.faker.faker.Faker()
 
 
+class DjangoAppConfigStub:
+    class ModuleStub:
+        def __init__(self, file: str) -> None:
+            self.__file__ = file
+
+    def __init__(self, name: str, file: str) -> None:
+        self.name = name
+        self.module = self.ModuleStub(file)
+
+
 @dataclass
 class PypiUrl:
     url: str

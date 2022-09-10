@@ -7,21 +7,14 @@ import requests
 from app_utils.testing import NoSocketsTestCase
 
 from ..models import Distribution
-from .factories import DistributionFactory, ImportlibDistributionStub
+from .factories import (
+    DistributionFactory,
+    DjangoAppConfigStub,
+    ImportlibDistributionStub,
+)
 
 MODULE_PATH_CORE = "package_monitor.core"
-MODULE_PATH_MODELS = "package_monitor.models"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
-
-
-class DjangoAppConfigStub:
-    class ModuleStub:
-        def __init__(self, file: str) -> None:
-            self.__file__ = file
-
-    def __init__(self, name: str, file: str) -> None:
-        self.name = name
-        self.module = self.ModuleStub(file)
 
 
 def distributions_stub():
@@ -223,45 +216,6 @@ def requests_get_stub(*args, **kwargs):
 @patch(MODULE_PATH_CORE + ".django_apps", spec=True)
 @patch(MODULE_PATH_CORE + ".importlib_metadata.distributions", spec=True)
 class TestDistributionsUpdateAll(NoSocketsTestCase):
-    def test_package_with_apps(
-        self, mock_distributions, mock_django_apps, mock_requests
-    ):
-        """
-        when a normal package with apps is processed
-        then the resulting object contains a list of apps
-        """
-        # given
-        mock_distributions.side_effect = distributions_stub
-        mock_django_apps.get_app_configs.side_effect = get_app_configs_stub
-        mock_requests.get.side_effect = requests_get_stub
-        mock_requests.codes.ok = 200
-        # when
-        Distribution.objects.update_all()
-        # then
-        obj = Distribution.objects.get(name="dummy-1")
-        self.assertEqual(obj.installed_version, "0.1.1")
-        self.assertEqual(obj.latest_version, "0.2.0")
-        self.assertTrue(obj.is_outdated)
-        self.assertListEqual(obj.apps, ["dummy_1"])
-        self.assertTrue(obj.has_installed_apps)
-        self.assertListEqual(
-            obj.used_by,
-            [
-                {
-                    "name": "Dummy-2",
-                    "homepage_url": "homepage-dummy-2",
-                    "requirements": ["<0.3.0"],
-                },
-                {
-                    "name": "dummy-3",
-                    "homepage_url": "",
-                    "requirements": [">0.1.0"],
-                },
-            ],
-        )
-        self.assertEqual(obj.website_url, "homepage-dummy-1")
-        self.assertEqual(obj.description, "description-dummy-1")
-
     def test_invalid_version(self, mock_distributions, mock_django_apps, mock_requests):
         """
         when current version can not be parsed

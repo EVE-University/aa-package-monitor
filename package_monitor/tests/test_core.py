@@ -14,6 +14,7 @@ from package_monitor.core import (
 
 from .factories import (
     DistributionPackageFactory,
+    DjangoAppConfigStub,
     ImportlibDistributionStubFactory,
     PypiFactory,
     PypiReleaseFactory,
@@ -57,9 +58,22 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
         # then
         self.assertSetEqual(set(packages.keys()), set(result.keys()))
 
-    def test_should_detect_django_apps(self, mock_distributions):
-        ...
-        # TODO
+    @mock.patch(MODULE_PATH + ".django_apps", spec=True)
+    def test_should_detect_django_apps(self, mock_django_apps, mock_distributions):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(
+            name="alpha", files=["alpha/__init__.py"]
+        )
+        distributions = lambda: iter([dist_alpha])  # noqa: E731
+        mock_distributions.side_effect = distributions
+        mock_django_apps.get_app_configs.return_value = [
+            DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
+        ]
+        # when
+        result = fetch_relevant_packages()
+        # then
+        package_alpha = result["alpha"]
+        self.assertEqual(package_alpha.apps, ["alpha_app"])
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
