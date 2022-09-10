@@ -86,6 +86,27 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(obj.latest_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
+    def test_should_update_all_with_threads(
+        self,
+        mock_gather_distribution_packages,
+        mock_compile_package_requirements,
+        mock_update_packages_from_pypi,
+    ):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="Alpha", version="1.0.0")
+        mock_gather_distribution_packages.return_value = distributions_to_packages(
+            [dist_alpha]
+        )
+        mock_compile_package_requirements.return_value = {}
+        # when
+        Distribution.objects.update_all(use_threads=True)
+        # then
+        self.assertEqual(Distribution.objects.count(), 1)
+        obj = Distribution.objects.first()
+        self.assertEqual(obj.name, "Alpha")
+        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertFalse(obj.is_outdated)
+
     def test_should_update_existing_packages(
         self,
         mock_gather_distribution_packages,
@@ -149,3 +170,116 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         obj = Distribution.objects.get(name="alpha")
         self.assertEqual(obj.latest_version, "")
         self.assertIsNone(obj.is_outdated)
+
+    def test_should_set_is_outdated_to_none_when_current_version_can_not_be_parsed(
+        self,
+        mock_gather_distribution_packages,
+        mock_compile_package_requirements,
+        mock_update_packages_from_pypi,
+    ):
+        # given
+        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="2009r")
+        packages = distributions_to_packages([dist_alpha])
+        packages["alpha"].latest = ""
+        mock_gather_distribution_packages.return_value = packages
+        mock_compile_package_requirements.return_value = {}
+        # when
+        Distribution.objects.update_all(use_threads=False)
+        # then
+        self.assertEqual(Distribution.objects.count(), 1)
+        obj = Distribution.objects.get(name="alpha")
+        self.assertEqual(obj.latest_version, "")
+        self.assertIsNone(obj.is_outdated)
+
+
+class TestDistributionFilterVisible(NoSocketsTestCase):
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_all_packages(self):
+        # given
+        obj_1 = DistributionFactory()
+        obj_2 = DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
+
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_apps_only(self):
+        # given
+        obj_1 = DistributionFactory(apps=["app_1"])
+        DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
+
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", ["include-me"])
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_apps_plus_included(self):
+        # given
+        obj_1 = DistributionFactory(apps=["app_1"])
+        obj_2 = DistributionFactory(name="include-me")
+        DistributionFactory()
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name, obj_2.name})
+
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", ["exclude-me"])
+    def test_should_have_all_packages_minus_excluded(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me")
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
+
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+    def test_should_have_all_packages_minus_editable(self):
+        # given
+        obj_1 = DistributionFactory()
+        DistributionFactory(name="exclude-me", is_editable=True)
+        # when
+        result = Distribution.objects.filter_visible()
+        # then
+        self.assertEqual(result.names(), {obj_1.name})
+
+
+@mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
+@mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
+@mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_INCLUDE_PACKAGES", [])
+@mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_EXCLUDE_PACKAGES", [])
+class TestDistributionBuildInstallCommand(NoSocketsTestCase):
+    def test_all_packages(self):
+        # given
+        DistributionFactory(name="alpha", latest_version="1.2.0")
+        DistributionFactory(name="bravo", latest_version="2.1.0")
+        # when
+        result = Distribution.objects.order_by("name").build_install_command()
+        # then
+        self.assertEqual(result, "pip install alpha==1.2.0 bravo==2.1.0")
+
+    def test_should_stay_within_max_line_length(self):
+        # given
+        DistributionFactory.create_batch(size=500)
+        # when
+        result = Distribution.objects.all().build_install_command()
+        # then
+        print(result)
+        print(len(result))
+        self.assertLessEqual(len(result), 4095)
