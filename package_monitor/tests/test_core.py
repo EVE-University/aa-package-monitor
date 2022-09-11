@@ -30,20 +30,6 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
-    def test_should_not_be_editable(self):
-        # given
-        obj = DistributionPackageFactory()
-        # when/then
-        self.assertFalse(obj.is_editable())
-
-    @mock.patch(MODULE_PATH + ".os.path.isfile")
-    def test_should_be_editable(self, mock_isfile):
-        # given
-        mock_isfile.return_value = True
-        obj = DistributionPackageFactory()
-        # when/then
-        self.assertTrue(obj.is_editable())
-
     @mock.patch(MODULE_PATH + ".django_apps", spec=True)
     def test_should_create_from_importlib_distribution(self, mock_django_apps):
         # given
@@ -67,6 +53,38 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
         self.assertEqual(obj.apps, ["alpha_app"])
         self.assertEqual(obj.homepage_url, "https://www.alpha.com")
+
+    def test_should_not_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.0.0")
+        # when/then
+        self.assertFalse(obj.is_outdated())
+
+    def test_should_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.1.0")
+        # when/then
+        self.assertTrue(obj.is_outdated())
+
+    def test_should_return_none_as_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest=None)
+        # when/then
+        self.assertIsNone(obj.is_outdated())
+
+    def test_should_not_be_editable(self):
+        # given
+        obj = DistributionPackageFactory()
+        # when/then
+        self.assertFalse(obj.is_editable())
+
+    @mock.patch(MODULE_PATH + ".os.path.isfile")
+    def test_should_be_editable(self, mock_isfile):
+        # given
+        mock_isfile.return_value = True
+        obj = DistributionPackageFactory()
+        # when/then
+        self.assertTrue(obj.is_editable())
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

@@ -1,7 +1,5 @@
 from typing import Dict, Set
 
-from packaging.version import parse as version_parse
-
 from django.db import models
 
 from allianceauth.services.hooks import get_extension_logger
@@ -79,11 +77,6 @@ class DistributionManagerBase(models.Manager):
         """Save the given package information into the model."""
 
         for package_name, package in packages.items():
-            is_outdated = (
-                version_parse(package.current) < version_parse(package.latest)
-                if package.current and package.latest
-                else None
-            )
             if package_name in requirements:
                 used_by = [
                     {
@@ -111,7 +104,7 @@ class DistributionManagerBase(models.Manager):
                     "used_by": used_by,
                     "installed_version": installed_version,
                     "latest_version": latest_version,
-                    "is_outdated": is_outdated,
+                    "is_outdated": package.is_outdated(),
                     "is_editable": package.is_editable(),
                     "description": package.summary,
                     "website_url": package.homepage_url,
