@@ -4,8 +4,9 @@ from typing import Dict, Iterable, List
 import factory
 import factory.fuzzy
 from importlib_metadata import PackagePath
+from packaging.requirements import Requirement
 
-from package_monitor.core import DistributionPackage, dist_metadata_value
+from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
 
 faker = factory.faker.faker.Faker()
@@ -93,17 +94,19 @@ class PypiFactory(factory.Factory):
 
     info = factory.LazyAttribute(
         lambda o: PypiInfoFactory(
-            name=o.distribution.metadata["Name"],
-            version=o.distribution.version,
-            description=o.distribution.metadata["Summary"],
-            home_page=o.distribution.metadata["Home-page"],
+            name=o.distribution.name,
+            version=o.distribution.current,
+            description=o.distribution.summary,
+            home_page=o.distribution.homepage_url,
         )
     )
     last_serial = factory.fuzzy.FuzzyInteger(1_000_000, 10_000_000)
-    requires_dist = factory.LazyAttribute(lambda o: o.distribution.requires)
+    requires_dist = factory.LazyAttribute(
+        lambda o: [str(obj) for obj in o.distribution.requirements]
+    )
     requires_python = "~=3.7"
     releases = factory.LazyAttribute(
-        lambda o: {o.distribution.version: [PypiReleaseFactory()]}
+        lambda o: {o.distribution.current: [PypiReleaseFactory()]}
     )
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
 
@@ -172,19 +175,28 @@ class ImportlibDistributionStubFactory(factory.Factory):
 class DistributionPackageFactory(factory.Factory):
     class Meta:
         model = DistributionPackage
+        exclude = ("requires",)
 
-    distribution = factory.SubFactory(ImportlibDistributionStubFactory)
-    name = factory.LazyAttribute(lambda o: o.distribution.metadata["Name"])
-    current = factory.LazyAttribute(
-        lambda o: dist_metadata_value(o.distribution, "Version")
-    )
+    requires = ""  # excluded
+
     latest = factory.LazyAttribute(lambda o: o.current)
-    homepage_url = factory.LazyAttribute(
-        lambda o: dist_metadata_value(o.distribution, "Home-page")
-    )
-    summary = factory.LazyAttribute(
-        lambda o: dist_metadata_value(o.distribution, "Summary")
-    )
+    name = factory.Faker("last_name")
+    homepage_url = factory.Faker("url")
+    summary = factory.Faker("sentence")
+
+    @factory.lazy_attribute
+    def current(self):
+        int_fuzzer = factory.fuzzy.FuzzyInteger(0, 20)
+        major = int_fuzzer.fuzz()
+        minor = int_fuzzer.fuzz()
+        patch = int_fuzzer.fuzz()
+        return f"{major}.{minor}.{patch}"
+
+    @factory.lazy_attribute
+    def requirements(self):
+        if self.requires:
+            return [Requirement(obj) for obj in self.requires]
+        return []
 
 
 class DistributionFactory(factory.django.DjangoModelFactory):
@@ -210,11 +222,17 @@ class DistributionFactory(factory.django.DjangoModelFactory):
 def distributions_to_packages(
     distributions: Iterable[ImportlibDistributionStub],
 ) -> Dict[str, DistributionPackage]:
-    """Convert list of distributions to packages."""
+    """Convert list of importlib distributions to packages."""
     return {
         obj.name: obj
         for obj in [
-            DistributionPackageFactory(distribution=distribution)
+            DistributionPackage.create_from_distribution(
+                distribution, disable_app_check=True
+            )
             for distribution in distributions
         ]
     }
+
+
+def make_packages_container(packages):
+    return {obj.name: obj for obj in packages}

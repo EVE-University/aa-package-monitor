@@ -31,7 +31,6 @@ class DistributionPackage:
 
     name: str
     current: str
-    distribution: importlib_metadata.Distribution
     requirements: List[Requirement] = field(default_factory=list)
     apps: List[str] = field(default_factory=list)
     latest: str = ""
@@ -51,7 +50,9 @@ class DistributionPackage:
         return False
 
     @classmethod
-    def create_from_distribution(cls, dist: importlib_metadata.Distribution):
+    def create_from_distribution(
+        cls, dist: importlib_metadata.Distribution, disable_app_check=False
+    ):
         """Create new object from an importlib distribution."""
         obj = cls(
             name=dist.name,
@@ -59,17 +60,17 @@ class DistributionPackage:
             requirements=_parse_requirements(dist.requires),
             homepage_url=dist_metadata_value(dist, "Home-page"),
             summary=dist_metadata_value(dist, "Summary"),
-            distribution=dist,
         )
         dist_files = [
             "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
         ]
-        for dist_file in dist_files:
-            for app in django_apps.get_app_configs():
-                my_file = app.module.__file__
-                if my_file.endswith(dist_file):
-                    obj.apps.append(app.name)
-                    break
+        if not disable_app_check:
+            for dist_file in dist_files:
+                for app in django_apps.get_app_configs():
+                    my_file = app.module.__file__
+                    if my_file.endswith(dist_file):
+                        obj.apps.append(app.name)
+                        break
         return obj
 
 

@@ -8,8 +8,8 @@ from package_monitor.models import Distribution
 
 from .factories import (
     DistributionFactory,
-    ImportlibDistributionStubFactory,
-    distributions_to_packages,
+    DistributionPackageFactory,
+    make_packages_container,
 )
 
 MODULE_PATH = "package_monitor.managers"
@@ -26,18 +26,18 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(
+        dist_alpha = DistributionPackageFactory(
             name="alpha",
-            version="1.0.0",
+            current="1.0.0",
             homepage_url="https://www.alpha.com",
             summary="alpha-description",
         )
-        dist_bravo = ImportlibDistributionStubFactory(
+        dist_bravo = DistributionPackageFactory(
             name="bravo",
             requires=["alpha>=1.0.0"],
             homepage_url="https://www.bravo.com",
         )
-        packages = distributions_to_packages([dist_alpha, dist_bravo])
+        packages = make_packages_container([dist_alpha, dist_bravo])
         packages["alpha"].apps = ["alpha_app"]
         mock_gather_distribution_packages.return_value = packages
         mock_compile_package_requirements.return_value = {
@@ -72,8 +72,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="Alpha", version="1.0.0")
-        mock_gather_distribution_packages.return_value = distributions_to_packages(
+        dist_alpha = DistributionPackageFactory(name="Alpha", current="1.0.0")
+        mock_gather_distribution_packages.return_value = make_packages_container(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -93,8 +93,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="Alpha", version="1.0.0")
-        mock_gather_distribution_packages.return_value = distributions_to_packages(
+        dist_alpha = DistributionPackageFactory(name="Alpha", current="1.0.0")
+        mock_gather_distribution_packages.return_value = make_packages_container(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -114,8 +114,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        mock_gather_distribution_packages.return_value = distributions_to_packages(
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        mock_gather_distribution_packages.return_value = make_packages_container(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -135,8 +135,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        mock_gather_distribution_packages.return_value = distributions_to_packages(
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        mock_gather_distribution_packages.return_value = make_packages_container(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -157,8 +157,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="")
-        mock_gather_distribution_packages.return_value = distributions_to_packages(
+        dist_alpha = DistributionPackageFactory(name="alpha", current="")
+        mock_gather_distribution_packages.return_value = make_packages_container(
             [dist_alpha]
         )
         mock_compile_package_requirements.return_value = {}
@@ -178,8 +178,8 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="2009r")
-        packages = distributions_to_packages([dist_alpha])
+        dist_alpha = DistributionPackageFactory(name="alpha", current="2009r")
+        packages = make_packages_container([dist_alpha])
         packages["alpha"].latest = ""
         mock_gather_distribution_packages.return_value = packages
         mock_compile_package_requirements.return_value = {}

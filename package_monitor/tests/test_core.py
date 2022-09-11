@@ -21,6 +21,7 @@ from .factories import (
     PypiFactory,
     PypiReleaseFactory,
     distributions_to_packages,
+    make_packages_container,
 )
 
 MODULE_PATH = "package_monitor.core"
@@ -62,7 +63,6 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertEqual(obj.name, "Alpha")
         self.assertEqual(obj.name_normalized, "alpha")
         self.assertEqual(obj.current, "1.2.3")
-        self.assertEqual(obj.distribution, dist)
         self.assertEqual(obj.latest, "")
         self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
         self.assertEqual(obj.apps, ["alpha_app"])
@@ -78,12 +78,11 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
             name="bravo", requires=["alpha>=1.0.0"]
         )
         distributions = lambda: iter([dist_alpha, dist_bravo])  # noqa: E731
-        packages = distributions_to_packages(distributions())
         mock_distributions.side_effect = distributions
         # when
         result = gather_distribution_packages()
         # then
-        self.assertSetEqual(set(packages.keys()), set(result.keys()))
+        self.assertSetEqual({"alpha", "bravo"}, set(result.keys()))
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
@@ -168,9 +167,8 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
 class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_update_packages(self, requests_mocker):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -186,9 +184,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
 
     def test_should_ignore_prereleases_when_stable(self, requests_mocker):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0a1"] = [PypiReleaseFactory()]
@@ -204,9 +201,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
 
     def test_should_include_prereleases_when_prerelease(self, requests_mocker):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0a1")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0a1")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.0.0a2"] = [PypiReleaseFactory()]
@@ -222,9 +218,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
 
     def test_should_set_latest_to_empty_string_on_network_error(self, requests_mocker):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -243,9 +238,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
 
     def test_should_ignore_yanked_releases(self, requests_mocker):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(yanked=True)]
@@ -265,9 +259,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     ):
         # given
         mock_sys.version_info = SysVersionInfo(3, 6, 9)
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        packages = distributions_to_packages(distributions())
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages_container([dist_alpha])
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.7")]
