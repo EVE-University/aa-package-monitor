@@ -26,13 +26,6 @@ TERMINAL_MAX_LINE_LENGTH = 4095
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 
-def _none_2_empty(text) -> str:
-    """Translate None to empty string."""
-    if text is None:
-        return ""
-    return text
-
-
 class DistributionQuerySet(models.QuerySet):
     def outdated_count(self) -> int:
         return self.filter(is_outdated=True).count()
@@ -88,9 +81,7 @@ class DistributionManagerBase(models.Manager):
         for package_name, package in packages.items():
             is_outdated = (
                 version_parse(package.current) < version_parse(package.latest)
-                if package.current
-                and package.latest
-                and str(package.current) == str(package.distribution.version)
+                if package.current and package.latest
                 else None
             )
             if package_name in requirements:
@@ -110,7 +101,7 @@ class DistributionManagerBase(models.Manager):
                 used_by = []
 
             apps = sorted(package.apps, key=str.casefold)
-            installed_version = _none_2_empty(package.distribution.version)
+            installed_version = str(package.current) if package.current else ""
             latest_version = str(package.latest) if package.latest else ""
             logger.debug("Package: %s", package)
             self.update_or_create(
