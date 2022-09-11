@@ -30,7 +30,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
             name="alpha",
             version="1.0.0",
             homepage_url="https://www.alpha.com",
-            description="alpha-description",
+            summary="alpha-description",
         )
         dist_bravo = ImportlibDistributionStubFactory(
             name="bravo",

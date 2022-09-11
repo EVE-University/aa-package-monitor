@@ -5,7 +5,7 @@ import factory
 import factory.fuzzy
 from importlib_metadata import PackagePath
 
-from package_monitor.core import DistributionPackage
+from package_monitor.core import DistributionPackage, dist_metadata_value
 from package_monitor.models import Distribution
 
 faker = factory.faker.faker.Faker()
@@ -116,12 +116,12 @@ class ImportlibDistributionStub:
         files: list,
         requires: list = None,
         homepage_url: str = "",
-        description: str = "",
+        summary: str = "",
     ) -> None:
         self.metadata = {
             "Name": name,
             "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
-            "Summary": description if description != "" else "UNKNOWN",
+            "Summary": summary if summary != "" else "UNKNOWN",
             "Version": version if version != "" else "UNKNOWN",
         }
         self.files = [PackagePath(f) for f in files]
@@ -143,7 +143,7 @@ class ImportlibDistributionStubFactory(factory.Factory):
     name = factory.Faker("last_name")
     # files = ["dummy_1/file_1.py", "dummy_1/__init__.py"]
     homepage_url = factory.Faker("url")
-    description = factory.Faker("sentence")
+    summary = factory.Faker("sentence")
 
     @factory.lazy_attribute
     def version(self):
@@ -175,8 +175,16 @@ class DistributionPackageFactory(factory.Factory):
 
     distribution = factory.SubFactory(ImportlibDistributionStubFactory)
     name = factory.LazyAttribute(lambda o: o.distribution.metadata["Name"])
-    current = factory.LazyAttribute(lambda o: metadata_value(o.distribution, "Version"))
+    current = factory.LazyAttribute(
+        lambda o: dist_metadata_value(o.distribution, "Version")
+    )
     latest = factory.LazyAttribute(lambda o: o.current)
+    homepage_url = factory.LazyAttribute(
+        lambda o: dist_metadata_value(o.distribution, "Home-page")
+    )
+    summary = factory.LazyAttribute(
+        lambda o: dist_metadata_value(o.distribution, "Summary")
+    )
 
 
 class DistributionFactory(factory.django.DjangoModelFactory):
@@ -210,7 +218,3 @@ def distributions_to_packages(
             for distribution in distributions
         ]
     }
-
-
-def metadata_value(dist, prop: str) -> str:
-    return dist.metadata[prop] if dist and dist.metadata.get(prop) != "UNKNOWN" else ""

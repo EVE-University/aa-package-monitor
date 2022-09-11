@@ -1,6 +1,5 @@
 from typing import Dict, Set
 
-from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
 from django.db import models
@@ -86,17 +85,6 @@ class DistributionManagerBase(models.Manager):
     ) -> None:
         """Save the given package information into the model."""
 
-        def metadata_value(dist, prop: str) -> str:
-            return (
-                dist.metadata[prop]
-                if dist and dist.metadata.get(prop) != "UNKNOWN"
-                else ""
-            )
-
-        def packages_lookup(packages: dict, name: str, attr: str, default=None):
-            package = packages.get(canonicalize_name(name))
-            return getattr(package, attr) if package else default
-
         for package_name, package in packages.items():
             is_outdated = (
                 version_parse(package.current) < version_parse(package.latest)
@@ -109,10 +97,9 @@ class DistributionManagerBase(models.Manager):
                 used_by = [
                     {
                         "name": package_name,
-                        "homepage_url": metadata_value(
-                            packages_lookup(packages, package_name, "distribution"),
-                            "Home-page",
-                        ),
+                        "homepage_url": packages[package_name].homepage_url
+                        if packages.get(package_name)
+                        else "",
                         "requirements": [str(obj) for obj in package_requirements],
                     }
                     for package_name, package_requirements in requirements[
@@ -122,16 +109,12 @@ class DistributionManagerBase(models.Manager):
             else:
                 used_by = []
 
-            name = _none_2_empty(package.distribution.metadata["Name"])
             apps = sorted(package.apps, key=str.casefold)
             installed_version = _none_2_empty(package.distribution.version)
             latest_version = str(package.latest) if package.latest else ""
-            description = _none_2_empty(metadata_value(package.distribution, "Summary"))
-            website_url = _none_2_empty(
-                metadata_value(package.distribution, "Home-page")
-            )
+            logger.debug("Package: %s", package)
             self.update_or_create(
-                name=name,
+                name=package.name,
                 defaults={
                     "apps": apps,
                     "used_by": used_by,
@@ -139,8 +122,8 @@ class DistributionManagerBase(models.Manager):
                     "latest_version": latest_version,
                     "is_outdated": is_outdated,
                     "is_editable": package.is_editable(),
-                    "description": description,
-                    "website_url": website_url,
+                    "description": package.summary,
+                    "website_url": package.homepage_url,
                 },
             )
         self.exclude(name__in=packages.keys()).delete()

@@ -9,6 +9,7 @@ from app_utils.testing import NoSocketsTestCase
 from package_monitor.core import (
     DistributionPackage,
     compile_package_requirements,
+    dist_metadata_value,
     gather_distribution_packages,
     update_packages_from_pypi,
 )
@@ -50,6 +51,7 @@ class TestDistributionPackage(NoSocketsTestCase):
             version="1.2.3",
             requires=["bravo>=1.0.0"],
             files=["alpha/__init__.py"],
+            homepage_url="https://www.alpha.com",
         )
         mock_django_apps.get_app_configs.return_value = [
             DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
@@ -57,12 +59,14 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when
         obj = DistributionPackage.create_from_distribution(dist)
         # then
-        self.assertEqual(obj.name, "alpha")
+        self.assertEqual(obj.name, "Alpha")
+        self.assertEqual(obj.name_normalized, "alpha")
         self.assertEqual(obj.current, "1.2.3")
         self.assertEqual(obj.distribution, dist)
         self.assertEqual(obj.latest, "")
         self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
         self.assertEqual(obj.apps, ["alpha_app"])
+        self.assertEqual(obj.homepage_url, "https://www.alpha.com")
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
@@ -276,3 +280,36 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
+
+
+class TestDistMetadataValue(NoSocketsTestCase):
+    def test_should_return_value_when_exists(self):
+        # given
+        dist = ImportlibDistributionStubFactory(name="Alpha")
+        # when/then
+        self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
+
+    def test_should_raise_error_when_prop_does_not_exist(self):
+        # given
+        dist = ImportlibDistributionStubFactory(name="Alpha")
+        # when/then
+        with self.assertRaises(KeyError):
+            dist_metadata_value(dist, "XXX")
+
+    def test_should_return_name(self):
+        # given
+        dist = ImportlibDistributionStubFactory(name="Alpha")
+        # when/then
+        self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
+
+    def test_should_return_empty_string_when_value_is_undefined(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url="")
+        # when/then
+        self.assertEqual(dist_metadata_value(dist, "Home-page"), "")
+
+    def test_should_return_empty_string_when_value_is_none(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url=None)
+        # when/then
+        self.assertEqual(dist_metadata_value(dist, "Home-page"), "")

@@ -35,6 +35,12 @@ class DistributionPackage:
     requirements: List[Requirement] = field(default_factory=list)
     apps: List[str] = field(default_factory=list)
     latest: str = ""
+    homepage_url: str = ""
+    summary: str = ""
+
+    @property
+    def name_normalized(self) -> str:
+        return canonicalize_name(self.name)
 
     def is_editable(self):
         """Is distribution an editable install?"""
@@ -48,9 +54,11 @@ class DistributionPackage:
     def create_from_distribution(cls, dist: importlib_metadata.Distribution):
         """Create new object from an importlib distribution."""
         obj = cls(
-            name=canonicalize_name(dist.name),
+            name=dist.name,
             current=dist.version,
             requirements=_parse_requirements(dist.requires),
+            homepage_url=dist_metadata_value(dist, "Home-page"),
+            summary=dist_metadata_value(dist, "Summary"),
             distribution=dist,
         )
         dist_files = [
@@ -67,11 +75,12 @@ class DistributionPackage:
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     """Gather distribution packages and detect Django apps."""
-    return {
-        dist.name: DistributionPackage.create_from_distribution(dist)
+    packages = [
+        DistributionPackage.create_from_distribution(dist)
         for dist in importlib_metadata.distributions()
         if dist.metadata["Name"]
-    }
+    ]
+    return {obj.name_normalized: obj for obj in packages}
 
 
 def _parse_requirements(requires: list) -> List[Requirement]:
@@ -145,14 +154,10 @@ def update_packages_from_pypi(
             str(current_version) == str(package.current)
             and current_version.is_prerelease
         )
-        package_name_with_case = package.distribution.metadata["Name"]
         logger.info(
-            f"Fetching info for distribution package '{package_name_with_case}' "
-            "from PyPI"
+            f"Fetching info for distribution package '{package.name}' " "from PyPI"
         )
-        r = requests.get(
-            f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
-        )
+        r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
         if r.status_code == requests.codes.ok:
             pypi_info = r.json()
             latest = ""
@@ -185,18 +190,16 @@ def update_packages_from_pypi(
 
             if not latest:
                 logger.warning(
-                    f"Could not find a release of '{package_name_with_case}' "
+                    f"Could not find a release of '{package.name}' "
                     f"that matches all requirements: '{consolidated_requirements}''"
                 )
         else:
             if r.status_code == 404:
-                logger.info(
-                    f"Package '{package_name_with_case}' is not registered in PyPI"
-                )
+                logger.info(f"Package '{package.name}' is not registered in PyPI")
             else:
                 logger.warning(
                     "Failed to retrieve infos from PyPI for "
-                    f"package '{package_name_with_case}'. "
+                    f"package '{package.name}'. "
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
                 )
@@ -212,3 +215,10 @@ def update_packages_from_pypi(
     else:
         for package_name in packages.keys():
             thread_update_latest_from_pypi(package_name)
+
+
+def dist_metadata_value(dist: importlib_metadata.Distribution, prop: str) -> str:
+    """Metadata value from distribution or empty string."""
+    if dist and dist.metadata[prop] and dist.metadata[prop] != "UNKNOWN":
+        return dist.metadata[prop]
+    return ""
