@@ -3,7 +3,7 @@ from typing import Dict, Set
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
-from django.db import models, transaction
+from django.db import models
 
 from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
@@ -97,58 +97,53 @@ class DistributionManagerBase(models.Manager):
             package = packages.get(canonicalize_name(name))
             return getattr(package, attr) if package else default
 
-        with transaction.atomic():
-            self.all().delete()
-            objs = list()
-            for package_name, package in packages.items():
-                is_outdated = (
-                    version_parse(package.current) < version_parse(package.latest)
-                    if package.current
-                    and package.latest
-                    and str(package.current) == str(package.distribution.version)
-                    else None
-                )
-                if package_name in requirements:
-                    used_by = [
-                        {
-                            "name": package_name,
-                            "homepage_url": metadata_value(
-                                packages_lookup(packages, package_name, "distribution"),
-                                "Home-page",
-                            ),
-                            "requirements": [str(obj) for obj in package_requirements],
-                        }
-                        for package_name, package_requirements in requirements[
-                            package_name
-                        ].items()
-                    ]
-                else:
-                    used_by = []
+        for package_name, package in packages.items():
+            is_outdated = (
+                version_parse(package.current) < version_parse(package.latest)
+                if package.current
+                and package.latest
+                and str(package.current) == str(package.distribution.version)
+                else None
+            )
+            if package_name in requirements:
+                used_by = [
+                    {
+                        "name": package_name,
+                        "homepage_url": metadata_value(
+                            packages_lookup(packages, package_name, "distribution"),
+                            "Home-page",
+                        ),
+                        "requirements": [str(obj) for obj in package_requirements],
+                    }
+                    for package_name, package_requirements in requirements[
+                        package_name
+                    ].items()
+                ]
+            else:
+                used_by = []
 
-                name = _none_2_empty(package.distribution.metadata["Name"])
-                apps = sorted(package.apps, key=str.casefold)
-                installed_version = _none_2_empty(package.distribution.version)
-                latest_version = str(package.latest) if package.latest else ""
-                description = _none_2_empty(
-                    metadata_value(package.distribution, "Summary")
-                )
-                website_url = _none_2_empty(
-                    metadata_value(package.distribution, "Home-page")
-                )
-                obj = self.model(
-                    name=name,
-                    apps=apps,
-                    used_by=used_by,
-                    installed_version=installed_version,
-                    latest_version=latest_version,
-                    is_outdated=is_outdated,
-                    is_editable=package.is_editable(),
-                    description=description,
-                    website_url=website_url,
-                )
-                obj.calc_has_installed_apps()
-                objs.append(obj)
-            self.bulk_create(objs)
+            name = _none_2_empty(package.distribution.metadata["Name"])
+            apps = sorted(package.apps, key=str.casefold)
+            installed_version = _none_2_empty(package.distribution.version)
+            latest_version = str(package.latest) if package.latest else ""
+            description = _none_2_empty(metadata_value(package.distribution, "Summary"))
+            website_url = _none_2_empty(
+                metadata_value(package.distribution, "Home-page")
+            )
+            self.update_or_create(
+                name=name,
+                defaults={
+                    "apps": apps,
+                    "used_by": used_by,
+                    "installed_version": installed_version,
+                    "latest_version": latest_version,
+                    "is_outdated": is_outdated,
+                    "is_editable": package.is_editable(),
+                    "description": description,
+                    "website_url": website_url,
+                },
+            )
+        self.exclude(name__in=packages.keys()).delete()
 
 
 DistributionManager = DistributionManagerBase.from_queryset(DistributionQuerySet)
