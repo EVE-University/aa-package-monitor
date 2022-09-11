@@ -2,7 +2,7 @@ import concurrent.futures
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List
+from typing import Dict, List, Optional
 
 import importlib_metadata
 import requests
@@ -26,44 +26,26 @@ MAX_THREAD_WORKERS = 30
 
 
 @dataclass
-class DistributionWrapped:
-    """Distribution with some additional information."""
-
-    name: str
-    distribution: importlib_metadata.Distribution
-    files: List[str] = field(default_factory=list)
-
-    @classmethod
-    def from_distribution(
-        cls, dist: importlib_metadata.Distribution
-    ) -> "DistributionWrapped":
-        return cls(
-            name=canonicalize_name(dist.metadata["Name"]),
-            distribution=dist,
-            files=["/" + str(f) for f in dist.files if str(f).endswith("__init__.py")],
-        )
-
-    @classmethod
-    def from_distributions(
-        cls, distributions: Iterable[importlib_metadata.Distribution]
-    ) -> "DistributionWrapped":
-        return [
-            DistributionWrapped.from_distribution(dist)
-            for dist in distributions
-            if dist.metadata["Name"]
-        ]
-
-
-@dataclass
 class DistributionPackage:
-    """A distribution package."""
+    """A parsed distribution package."""
 
     name: str
     current: str
-    distribution: importlib_metadata.Distribution
     requirements: List[Requirement] = field(default_factory=list)
     apps: List[str] = field(default_factory=list)
     latest: str = ""
+    homepage_url: str = ""
+    summary: str = ""
+
+    @property
+    def name_normalized(self) -> str:
+        return canonicalize_name(self.name)
+
+    def is_outdated(self) -> Optional[bool]:
+        """Is this package outdated?"""
+        if self.current and self.latest:
+            return version_parse(self.current) < version_parse(self.latest)
+        return None
 
     def is_editable(self):
         """Is distribution an editable install?"""
@@ -73,29 +55,39 @@ class DistributionPackage:
                 return True
         return False
 
+    @classmethod
+    def create_from_distribution(
+        cls, dist: importlib_metadata.Distribution, disable_app_check=False
+    ):
+        """Create new object from an importlib distribution."""
+        obj = cls(
+            name=dist.name,
+            current=dist.version,
+            requirements=_parse_requirements(dist.requires),
+            homepage_url=dist_metadata_value(dist, "Home-page"),
+            summary=dist_metadata_value(dist, "Summary"),
+        )
+        dist_files = [
+            "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
+        ]
+        if not disable_app_check:
+            for dist_file in dist_files:
+                for app in django_apps.get_app_configs():
+                    my_file = app.module.__file__
+                    if my_file.endswith(dist_file):
+                        obj.apps.append(app.name)
+                        break
+        return obj
 
-def fetch_relevant_packages(
-    distributions: Iterable[importlib_metadata.Distribution],
-) -> Dict[str, DistributionPackage]:
-    """Fetch distribution packages with packages relevant for this Django installation"""
-    packages = dict()
-    for dist in DistributionWrapped.from_distributions(distributions):
-        if dist.name not in packages:
-            packages[dist.name] = DistributionPackage(
-                **{
-                    "name": dist.name,
-                    "current": dist.distribution.version,
-                    "requirements": _parse_requirements(dist.distribution.requires),
-                    "distribution": dist.distribution,
-                }
-            )
-        for dist_file in dist.files:
-            for app in django_apps.get_app_configs():
-                my_file = app.module.__file__
-                if my_file.endswith(dist_file):
-                    packages[dist.name].apps.append(app.name)
-                    break
-    return packages
+
+def gather_distribution_packages() -> Dict[str, DistributionPackage]:
+    """Gather distribution packages and detect Django apps."""
+    packages = [
+        DistributionPackage.create_from_distribution(dist)
+        for dist in importlib_metadata.distributions()
+        if dist.metadata["Name"]
+    ]
+    return {obj.name_normalized: obj for obj in packages}
 
 
 def _parse_requirements(requires: list) -> List[Requirement]:
@@ -113,13 +105,10 @@ def _parse_requirements(requires: list) -> List[Requirement]:
     return requirements
 
 
-def compile_package_requirements(
-    packages: Dict[str, DistributionPackage],
-    distributions: Iterable[importlib_metadata.Distribution],
-) -> dict:
+def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = dict()
-    for dist in distributions:
+    for dist in importlib_metadata.distributions():
         if dist.requires:
             for requirement in _parse_requirements(dist.requires):
                 requirement_name = canonicalize_name(requirement.name)
@@ -153,7 +142,7 @@ def update_packages_from_pypi(
     def thread_update_latest_from_pypi(package_name: str) -> None:
         """Retrieves latest valid version from PyPI and updates packages
 
-        Note: This inner function runs as thread
+        Note: This inner function can run as thread
         """
         nonlocal packages
 
@@ -172,14 +161,10 @@ def update_packages_from_pypi(
             str(current_version) == str(package.current)
             and current_version.is_prerelease
         )
-        package_name_with_case = package.distribution.metadata["Name"]
         logger.info(
-            f"Fetching info for distribution package '{package_name_with_case}' "
-            "from PyPI"
+            f"Fetching info for distribution package '{package.name}' " "from PyPI"
         )
-        r = requests.get(
-            f"https://pypi.org/pypi/{package_name_with_case}/json", timeout=(5, 30)
-        )
+        r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
         if r.status_code == requests.codes.ok:
             pypi_info = r.json()
             latest = ""
@@ -212,18 +197,16 @@ def update_packages_from_pypi(
 
             if not latest:
                 logger.warning(
-                    f"Could not find a release of '{package_name_with_case}' "
+                    f"Could not find a release of '{package.name}' "
                     f"that matches all requirements: '{consolidated_requirements}''"
                 )
         else:
             if r.status_code == 404:
-                logger.info(
-                    f"Package '{package_name_with_case}' is not registered in PyPI"
-                )
+                logger.info(f"Package '{package.name}' is not registered in PyPI")
             else:
                 logger.warning(
-                    "Failed to retrive infos from PyPI for "
-                    f"package '{package_name_with_case}'. "
+                    "Failed to retrieve infos from PyPI for "
+                    f"package '{package.name}'. "
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
                 )
@@ -239,3 +222,10 @@ def update_packages_from_pypi(
     else:
         for package_name in packages.keys():
             thread_update_latest_from_pypi(package_name)
+
+
+def dist_metadata_value(dist: importlib_metadata.Distribution, prop: str) -> str:
+    """Metadata value from distribution or empty string."""
+    if dist and dist.metadata[prop] and dist.metadata[prop] != "UNKNOWN":
+        return dist.metadata[prop]
+    return ""
