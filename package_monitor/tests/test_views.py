@@ -1,14 +1,13 @@
 from unittest.mock import patch
 
-from django.contrib.auth.models import User
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from allianceauth.tests.auth_utils import AuthUtils
-from app_utils.testing import json_response_to_python
+from app_utils.testing import create_fake_user, json_response_to_python
 
-from .. import views
-from .testdata import create_testdata
+from package_monitor import views
+
+from .factories import DistributionFactory
 
 MODULE_PATH_VIEWS = "package_monitor.views"
 MODULE_PATH_MANAGERS = "package_monitor.managers"
@@ -20,67 +19,87 @@ class TestPackageList(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        create_testdata()
-        cls.user = AuthUtils.create_user("Bruce Wayne")
-        AuthUtils.add_permission_to_user_by_name(
-            "package_monitor.basic_access", cls.user
+        cls.user = create_fake_user(
+            1001, "Bruce Wayne", permissions=["package_monitor.basic_access"]
         )
-        cls.user = User.objects.get(pk=cls.user.pk)
-
-    def setUp(self) -> None:
-        self.factory = RequestFactory()
+        cls.factory = RequestFactory()
 
     def test_index_view(self):
+        # given
         request = self.factory.get(reverse("package_monitor:index"))
         request.user = self.user
+        # when
         response = views.index(request)
+        # then
         self.assertEqual(response.status_code, 200)
 
     def test_list_view_all(self):
+        # given
+        DistributionFactory(name="alpha")
+        DistributionFactory(name="bravo")
         request = self.factory.get(reverse("package_monitor:package_list_data"))
         request.user = self.user
+        # when
         response = views.package_list_data(request)
+        # then
         self.assertEqual(response.status_code, 200)
-
-        data = json_response_to_python(response)
-        package_names = [x["name"] for x in data]
-        self.assertListEqual(package_names, ["dummy-1", "dummy-2", "dummy-3"])
+        package_names = [x["name"] for x in json_response_to_python(response)]
+        self.assertListEqual(package_names, ["alpha", "bravo"])
 
     def test_list_view_outdated(self):
+        # given
+        DistributionFactory(name="alpha")
+        DistributionFactory(
+            name="bravo",
+            is_outdated=True,
+            installed_version="1.0.0",
+            latest_version="1.1.0",
+        )
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "outdated"}
         )
         request.user = self.user
+        # when
         response = views.package_list_data(request)
+        # then
         self.assertEqual(response.status_code, 200)
-
-        data = json_response_to_python(response)
-        package_names = [x["name"] for x in data]
-        self.assertListEqual(package_names, ["dummy-2"])
+        package_names = [x["name"] for x in json_response_to_python(response)]
+        self.assertListEqual(package_names, ["bravo"])
 
     def test_list_view_current(self):
+        # given
+        DistributionFactory(name="alpha")
+        DistributionFactory(
+            name="bravo",
+            is_outdated=True,
+            installed_version="1.0.0",
+            latest_version="1.1.0",
+        )
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "current"}
         )
         request.user = self.user
+        # when
         response = views.package_list_data(request)
+        # then
         self.assertEqual(response.status_code, 200)
-
-        data = json_response_to_python(response)
-        package_names = [x["name"] for x in data]
-        self.assertListEqual(package_names, ["dummy-1"])
+        package_names = [x["name"] for x in json_response_to_python(response)]
+        self.assertListEqual(package_names, ["alpha"])
 
     def test_list_view_unknown(self):
+        # given
+        DistributionFactory(name="alpha")
+        DistributionFactory(name="charlie", is_outdated=None)
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "unknown"}
         )
         request.user = self.user
+        # when
         response = views.package_list_data(request)
+        # then
         self.assertEqual(response.status_code, 200)
-
-        data = json_response_to_python(response)
-        package_names = [x["name"] for x in data]
-        self.assertListEqual(package_names, ["dummy-3"])
+        package_names = [x["name"] for x in json_response_to_python(response)]
+        self.assertListEqual(package_names, ["charlie"])
 
     @patch(MODULE_PATH_VIEWS + ".Distribution.objects.update_all")
     def test_refresh_distributions_view(self, mock_update_all):
