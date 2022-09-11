@@ -122,10 +122,18 @@ class ImportlibDistributionStub:
             "Name": name,
             "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
             "Summary": description if description != "" else "UNKNOWN",
+            "Version": version if version != "" else "UNKNOWN",
         }
-        self.version = version
         self.files = [PackagePath(f) for f in files]
         self.requires = requires if requires else None
+
+    @property
+    def name(self):
+        return self.metadata["Name"]
+
+    @property
+    def version(self):
+        return self.metadata["Version"]
 
 
 class ImportlibDistributionStubFactory(factory.Factory):
@@ -167,7 +175,7 @@ class DistributionPackageFactory(factory.Factory):
 
     distribution = factory.SubFactory(ImportlibDistributionStubFactory)
     name = factory.LazyAttribute(lambda o: o.distribution.metadata["Name"])
-    current = factory.LazyAttribute(lambda o: o.distribution.version)
+    current = factory.LazyAttribute(lambda o: metadata_value(o.distribution, "Version"))
     latest = factory.LazyAttribute(lambda o: o.current)
 
 
@@ -202,3 +210,7 @@ def distributions_to_packages(
             for distribution in distributions
         ]
     }
+
+
+def metadata_value(dist, prop: str) -> str:
+    return dist.metadata[prop] if dist and dist.metadata.get(prop) != "UNKNOWN" else ""

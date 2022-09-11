@@ -7,6 +7,7 @@ from packaging.specifiers import SpecifierSet
 from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core import (
+    DistributionPackage,
     compile_package_requirements,
     gather_distribution_packages,
     update_packages_from_pypi,
@@ -41,6 +42,28 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when/then
         self.assertTrue(obj.is_editable())
 
+    @mock.patch(MODULE_PATH + ".django_apps", spec=True)
+    def test_should_create_from_importlib_distribution(self, mock_django_apps):
+        # given
+        dist = ImportlibDistributionStubFactory(
+            name="Alpha",
+            version="1.2.3",
+            requires=["bravo>=1.0.0"],
+            files=["alpha/__init__.py"],
+        )
+        mock_django_apps.get_app_configs.return_value = [
+            DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
+        ]
+        # when
+        obj = DistributionPackage.create_from_distribution(dist)
+        # then
+        self.assertEqual(obj.name, "alpha")
+        self.assertEqual(obj.current, "1.2.3")
+        self.assertEqual(obj.distribution, dist)
+        self.assertEqual(obj.latest, "")
+        self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
+        self.assertEqual(obj.apps, ["alpha_app"])
+
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestFetchRelevantPackages(NoSocketsTestCase):
@@ -57,23 +80,6 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
         result = gather_distribution_packages()
         # then
         self.assertSetEqual(set(packages.keys()), set(result.keys()))
-
-    @mock.patch(MODULE_PATH + ".django_apps", spec=True)
-    def test_should_detect_django_apps(self, mock_django_apps, mock_distributions):
-        # given
-        dist_alpha = ImportlibDistributionStubFactory(
-            name="alpha", files=["alpha/__init__.py"]
-        )
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        mock_distributions.side_effect = distributions
-        mock_django_apps.get_app_configs.return_value = [
-            DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
-        ]
-        # when
-        result = gather_distribution_packages()
-        # then
-        package_alpha = result["alpha"]
-        self.assertEqual(package_alpha.apps, ["alpha_app"])
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

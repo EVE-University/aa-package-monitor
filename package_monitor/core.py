@@ -2,7 +2,7 @@ import concurrent.futures
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List
+from typing import Dict, List
 
 import importlib_metadata
 import requests
@@ -26,37 +26,8 @@ MAX_THREAD_WORKERS = 30
 
 
 @dataclass
-class DistributionWrapped:
-    """Distribution with some additional information."""
-
-    name: str
-    distribution: importlib_metadata.Distribution
-    files: List[str] = field(default_factory=list)
-
-    @classmethod
-    def from_distribution(
-        cls, dist: importlib_metadata.Distribution
-    ) -> "DistributionWrapped":
-        return cls(
-            name=canonicalize_name(dist.metadata["Name"]),
-            distribution=dist,
-            files=["/" + str(f) for f in dist.files if str(f).endswith("__init__.py")],
-        )
-
-    @classmethod
-    def from_distributions(
-        cls, distributions: Iterable[importlib_metadata.Distribution]
-    ) -> "DistributionWrapped":
-        return [
-            DistributionWrapped.from_distribution(dist)
-            for dist in distributions
-            if dist.metadata["Name"]
-        ]
-
-
-@dataclass
 class DistributionPackage:
-    """A distribution package."""
+    """A parsed distribution package."""
 
     name: str
     current: str
@@ -73,29 +44,34 @@ class DistributionPackage:
                 return True
         return False
 
-
-def gather_distribution_packages() -> Dict[str, DistributionPackage]:
-    """Gather distribution packages and detect Django apps."""
-    packages = dict()
-    for dist in DistributionWrapped.from_distributions(
-        importlib_metadata.distributions()
-    ):
-        if dist.name not in packages:
-            packages[dist.name] = DistributionPackage(
-                **{
-                    "name": dist.name,
-                    "current": dist.distribution.version,
-                    "requirements": _parse_requirements(dist.distribution.requires),
-                    "distribution": dist.distribution,
-                }
-            )
-        for dist_file in dist.files:
+    @classmethod
+    def create_from_distribution(cls, dist: importlib_metadata.Distribution):
+        """Create new object from an importlib distribution."""
+        obj = cls(
+            name=canonicalize_name(dist.name),
+            current=dist.version,
+            requirements=_parse_requirements(dist.requires),
+            distribution=dist,
+        )
+        dist_files = [
+            "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
+        ]
+        for dist_file in dist_files:
             for app in django_apps.get_app_configs():
                 my_file = app.module.__file__
                 if my_file.endswith(dist_file):
-                    packages[dist.name].apps.append(app.name)
+                    obj.apps.append(app.name)
                     break
-    return packages
+        return obj
+
+
+def gather_distribution_packages() -> Dict[str, DistributionPackage]:
+    """Gather distribution packages and detect Django apps."""
+    return {
+        dist.name: DistributionPackage.create_from_distribution(dist)
+        for dist in importlib_metadata.distributions()
+        if dist.metadata["Name"]
+    }
 
 
 def _parse_requirements(requires: list) -> List[Requirement]:
