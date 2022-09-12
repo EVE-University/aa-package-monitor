@@ -108,26 +108,21 @@ def _parse_requirements(requires: list) -> List[Requirement]:
 def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = dict()
-    for dist in importlib_metadata.distributions():
-        if dist.requires:
-            for requirement in _parse_requirements(dist.requires):
-                requirement_name = canonicalize_name(requirement.name)
-                if requirement_name in packages:
-                    if requirement.marker:
-                        try:
-                            is_valid = requirement.marker.evaluate()
-                        except (UndefinedEnvironmentName, UndefinedComparison):
-                            is_valid = False
-                    else:
-                        is_valid = True
-
-                    if is_valid:
-                        if requirement_name not in requirements:
-                            requirements[requirement_name] = dict()
-
-                        requirements[requirement_name][
-                            dist.metadata["Name"]
-                        ] = requirement.specifier
+    for package in packages.values():
+        for requirement in package.requirements:
+            requirement_name = canonicalize_name(requirement.name)
+            if requirement_name in packages:
+                if requirement.marker:
+                    try:
+                        is_valid = requirement.marker.evaluate()
+                    except (UndefinedEnvironmentName, UndefinedComparison):
+                        is_valid = False
+                else:
+                    is_valid = True
+                if is_valid:
+                    if requirement_name not in requirements:
+                        requirements[requirement_name] = dict()
+                    requirements[requirement_name][package.name] = requirement.specifier
 
     return requirements
 
