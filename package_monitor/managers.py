@@ -122,7 +122,8 @@ class DistributionManagerBase(models.Manager):
             if latest_notified_version:
                 defaults["latest_notified_version"] = latest_notified_version
             self.update_or_create(name=package.name, defaults=defaults)
-        self.exclude(name__in=packages.keys()).delete()
+        package_names = {obj.name for obj in packages.values()}
+        self.exclude(name__in=package_names).delete()
 
     def _notify_about_update(self, package, notifications_disabled: bool) -> str:
         """Notify admins when a new update is available for this package."""

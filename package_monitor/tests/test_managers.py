@@ -88,7 +88,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_update_packages_from_pypi,
     ):
         # given
-        dist_alpha = DistributionPackageFactory(name="Alpha", current="1.0.0")
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
         mock_compile_package_requirements.return_value = {}
         # when
@@ -96,7 +96,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.first()
-        self.assertEqual(obj.name, "Alpha")
+        self.assertEqual(obj.name, "alpha")
         self.assertEqual(obj.latest_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
