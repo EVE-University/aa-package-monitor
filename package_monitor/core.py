@@ -53,7 +53,13 @@ class DistributionPackage:
     def create_from_distribution(
         cls, dist: importlib_metadata.Distribution, disable_app_check=False
     ):
-        """Create new object from an importlib distribution."""
+        """Create new object from an importlib distribution.
+
+        This is the only place where we are accessing the importlib API
+        for a specific distribution package and are thus storing
+        all needed information about that package in our new object.
+        Should additional information be needed sometimes it should be fetched here too.
+        """
         obj = cls(
             name=dist.name,
             current=dist.version,
