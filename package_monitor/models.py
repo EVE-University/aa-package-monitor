@@ -1,7 +1,3 @@
-from typing import Optional
-
-from packaging.version import parse as version_parse
-
 from django.db import models
 
 from .managers import DistributionManager
@@ -70,16 +66,12 @@ class Distribution(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        self.has_installed_apps = bool(self.apps)
-        self.is_outdated = self.calc_is_outdated()
+        self.calc_has_installed_apps()
         super().save(*args, **kwargs)
 
-    def calc_is_outdated(self) -> Optional[bool]:
-        if self.installed_version and self.latest_version:
-            return version_parse(self.installed_version) < version_parse(
-                self.latest_version
-            )
-        return None
+    def calc_has_installed_apps(self) -> None:
+        """Calculate if this distribution has apps."""
+        self.has_installed_apps = bool(self.apps)
 
     @property
     def pip_install_version(self) -> str:

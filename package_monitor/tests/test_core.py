@@ -53,6 +53,24 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertEqual(obj.apps, ["alpha_app"])
         self.assertEqual(obj.homepage_url, "https://www.alpha.com")
 
+    def test_should_not_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.0.0")
+        # when/then
+        self.assertFalse(obj.is_outdated())
+
+    def test_should_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.1.0")
+        # when/then
+        self.assertTrue(obj.is_outdated())
+
+    def test_should_return_none_as_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest=None)
+        # when/then
+        self.assertIsNone(obj.is_outdated())
+
     def test_should_not_be_editable(self):
         # given
         obj = DistributionPackageFactory()
