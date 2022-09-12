@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.7.0-alpha] - TBD
+
 ### Added
+
+- Notify admins when an update is available for a currently installed distribution package (#7)
 
 ### Changed
 

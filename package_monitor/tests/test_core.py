@@ -20,7 +20,7 @@ from .factories import (
     ImportlibDistributionStubFactory,
     PypiFactory,
     PypiReleaseFactory,
-    make_packages_container,
+    make_packages,
 )
 
 MODULE_PATH = "package_monitor.core"
@@ -107,7 +107,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha")
         dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
-        packages = make_packages_container([dist_alpha, dist_bravo])
+        packages = make_packages(dist_alpha, dist_bravo)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -119,7 +119,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_alpha = DistributionPackageFactory(name="alpha")
         dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
         dist_charlie = DistributionPackageFactory(name="charlie", requires=["123"])
-        packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+        packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -133,7 +133,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
     #     dist_charlie = DistributionPackageFactory(
     #         name="charlie", requires=["alpha >= 1.0.0 ; python_version < 3.7"]
     #     )
-    #     packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+    #     packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
     #     # when
     #     result = compile_package_requirements(packages)
     #     # then
@@ -147,7 +147,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_charlie = DistributionPackageFactory(
             name="charlie", requires=['alpha>=1.0.0; extra == "certs"']
         )
-        packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+        packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -160,7 +160,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_update_packages(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -177,7 +177,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_ignore_prereleases_when_stable(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0a1"] = [PypiReleaseFactory()]
@@ -194,7 +194,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_include_prereleases_when_prerelease(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0a1")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.0.0a2"] = [PypiReleaseFactory()]
@@ -211,7 +211,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_set_latest_to_empty_string_on_network_error(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -231,7 +231,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_ignore_yanked_releases(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(yanked=True)]
@@ -252,7 +252,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # given
         mock_sys.version_info = SysVersionInfo(3, 6, 9)
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.7")]

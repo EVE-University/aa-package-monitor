@@ -41,7 +41,12 @@ class Distribution(models.Model):
     latest_version = models.CharField(
         max_length=MAX_LENGTH_VERSION_STRING,
         default="",
-        help_text="Latest stable version available for this package",
+        help_text="Latest version available for this package",
+    )
+    latest_notified_version = models.CharField(
+        max_length=MAX_LENGTH_VERSION_STRING,
+        default="",
+        help_text="Latest version that has been notified",
     )
     is_outdated = models.BooleanField(
         default=None,

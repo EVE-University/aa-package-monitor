@@ -11,6 +11,14 @@ PACKAGE_MONITOR_INCLUDE_PACKAGES = clean_setting(
 )
 """Names of additional distribution packages to be monitored."""
 
+
+PACKAGE_MONITOR_NOTIFICATIONS_ENABLED = clean_setting(
+    "PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False
+)
+"""Whether to notify when an update is available
+for a currently installed distribution package.
+"""
+
 PACKAGE_MONITOR_SHOW_ALL_PACKAGES = clean_setting(
     "PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True
 )

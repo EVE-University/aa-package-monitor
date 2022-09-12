@@ -37,6 +37,9 @@ class DistributionPackage:
     homepage_url: str = ""
     summary: str = ""
 
+    def __str__(self) -> str:
+        return f"{self.name} {self.current}"
+
     @property
     def name_normalized(self) -> str:
         return canonicalize_name(self.name)

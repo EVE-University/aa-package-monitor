@@ -127,5 +127,5 @@ def package_list_data(request) -> JsonResponse:
 @login_required
 @permission_required("package_monitor.basic_access")
 def refresh_distributions(request):
-    Distribution.objects.update_all(use_threads=True)
+    Distribution.objects.update_all(use_threads=True, notifications_disabled=True)
     return HttpResponse("ok")
