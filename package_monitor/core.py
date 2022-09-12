@@ -31,6 +31,7 @@ class DistributionPackage:
 
     name: str
     current: str
+    is_editable: bool
     requirements: List[Requirement] = field(default_factory=list)
     apps: List[str] = field(default_factory=list)
     latest: str = ""
@@ -50,14 +51,6 @@ class DistributionPackage:
             return version_parse(self.current) < version_parse(self.latest)
         return None
 
-    def is_editable(self):
-        """Is distribution an editable install?"""
-        for path_item in sys.path:
-            egg_link = os.path.join(path_item, self.name + ".egg-link")
-            if os.path.isfile(egg_link):
-                return True
-        return False
-
     @classmethod
     def create_from_distribution(
         cls, dist: importlib_metadata.Distribution, disable_app_check=False
@@ -72,6 +65,7 @@ class DistributionPackage:
         obj = cls(
             name=dist.name,
             current=dist.version,
+            is_editable=cls._calc_is_editable(dist.name),
             requirements=_parse_requirements(dist.requires),
             homepage_url=dist_metadata_value(dist, "Home-page"),
             summary=dist_metadata_value(dist, "Summary"),
@@ -87,6 +81,15 @@ class DistributionPackage:
                         obj.apps.append(app.name)
                         break
         return obj
+
+    @staticmethod
+    def _calc_is_editable(dist_name: str) -> bool:
+        """Is distribution an editable install?"""
+        for path_item in sys.path:
+            egg_link = os.path.join(path_item, dist_name + ".egg-link")
+            if os.path.isfile(egg_link):
+                return True
+        return False
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:

@@ -316,30 +316,30 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         self.assertEqual(obj.latest_notified_version, "")
         self.assertFalse(mock_notify_admins.called)
 
-    # def test_should_not_notify_when_editable_and_those_are_not_shown(
-    #     self,
-    #     mock_gather_distribution_packages,
-    #     mock_compile_package_requirements,
-    #     mock_update_packages_from_pypi,
-    #     mock_notify_admins,
-    # ):
-    #     # given
-    #     dist_alpha = DistributionPackageFactory(
-    #         name="Alpha", current="1.0.0", latest="1.1.0"
-    #     )
-    #     mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-    #     mock_compile_package_requirements.return_value = {}
-    #     # when
-    #     with mock.patch(
-    #         MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True
-    #     ), mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False):
-    #         Distribution.objects.update_all(use_threads=False)
-    #     # then
-    #     self.assertEqual(Distribution.objects.count(), 1)
-    #     obj = Distribution.objects.get(name="Alpha")
-    #     self.assertTrue(obj.is_outdated)
-    #     self.assertEqual(obj.latest_notified_version, "")
-    #     self.assertFalse(mock_notify_admins.called)
+    def test_should_not_notify_when_editable_and_those_are_not_shown(
+        self,
+        mock_gather_distribution_packages,
+        mock_compile_package_requirements,
+        mock_update_packages_from_pypi,
+        mock_notify_admins,
+    ):
+        # given
+        dist_alpha = DistributionPackageFactory(
+            name="Alpha", current="1.0.0", latest="1.1.0", is_editable=True
+        )
+        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
+        mock_compile_package_requirements.return_value = {}
+        # when
+        with mock.patch(
+            MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True
+        ), mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False):
+            Distribution.objects.update_all(use_threads=False)
+        # then
+        self.assertEqual(Distribution.objects.count(), 1)
+        obj = Distribution.objects.get(name="Alpha")
+        self.assertTrue(obj.is_outdated)
+        self.assertEqual(obj.latest_notified_version, "")
+        self.assertFalse(mock_notify_admins.called)
 
 
 class TestDistributionFilterVisible(NoSocketsTestCase):

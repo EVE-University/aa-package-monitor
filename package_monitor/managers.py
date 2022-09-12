@@ -115,7 +115,7 @@ class DistributionManagerBase(models.Manager):
                 "installed_version": package.current,
                 "latest_version": package.latest,
                 "is_outdated": package.is_outdated(),
-                "is_editable": package.is_editable(),
+                "is_editable": package.is_editable,
                 "description": package.summary,
                 "website_url": package.homepage_url,
             }
@@ -129,7 +129,7 @@ class DistributionManagerBase(models.Manager):
         if (
             notifications_disabled
             or not PACKAGE_MONITOR_NOTIFICATIONS_ENABLED
-            or package.is_editable()
+            or package.is_editable
             and not PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES
         ):
             return ""

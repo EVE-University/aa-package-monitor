@@ -29,6 +29,7 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
+    @mock.patch(MODULE_PATH + ".os.path.isfile", lambda *args, **kwargs: False)
     @mock.patch(MODULE_PATH + ".django_apps", spec=True)
     def test_should_create_from_importlib_distribution(self, mock_django_apps):
         # given
@@ -73,17 +74,17 @@ class TestDistributionPackage(NoSocketsTestCase):
 
     def test_should_not_be_editable(self):
         # given
-        obj = DistributionPackageFactory()
+        obj = DistributionPackageFactory(name="alpha")
         # when/then
-        self.assertFalse(obj.is_editable())
+        self.assertFalse(obj._calc_is_editable("alpha"))
 
     @mock.patch(MODULE_PATH + ".os.path.isfile")
     def test_should_be_editable(self, mock_isfile):
         # given
         mock_isfile.return_value = True
-        obj = DistributionPackageFactory()
+        obj = DistributionPackageFactory(name="alpha")
         # when/then
-        self.assertTrue(obj.is_editable())
+        self.assertTrue(obj._calc_is_editable("alpha"))
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

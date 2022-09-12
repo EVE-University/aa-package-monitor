@@ -179,8 +179,9 @@ class DistributionPackageFactory(factory.Factory):
 
     requires = ""  # excluded
 
-    latest = factory.LazyAttribute(lambda o: o.current)
     name = factory.Faker("last_name")
+    is_editable = False
+    latest = factory.LazyAttribute(lambda o: o.current)
     homepage_url = factory.Faker("url")
     summary = factory.Faker("sentence")
 
