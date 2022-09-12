@@ -104,7 +104,6 @@ class DistributionManagerBase(models.Manager):
                     "used_by": used_by,
                     "installed_version": installed_version,
                     "latest_version": latest_version,
-                    "is_outdated": package.is_outdated(),
                     "is_editable": package.is_editable(),
                     "description": package.summary,
                     "website_url": package.homepage_url,

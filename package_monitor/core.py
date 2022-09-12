@@ -2,7 +2,7 @@ import concurrent.futures
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import importlib_metadata
 import requests
@@ -41,12 +41,6 @@ class DistributionPackage:
     def name_normalized(self) -> str:
         return canonicalize_name(self.name)
 
-    def is_outdated(self) -> Optional[bool]:
-        """Is this package outdated?"""
-        if self.current and self.latest:
-            return version_parse(self.current) < version_parse(self.latest)
-        return None
-
     def is_editable(self):
         """Is distribution an editable install?"""
         for path_item in sys.path:
@@ -59,7 +53,13 @@ class DistributionPackage:
     def create_from_distribution(
         cls, dist: importlib_metadata.Distribution, disable_app_check=False
     ):
-        """Create new object from an importlib distribution."""
+        """Create new object from an importlib distribution.
+
+        This is the only place where we are accessing the importlib API
+        for a specific distribution package and are thus storing
+        all needed information about that package in our new object.
+        Should additional information be needed sometimes it should be fetched here too.
+        """
         obj = cls(
             name=dist.name,
             current=dist.version,
@@ -108,26 +108,21 @@ def _parse_requirements(requires: list) -> List[Requirement]:
 def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = dict()
-    for dist in importlib_metadata.distributions():
-        if dist.requires:
-            for requirement in _parse_requirements(dist.requires):
-                requirement_name = canonicalize_name(requirement.name)
-                if requirement_name in packages:
-                    if requirement.marker:
-                        try:
-                            is_valid = requirement.marker.evaluate()
-                        except (UndefinedEnvironmentName, UndefinedComparison):
-                            is_valid = False
-                    else:
-                        is_valid = True
-
-                    if is_valid:
-                        if requirement_name not in requirements:
-                            requirements[requirement_name] = dict()
-
-                        requirements[requirement_name][
-                            dist.metadata["Name"]
-                        ] = requirement.specifier
+    for package in packages.values():
+        for requirement in package.requirements:
+            requirement_name = canonicalize_name(requirement.name)
+            if requirement_name in packages:
+                if requirement.marker:
+                    try:
+                        is_valid = requirement.marker.evaluate()
+                    except (UndefinedEnvironmentName, UndefinedComparison):
+                        is_valid = False
+                else:
+                    is_valid = True
+                if is_valid:
+                    if requirement_name not in requirements:
+                        requirements[requirement_name] = dict()
+                    requirements[requirement_name][package.name] = requirement.specifier
 
     return requirements
 
