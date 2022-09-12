@@ -2,7 +2,7 @@ import concurrent.futures
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import importlib_metadata
 import requests
@@ -40,12 +40,6 @@ class DistributionPackage:
     @property
     def name_normalized(self) -> str:
         return canonicalize_name(self.name)
-
-    def is_outdated(self) -> Optional[bool]:
-        """Is this package outdated?"""
-        if self.current and self.latest:
-            return version_parse(self.current) < version_parse(self.latest)
-        return None
 
     def is_editable(self):
         """Is distribution an editable install?"""

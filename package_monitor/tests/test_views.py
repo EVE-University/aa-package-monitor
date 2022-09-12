@@ -50,10 +50,7 @@ class TestPackageList(TestCase):
         # given
         DistributionFactory(name="alpha")
         DistributionFactory(
-            name="bravo",
-            is_outdated=True,
-            installed_version="1.0.0",
-            latest_version="1.1.0",
+            name="bravo", installed_version="1.0.0", latest_version="1.1.0"
         )
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "outdated"}
@@ -70,10 +67,7 @@ class TestPackageList(TestCase):
         # given
         DistributionFactory(name="alpha")
         DistributionFactory(
-            name="bravo",
-            is_outdated=True,
-            installed_version="1.0.0",
-            latest_version="1.1.0",
+            name="bravo", installed_version="1.0.0", latest_version="1.1.0"
         )
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "current"}
@@ -89,7 +83,9 @@ class TestPackageList(TestCase):
     def test_list_view_unknown(self):
         # given
         DistributionFactory(name="alpha")
-        DistributionFactory(name="charlie", is_outdated=None)
+        DistributionFactory(
+            name="charlie", installed_version="1.0.0", latest_version=""
+        )
         request = self.factory.get(
             reverse("package_monitor:package_list_data"), data={"filter": "unknown"}
         )
