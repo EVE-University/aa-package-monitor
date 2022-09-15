@@ -40,6 +40,8 @@ Features:
 - Copy the respective command for a package update to your clipboard directly from the package list
 - Can automatically notify admins when there is an update available for a currently installed package
 
+>**Hint**: Update notifications are sent as AA notifications to all admins. We recommend using [Discord Notify](https://gitlab.com/ErikKalkoken/aa-discordnotify) to automatically forward those notifications to Discord as DMs.
+
 ## Screenshots
 
 ![screenshot](https://i.imgur.com/9ZMz1ji.png)
@@ -157,7 +159,7 @@ Name | Description | Default
 -- | -- | --
 `PACKAGE_MONITOR_EXCLUDE_PACKAGES`| Names of distribution packages to excluded from monitoring.  | `[]`
 `PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `[]`
-`PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`| Whether to notify when an update is available for a currently installed distribution package. | `False`
+`PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`| Whether to notify when an update is available for a currently installed distribution package. Notifications will be sent as AA notification to all admins. | `False`
 `PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps.  | `True`
 `PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES`| Whether to show distribution packages installed as editable. Since version information about editable packages is often outdated, this type of packages are not shown by default. | `False`
 
