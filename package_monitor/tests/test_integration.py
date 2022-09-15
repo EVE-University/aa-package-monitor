@@ -11,6 +11,7 @@ from package_monitor.models import Distribution
 from .factories import ImportlibDistributionStubFactory, PypiFactory, PypiReleaseFactory
 
 
+@mock.patch("package_monitor.managers.PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
 @mock.patch("package_monitor.core.django_apps", spec=True)
 @mock.patch("package_monitor.core.importlib_metadata.distributions", spec=True)
 @requests_mock.Mocker()

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import factory
 import factory.fuzzy
@@ -179,8 +179,9 @@ class DistributionPackageFactory(factory.Factory):
 
     requires = ""  # excluded
 
-    latest = factory.LazyAttribute(lambda o: o.current)
     name = factory.Faker("last_name")
+    is_editable = False
+    latest = factory.LazyAttribute(lambda o: o.current)
     homepage_url = factory.Faker("url")
     summary = factory.Faker("sentence")
 
@@ -219,5 +220,5 @@ class DistributionFactory(factory.django.DjangoModelFactory):
         return f"{major}.{minor}.{patch}"
 
 
-def make_packages_container(packages):
-    return {obj.name: obj for obj in packages}
+def make_packages(*packages: Iterable[DistributionPackage]):
+    return {obj.name_normalized: obj for obj in packages}

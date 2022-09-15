@@ -3,12 +3,14 @@ from typing import Dict, Set
 from django.db import models
 
 from allianceauth.services.hooks import get_extension_logger
+from app_utils.allianceauth import notify_admins
 from app_utils.logging import LoggerAddTag
 
 from . import __title__
 from .app_settings import (
     PACKAGE_MONITOR_EXCLUDE_PACKAGES,
     PACKAGE_MONITOR_INCLUDE_PACKAGES,
+    PACKAGE_MONITOR_NOTIFICATIONS_ENABLED,
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
     PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
@@ -58,7 +60,9 @@ class DistributionQuerySet(models.QuerySet):
 
 
 class DistributionManagerBase(models.Manager):
-    def update_all(self, use_threads=False) -> int:
+    def update_all(
+        self, use_threads: bool = False, notifications_disabled: bool = False
+    ) -> int:
         """Update the list of relevant distribution packages in the database."""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
@@ -66,17 +70,25 @@ class DistributionManagerBase(models.Manager):
         packages = gather_distribution_packages()
         requirements = compile_package_requirements(packages)
         update_packages_from_pypi(packages, requirements, use_threads)
-        self._save_packages(packages, requirements)
+        self._save_packages(
+            packages=packages,
+            requirements=requirements,
+            notifications_disabled=notifications_disabled,
+        )
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")
         return packages_count
 
     def _save_packages(
-        self, packages: Dict[str, DistributionPackage], requirements: dict
+        self,
+        packages: Dict[str, DistributionPackage],
+        requirements: dict,
+        notifications_disabled: bool,
     ) -> None:
         """Save the given package information into the model."""
 
         for package_name, package in packages.items():
+            logger.debug("Updating package: %s", package)
             if package_name in requirements:
                 used_by = [
                     {
@@ -93,23 +105,51 @@ class DistributionManagerBase(models.Manager):
             else:
                 used_by = []
 
-            apps = sorted(package.apps, key=str.casefold)
-            installed_version = str(package.current) if package.current else ""
-            latest_version = str(package.latest) if package.latest else ""
-            logger.debug("Package: %s", package)
-            self.update_or_create(
-                name=package.name,
-                defaults={
-                    "apps": apps,
-                    "used_by": used_by,
-                    "installed_version": installed_version,
-                    "latest_version": latest_version,
-                    "is_editable": package.is_editable(),
-                    "description": package.summary,
-                    "website_url": package.homepage_url,
-                },
+            latest_notified_version = self._notify_about_update(
+                package=package, notifications_disabled=notifications_disabled
             )
-        self.exclude(name__in=packages.keys()).delete()
+
+            defaults = {
+                "apps": sorted(package.apps, key=str.casefold),
+                "used_by": used_by,
+                "installed_version": package.current,
+                "latest_version": package.latest,
+                "is_outdated": package.is_outdated(),
+                "is_editable": package.is_editable,
+                "description": package.summary,
+                "website_url": package.homepage_url,
+            }
+            if latest_notified_version:
+                defaults["latest_notified_version"] = latest_notified_version
+            self.update_or_create(name=package.name, defaults=defaults)
+        package_names = {obj.name for obj in packages.values()}
+        self.exclude(name__in=package_names).delete()
+
+    def _notify_about_update(self, package, notifications_disabled: bool) -> str:
+        """Notify admins when a new update is available for this package."""
+        if (
+            notifications_disabled
+            or not PACKAGE_MONITOR_NOTIFICATIONS_ENABLED
+            or package.is_editable
+            and not PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES
+        ):
+            return ""
+        try:
+            obj = self.get(name=package.name)
+        except self.model.DoesNotExist:
+            latest_notified_version = ""
+        else:
+            latest_notified_version = obj.latest_notified_version
+        if package.is_outdated() and latest_notified_version != package.latest:
+            latest_notified_version = package.latest
+            title = f"Update available: {package.name} {package.latest}"
+            message = (
+                f"There is an update available: {package.name} {package.current} "
+                f"=> {package.latest}\n"
+                "This message was automatically generated by Package Monitor."
+            )
+            notify_admins(message=message, title=title)
+        return latest_notified_version
 
 
 DistributionManager = DistributionManagerBase.from_queryset(DistributionQuerySet)

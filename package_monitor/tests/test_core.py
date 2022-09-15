@@ -20,7 +20,7 @@ from .factories import (
     ImportlibDistributionStubFactory,
     PypiFactory,
     PypiReleaseFactory,
-    make_packages_container,
+    make_packages,
 )
 
 MODULE_PATH = "package_monitor.core"
@@ -29,6 +29,7 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
+    @mock.patch(MODULE_PATH + ".os.path.isfile", lambda *args, **kwargs: False)
     @mock.patch(MODULE_PATH + ".django_apps", spec=True)
     def test_should_create_from_importlib_distribution(self, mock_django_apps):
         # given
@@ -53,19 +54,37 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertEqual(obj.apps, ["alpha_app"])
         self.assertEqual(obj.homepage_url, "https://www.alpha.com")
 
+    def test_should_not_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.0.0")
+        # when/then
+        self.assertFalse(obj.is_outdated())
+
+    def test_should_be_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest="1.1.0")
+        # when/then
+        self.assertTrue(obj.is_outdated())
+
+    def test_should_return_none_as_outdated(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest=None)
+        # when/then
+        self.assertIsNone(obj.is_outdated())
+
     def test_should_not_be_editable(self):
         # given
-        obj = DistributionPackageFactory()
+        obj = DistributionPackageFactory(name="alpha")
         # when/then
-        self.assertFalse(obj.is_editable())
+        self.assertFalse(obj._calc_is_editable("alpha"))
 
     @mock.patch(MODULE_PATH + ".os.path.isfile")
     def test_should_be_editable(self, mock_isfile):
         # given
         mock_isfile.return_value = True
-        obj = DistributionPackageFactory()
+        obj = DistributionPackageFactory(name="alpha")
         # when/then
-        self.assertTrue(obj.is_editable())
+        self.assertTrue(obj._calc_is_editable("alpha"))
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
@@ -89,7 +108,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha")
         dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
-        packages = make_packages_container([dist_alpha, dist_bravo])
+        packages = make_packages(dist_alpha, dist_bravo)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -101,7 +120,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_alpha = DistributionPackageFactory(name="alpha")
         dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
         dist_charlie = DistributionPackageFactory(name="charlie", requires=["123"])
-        packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+        packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -115,7 +134,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
     #     dist_charlie = DistributionPackageFactory(
     #         name="charlie", requires=["alpha >= 1.0.0 ; python_version < 3.7"]
     #     )
-    #     packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+    #     packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
     #     # when
     #     result = compile_package_requirements(packages)
     #     # then
@@ -129,7 +148,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_charlie = DistributionPackageFactory(
             name="charlie", requires=['alpha>=1.0.0; extra == "certs"']
         )
-        packages = make_packages_container([dist_alpha, dist_bravo, dist_charlie])
+        packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
         result = compile_package_requirements(packages)
         # then
@@ -142,7 +161,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_update_packages(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -159,7 +178,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_ignore_prereleases_when_stable(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0a1"] = [PypiReleaseFactory()]
@@ -176,7 +195,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_include_prereleases_when_prerelease(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0a1")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.0.0a2"] = [PypiReleaseFactory()]
@@ -193,7 +212,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_set_latest_to_empty_string_on_network_error(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
@@ -213,7 +232,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_ignore_yanked_releases(self, requests_mocker):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(yanked=True)]
@@ -234,7 +253,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # given
         mock_sys.version_info = SysVersionInfo(3, 6, 9)
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        packages = make_packages_container([dist_alpha])
+        packages = make_packages(dist_alpha)
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.7")]

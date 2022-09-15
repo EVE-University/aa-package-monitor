@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.7.0] - 2022-09-15
+
+### Added
+
+- Ability to notify admins when an update is available for a currently installed distribution package (#7)
+
 ## [1.6.2] - 2022-09-12
 
 ### Changed
