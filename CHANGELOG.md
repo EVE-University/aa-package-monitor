@@ -13,7 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-## [1.7.1] - 2023-01-03
+## [1.8.0] - 2023-01-03
+
+### Changed
+
+- Removed support for Python 3.7
+- Added support fro Python 3.10
 
 ### Fixed
 
