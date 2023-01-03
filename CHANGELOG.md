@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.7.1] - 2023-01-03
+
+### Fixed
+
+- Fetching info from PyPI for a package breaks when history contains releases with invalid versions
+
 ## [1.7.0] - 2022-09-15
 
 ### Added
