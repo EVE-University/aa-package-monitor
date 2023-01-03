@@ -10,6 +10,7 @@ from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion
 from packaging.version import parse as version_parse
 
 from django.apps import apps as django_apps
@@ -188,7 +189,15 @@ def update_packages_from_pypi(
                         in SpecifierSet(release_detail["requires_python"])
                     )
                 ):
-                    my_release = version_parse(release)
+                    try:
+                        my_release = version_parse(release)
+                    except InvalidVersion:
+                        logger.warning(
+                            "%s: Ignoring release with invalid version: %s",
+                            package.name,
+                            release,
+                        )
+                        continue
                     if str(my_release) == str(release) and (
                         current_is_prerelease or not my_release.is_prerelease
                     ):

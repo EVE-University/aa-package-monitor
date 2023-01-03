@@ -267,6 +267,23 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
+    def test_should_ignore_invalid_release_version(self, requests_mocker):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages(dist_alpha)
+        requirements = {}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["a3"] = [PypiReleaseFactory()]
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+        )
+        # when
+        update_packages_from_pypi(
+            packages=packages, requirements=requirements, use_threads=False
+        )
+        # then
+        self.assertEqual(packages["alpha"].latest, "1.0.0")
+
 
 class TestDistMetadataValue(NoSocketsTestCase):
     def test_should_return_value_when_exists(self):

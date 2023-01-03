@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.8.0] - 2023-01-03
+
+### Changed
+
+- Removed support for Python 3.7
+- Added support fro Python 3.10
+
+### Fixed
+
+- Fetching info from PyPI for a package breaks when history contains releases with invalid versions
+
 ## [1.7.0] - 2022-09-15
 
 ### Added
