@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [1.8.1] - 2023-01-04
+
+### Fixed
+
+- Fetching info from PyPI for a package breaks when requires_python contains an invalid specifer
+
 ## [1.8.0] - 2023-01-03
 
 ### Changed
