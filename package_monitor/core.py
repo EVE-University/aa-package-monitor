@@ -8,7 +8,7 @@ import importlib_metadata
 import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion
 from packaging.version import parse as version_parse
@@ -209,6 +209,12 @@ def update_packages_from_pypi(
                         "%s: Ignoring release with invalid version: %s",
                         package.name,
                         release,
+                    )
+                except InvalidSpecifier:
+                    logger.warning(
+                        "%s: Ignoring release with invalid requires_python: %s",
+                        package.name,
+                        requires_python,
                     )
             if not latest:
                 logger.warning(
