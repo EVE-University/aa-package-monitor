@@ -8,7 +8,7 @@ import importlib_metadata
 import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion
 from packaging.version import parse as version_parse
@@ -177,27 +177,21 @@ def update_packages_from_pypi(
             pypi_info = r.json()
             latest = ""
             for release, release_details in pypi_info["releases"].items():
-                release_detail = (
-                    release_details[-1] if len(release_details) > 0 else None
-                )
-                if not release_detail or (
-                    not release_detail["yanked"]
-                    and (
-                        "requires_python" not in release_detail
-                        or not release_detail["requires_python"]
-                        or current_python_version
-                        in SpecifierSet(release_detail["requires_python"])
+                try:
+                    release_detail = (
+                        release_details[-1] if len(release_details) > 0 else None
                     )
-                ):
-                    try:
-                        my_release = version_parse(release)
-                    except InvalidVersion:
-                        logger.warning(
-                            "%s: Ignoring release with invalid version: %s",
-                            package.name,
-                            release,
-                        )
-                        continue
+                    if release_detail:
+                        if release_detail["yanked"]:
+                            continue
+                        if (
+                            requires_python := release_detail.get("requires_python")
+                        ) and current_python_version not in SpecifierSet(
+                            requires_python
+                        ):
+                            continue
+
+                    my_release = version_parse(release)
                     if str(my_release) == str(release) and (
                         current_is_prerelease or not my_release.is_prerelease
                     ):
@@ -210,7 +204,18 @@ def update_packages_from_pypi(
                             not latest or my_release > version_parse(latest)
                         ):
                             latest = release
-
+                except InvalidVersion:
+                    logger.warning(
+                        "%s: Ignoring release with invalid version: %s",
+                        package.name,
+                        release,
+                    )
+                except InvalidSpecifier:
+                    logger.warning(
+                        "%s: Ignoring release with invalid requires_python: %s",
+                        package.name,
+                        requires_python,
+                    )
             if not latest:
                 logger.warning(
                     f"Could not find a release of '{package.name}' "

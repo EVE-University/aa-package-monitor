@@ -284,6 +284,29 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
+    """
+    This test breaks with packaging<22, which is currently required by Auth.
+    Die App is build to work with packaging>=22.0 though and this test should
+    be enabled once the Auth patch for updating this requirement is released.
+    """
+
+    # def test_should_ignore_invalid_python_release_spec(self, requests_mocker):
+    #     # given
+    #     dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+    #     packages = make_packages(dist_alpha)
+    #     requirements = {}
+    #     pypi_alpha = PypiFactory(distribution=dist_alpha)
+    #     pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.4.*")]
+    #     requests_mocker.register_uri(
+    #         "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+    #     )
+    #     # when
+    #     update_packages_from_pypi(
+    #         packages=packages, requirements=requirements, use_threads=False
+    #     )
+    #     # then
+    #     self.assertEqual(packages["alpha"].latest, "1.0.0")
+
 
 class TestDistMetadataValue(NoSocketsTestCase):
     def test_should_return_value_when_exists(self):
