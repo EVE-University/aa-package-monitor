@@ -4,6 +4,7 @@ from unittest import mock
 import requests_mock
 from package_monitor.core import (
     DistributionPackage,
+    _determine_homepage_url,
     _is_distribution_editable,
     compile_package_requirements,
     dist_metadata_value,
@@ -110,6 +111,16 @@ class TestIsDistributionEditable(NoSocketsTestCase):
         }
         # when/then
         self.assertFalse(_is_distribution_editable(obj))
+
+
+class TestDetermineHomePageUrl(NoSocketsTestCase):
+    def test_should_identify_homepage_old_style(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url="my-homepage-url")
+        # when
+        url = _determine_homepage_url(dist)
+        # then
+        self.assertEqual(url, "my-homepage-url")
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

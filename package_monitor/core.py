@@ -69,7 +69,7 @@ class DistributionPackage:
             current=dist.version,
             is_editable=_is_distribution_editable(dist),
             requirements=_parse_requirements(dist.requires),
-            homepage_url=dist_metadata_value(dist, "Home-page"),
+            homepage_url=_determine_homepage_url(dist),
             summary=dist_metadata_value(dist, "Summary"),
         )
         dist_files = [
@@ -83,6 +83,11 @@ class DistributionPackage:
                         obj.apps.append(app.name)
                         break
         return obj
+
+
+def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
+    url = dist_metadata_value(dist, "Home-page")
+    return url
 
 
 def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:

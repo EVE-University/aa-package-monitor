@@ -1,3 +1,5 @@
+from collections import defaultdict
+from collections.abc import MutableMapping
 from dataclasses import asdict, dataclass, field
 from typing import Dict, Iterable, List, Optional
 
@@ -108,6 +110,47 @@ class PypiFactory(factory.Factory):
         lambda o: {o.distribution.current: [PypiReleaseFactory()]}
     )
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
+
+
+class PackageMetadataStub(MutableMapping):
+    """A PackageMetadata stub implementing the interface
+    for importlib_metadata.PackageMetadata.
+
+    This is a dict-like type, which allows multiple values per key.
+    """
+
+    def __init__(self):
+        self._d = defaultdict(list)
+
+    def __setitem__(self, key, value):
+        self._d[key].append(value)
+
+    def __getitem__(self, key):
+        if key not in self._d:
+            return None
+        return self._d[key][0]
+
+    def __delitem__(self, __key) -> None:
+        raise NotImplementedError()
+
+    def __len__(self) -> int:
+        return len(self._d)
+
+    def __iter__(self):
+        return self.keys()
+
+    def items(self):
+        results = []
+        for key, values in self._d.items():
+            for value in values:
+                results.append((key, value))
+        return results
+
+    def keys(self):
+        return [o[0] for o in self.items()]
+
+    def values(self):
+        return [o[1] for o in self.items()]
 
 
 class ImportlibDistributionStub:

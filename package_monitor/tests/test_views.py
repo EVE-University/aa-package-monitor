@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
+from package_monitor import views
+
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from app_utils.testing import create_fake_user, json_response_to_python
-
-from package_monitor import views
 
 from .factories import DistributionFactory
 
