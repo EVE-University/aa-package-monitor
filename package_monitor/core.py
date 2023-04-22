@@ -174,76 +174,39 @@ def update_packages_from_pypi(
         """
         nonlocal packages
 
-        current_python_version = version_parse(
-            f"{sys.version_info.major}.{sys.version_info.minor}"
-            f".{sys.version_info.micro}"
+        consolidated_requirements = _calc_consolidated_requirements(
+            package_name, requirements
         )
+        latest, pypi_url = _fetch_data_from_pypi(
+            packages[package_name], consolidated_requirements
+        )
+        packages[package_name].latest = latest
+        packages[package_name].homepage_url = pypi_url
+
+    def _calc_consolidated_requirements(package_name, requirements):
         consolidated_requirements = SpecifierSet()
         if package_name in requirements:
             for _, specifier in requirements[package_name].items():
                 consolidated_requirements &= specifier
+        return consolidated_requirements
 
-        package = packages[package_name]
+    def _fetch_data_from_pypi(package, consolidated_requirements):
+        """Fetch data for a package from PyPI."""
+        current_python_version = version_parse(
+            f"{sys.version_info.major}.{sys.version_info.minor}"
+            f".{sys.version_info.micro}"
+        )
         current_version = version_parse(package.current)
         current_is_prerelease = (
             str(current_version) == str(package.current)
             and current_version.is_prerelease
         )
         logger.info(
-            f"Fetching info for distribution package '{package.name}' " "from PyPI"
+            f"Fetching info for distribution package '{package.name}' from PyPI"
         )
+
         r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
-        if r.status_code == requests.codes.ok:
-            pypi_data = r.json()
-            latest = ""
-            pypi_info = pypi_data.get("info")
-            pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
-            for release, release_details in pypi_data["releases"].items():
-                try:
-                    release_detail = (
-                        release_details[-1] if len(release_details) > 0 else None
-                    )
-                    if release_detail:
-                        if release_detail["yanked"]:
-                            continue
-                        if (
-                            requires_python := release_detail.get("requires_python")
-                        ) and current_python_version not in SpecifierSet(
-                            requires_python
-                        ):
-                            continue
-
-                    my_release = version_parse(release)
-                    if str(my_release) == str(release) and (
-                        current_is_prerelease or not my_release.is_prerelease
-                    ):
-                        if len(consolidated_requirements) > 0:
-                            is_valid = my_release in consolidated_requirements
-                        else:
-                            is_valid = True
-
-                        if is_valid and (
-                            not latest or my_release > version_parse(latest)
-                        ):
-                            latest = release
-                except InvalidVersion:
-                    logger.warning(
-                        "%s: Ignoring release with invalid version: %s",
-                        package.name,
-                        release,
-                    )
-                except InvalidSpecifier:
-                    logger.warning(
-                        "%s: Ignoring release with invalid requires_python: %s",
-                        package.name,
-                        requires_python,
-                    )
-            if not latest:
-                logger.warning(
-                    f"Could not find a release of '{package.name}' "
-                    f"that matches all requirements: '{consolidated_requirements}''"
-                )
-        else:
+        if r.status_code != requests.codes.ok:
             if r.status_code == 404:
                 logger.info(f"Package '{package.name}' is not registered in PyPI")
             else:
@@ -253,11 +216,54 @@ def update_packages_from_pypi(
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
                 )
-            latest = ""
-            pypi_url = ""
+            return "", ""
 
-        packages[package_name].latest = latest
-        packages[package_name].homepage_url = pypi_url
+        pypi_data = r.json()
+        latest = ""
+        pypi_info = pypi_data.get("info")
+        pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
+        for release, release_details in pypi_data["releases"].items():
+            try:
+                release_detail = (
+                    release_details[-1] if len(release_details) > 0 else None
+                )
+                if release_detail:
+                    if release_detail["yanked"]:
+                        continue
+                    if (
+                        requires_python := release_detail.get("requires_python")
+                    ) and current_python_version not in SpecifierSet(requires_python):
+                        continue
+
+                my_release = version_parse(release)
+                if str(my_release) == str(release) and (
+                    current_is_prerelease or not my_release.is_prerelease
+                ):
+                    if len(consolidated_requirements) > 0:
+                        is_valid = my_release in consolidated_requirements
+                    else:
+                        is_valid = True
+
+                    if is_valid and (not latest or my_release > version_parse(latest)):
+                        latest = release
+            except InvalidVersion:
+                logger.warning(
+                    "%s: Ignoring release with invalid version: %s",
+                    package.name,
+                    release,
+                )
+            except InvalidSpecifier:
+                logger.warning(
+                    "%s: Ignoring release with invalid requires_python: %s",
+                    package.name,
+                    requires_python,
+                )
+        if not latest:
+            logger.warning(
+                f"Could not find a release of '{package.name}' "
+                f"that matches all requirements: '{consolidated_requirements}''"
+            )
+        return latest, pypi_url
 
     if use_threads:
         with concurrent.futures.ThreadPoolExecutor(

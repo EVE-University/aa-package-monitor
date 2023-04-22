@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-### Added
+## [1.9.0] - 2023-01-04
 
 ### Changed
 
-- Show direct link to PyPI project page instead of project's homepage
+- Now shows link to PyPI project page instead of the project's homepage
 
 ### Fixed
 
