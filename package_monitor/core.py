@@ -86,8 +86,14 @@ class DistributionPackage:
 
 
 def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
-    url = dist_metadata_value(dist, "Home-page")
-    return url
+    if url := dist_metadata_value(dist, "Home-page"):
+        return url
+    values = dist.metadata.get_all("Project-URL")
+    while values:
+        k, v = [o.strip() for o in values.pop(0).split(",")]
+        if k.lower() == "homepage":
+            return v
+    return ""
 
 
 def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
@@ -261,7 +267,11 @@ def update_packages_from_pypi(
 
 
 def dist_metadata_value(dist: importlib_metadata.Distribution, prop: str) -> str:
-    """Metadata value from distribution or empty string."""
-    if dist and dist.metadata[prop] and dist.metadata[prop] != "UNKNOWN":
-        return dist.metadata[prop]
+    """Metadata value from distribution or empty string.
+
+    Note: metadata can contain multiple values for the same key.
+    This method will return the first only!
+    """
+    if dist and (value := dist.metadata.get(prop)) and value != "UNKNOWN":
+        return value
     return ""

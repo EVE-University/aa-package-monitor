@@ -58,3 +58,31 @@ class TestPackageMetadata(unittest.TestCase):
         d["two"] = 3
         # then
         self.assertEqual(d.items(), [("one", 1), ("two", 2), ("two", 3)])
+
+    def test_should_return_first_value(self):
+        # given
+        d = PackageMetadataStub()
+        d["one"] = 1
+        d["one"] = 2
+        # when/then
+        self.assertEqual(d.get("one"), 1)
+
+    def test_should_return_None_if_not_found(self):
+        # given
+        d = PackageMetadataStub()
+        # when/then
+        self.assertIsNone(d.get("xxx"))
+
+    def test_should_all_values(self):
+        # given
+        d = PackageMetadataStub()
+        d["one"] = 1
+        d["one"] = 2
+        # when/then
+        self.assertEqual(d.get_all("one"), [1, 2])
+
+    def test_should_return_None_if_not_found_2(self):
+        # given
+        d = PackageMetadataStub()
+        # when/then
+        self.assertIsNone(d.get_all("xxx"))

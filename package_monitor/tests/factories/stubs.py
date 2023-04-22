@@ -104,6 +104,12 @@ class PackageMetadataStub(MutableMapping):
     def values(self):
         return [o[1] for o in self.items()]
 
+    def get_all(self, key) -> Optional[list]:
+        v = self._d[key]
+        if not v:
+            return None
+        return v
+
 
 class ImportlibDistributionStub:
     def __init__(

@@ -122,6 +122,44 @@ class TestDetermineHomePageUrl(NoSocketsTestCase):
         # then
         self.assertEqual(url, "my-homepage-url")
 
+    def test_should_identify_homepage_pep_621_style(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url="")
+        for v in [
+            "Documentation, other-url",
+            "Homepage, my-homepage-url",
+            "Issues, other-url",
+        ]:
+            dist.metadata["Project-URL"] = v
+        # when
+        url = _determine_homepage_url(dist)
+        # then
+        self.assertEqual(url, "my-homepage-url")
+
+    def test_should_identify_homepage_pep_621_style_other_case(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url="")
+        for v in [
+            "Documentation, other-url",
+            "homepage, my-homepage-url",
+            "Issues, other-url",
+        ]:
+            dist.metadata["Project-URL"] = v
+        # when
+        url = _determine_homepage_url(dist)
+        # then
+        self.assertEqual(url, "my-homepage-url")
+
+    def test_should_return_empty_string_when_no_url_found_with_pep_621(self):
+        # given
+        dist = ImportlibDistributionStubFactory(homepage_url="")
+        for v in ["Documentation, other-url", "Issues, other-url"]:
+            dist.metadata["Project-URL"] = v
+        # when
+        url = _determine_homepage_url(dist)
+        # then
+        self.assertEqual(url, "")
+
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestFetchRelevantPackages(NoSocketsTestCase):
