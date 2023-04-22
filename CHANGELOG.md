@@ -7,12 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.9.0] - 2023-01-04
+## [1.9.0] - 2023-04-22
 
 ### Changed
 
 - Now shows link to PyPI project page instead of the project's homepage
 - Build process migrated to PEP 621
+- Added support for AA 4 / Django 4
+- Dropped support for AA 3 / Django 3.1
 
 ### Fixed
 

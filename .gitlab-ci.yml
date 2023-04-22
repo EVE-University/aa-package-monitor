@@ -27,21 +27,21 @@ test-py38-dj32:
   extends: .test
   image: python:3.8-bullseye
   script:
-    - tox -e py38-django32
+    - tox -e py38-django40
     - bash <(curl -s https://codecov.io/bash)
 
 test-py39-dj32:
   extends: .test
   image: python:3.9-bullseye
   script:
-    - tox -e py39-django32
+    - tox -e py39-django40
     - bash <(curl -s https://codecov.io/bash)
 
 test-py310-dj32:
   extends: .test
   image: python:3.10-bullseye
   script:
-    - tox -e py310-django32
+    - tox -e py310-django40
     - bash <(curl -s https://codecov.io/bash)
 
 deploy-pypi:
