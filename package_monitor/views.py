@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from app_utils.views import link_html, no_wrap_html, yesno_str
+from app_utils.views import link_html, yesno_str
 
 from . import __title__
 from .app_settings import (
@@ -76,7 +76,7 @@ def package_list_data(request) -> JsonResponse:
             )
 
         if dist.apps:
-            _lst = [no_wrap_html(row) for row in dist.apps]
+            _lst = [row for row in dist.apps]
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
@@ -104,7 +104,7 @@ def package_list_data(request) -> JsonResponse:
             latest_html = "?"
         else:
             command = f"pip install {dist.pip_install_version}"
-            latest_html = no_wrap_html(
+            latest_html = (
                 f'<span class="copy_to_clipboard" '
                 f'title="{command}"'
                 f' data-clipboard-text="{command}">'
@@ -118,7 +118,7 @@ def package_list_data(request) -> JsonResponse:
         data.append(
             {
                 "name": dist.name,
-                "name_link": no_wrap_html(name_link_html),
+                "name_link": name_link_html,
                 "apps": apps_html,
                 "used_by": used_by_html,
                 "current": dist.installed_version,
