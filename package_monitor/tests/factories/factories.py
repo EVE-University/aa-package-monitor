@@ -2,9 +2,10 @@ from typing import Iterable
 
 import factory
 import factory.fuzzy
+from packaging.requirements import Requirement
+
 from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
-from packaging.requirements import Requirement
 
 from .stubs import ImportlibDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
 
@@ -29,6 +30,8 @@ class PypiUrlFactory(factory.Factory):
 class PypiInfoFactory(factory.Factory):
     class Meta:
         model = PypiInfo
+
+    project_url = factory.LazyAttribute(lambda o: f"https://pypi.org/project/{o.name}/")
 
 
 class PypiFactory(factory.Factory):

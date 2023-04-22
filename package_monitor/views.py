@@ -69,7 +69,10 @@ def package_list_data(request) -> JsonResponse:
             link_html(dist.website_url, dist.name) if dist.website_url else dist.name
         )
         if dist.is_outdated:
-            name_link_html += '&nbsp;<i class="fas fa-exclamation-circle" title="Update available"></i>'
+            name_link_html += (
+                '&nbsp;<i class="fas fa-exclamation-circle" '
+                'title="Update available"></i>'
+            )
 
         if dist.apps:
             _lst = [no_wrap_html(row) for row in dist.apps]

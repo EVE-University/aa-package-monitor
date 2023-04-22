@@ -1,9 +1,10 @@
 from unittest import mock
 
-from package_monitor.models import Distribution
 from packaging.specifiers import SpecifierSet
 
 from app_utils.testing import NoSocketsTestCase
+
+from package_monitor.models import Distribution
 
 from .factories import DistributionFactory, DistributionPackageFactory, make_packages
 

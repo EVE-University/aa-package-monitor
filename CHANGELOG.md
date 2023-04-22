@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Show direct link to PyPI project page instead of project's homepage
+
 ### Fixed
 
 - PEP 660 packages are not detected as editable

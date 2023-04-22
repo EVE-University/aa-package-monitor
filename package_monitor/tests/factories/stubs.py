@@ -37,6 +37,7 @@ class PypiInfo:
     version: str
     description: str = ""
     home_page: str = ""
+    project_url: str = ""
     # summary: str
     # author: str
     # author_email: str

@@ -2,18 +2,18 @@ from collections import namedtuple
 from unittest import mock
 
 import requests_mock
+from packaging.specifiers import SpecifierSet
+
+from app_utils.testing import NoSocketsTestCase
+
 from package_monitor.core import (
     DistributionPackage,
-    _determine_homepage_url,
     _is_distribution_editable,
     compile_package_requirements,
     dist_metadata_value,
     gather_distribution_packages,
     update_packages_from_pypi,
 )
-from packaging.specifiers import SpecifierSet
-
-from app_utils.testing import NoSocketsTestCase
 
 from .factories import (
     DistributionPackageFactory,
@@ -53,7 +53,7 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertEqual(obj.latest, "")
         self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
         self.assertEqual(obj.apps, ["alpha_app"])
-        self.assertEqual(obj.homepage_url, "https://www.alpha.com")
+        self.assertEqual(obj.homepage_url, "")
 
     def test_should_not_be_outdated(self):
         # given
@@ -113,52 +113,52 @@ class TestIsDistributionEditable(NoSocketsTestCase):
         self.assertFalse(_is_distribution_editable(obj))
 
 
-class TestDetermineHomePageUrl(NoSocketsTestCase):
-    def test_should_identify_homepage_old_style(self):
-        # given
-        dist = ImportlibDistributionStubFactory(homepage_url="my-homepage-url")
-        # when
-        url = _determine_homepage_url(dist)
-        # then
-        self.assertEqual(url, "my-homepage-url")
+# class TestDetermineHomePageUrl(NoSocketsTestCase):
+#     def test_should_identify_homepage_old_style(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="my-homepage-url")
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
 
-    def test_should_identify_homepage_pep_621_style(self):
-        # given
-        dist = ImportlibDistributionStubFactory(homepage_url="")
-        for v in [
-            "Documentation, other-url",
-            "Homepage, my-homepage-url",
-            "Issues, other-url",
-        ]:
-            dist.metadata["Project-URL"] = v
-        # when
-        url = _determine_homepage_url(dist)
-        # then
-        self.assertEqual(url, "my-homepage-url")
+#     def test_should_identify_homepage_pep_621_style(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in [
+#             "Documentation, other-url",
+#             "Homepage, my-homepage-url",
+#             "Issues, other-url",
+#         ]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
 
-    def test_should_identify_homepage_pep_621_style_other_case(self):
-        # given
-        dist = ImportlibDistributionStubFactory(homepage_url="")
-        for v in [
-            "Documentation, other-url",
-            "homepage, my-homepage-url",
-            "Issues, other-url",
-        ]:
-            dist.metadata["Project-URL"] = v
-        # when
-        url = _determine_homepage_url(dist)
-        # then
-        self.assertEqual(url, "my-homepage-url")
+#     def test_should_identify_homepage_pep_621_style_other_case(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in [
+#             "Documentation, other-url",
+#             "homepage, my-homepage-url",
+#             "Issues, other-url",
+#         ]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
 
-    def test_should_return_empty_string_when_no_url_found_with_pep_621(self):
-        # given
-        dist = ImportlibDistributionStubFactory(homepage_url="")
-        for v in ["Documentation, other-url", "Issues, other-url"]:
-            dist.metadata["Project-URL"] = v
-        # when
-        url = _determine_homepage_url(dist)
-        # then
-        self.assertEqual(url, "")
+#     def test_should_return_empty_string_when_no_url_found_with_pep_621(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in ["Documentation, other-url", "Issues, other-url"]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "")
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
@@ -248,6 +248,9 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.1.0")
+        self.assertEqual(
+            packages["alpha"].homepage_url, "https://pypi.org/project/alpha/"
+        )
 
     def test_should_ignore_prereleases_when_stable(self, requests_mocker):
         # given
@@ -358,11 +361,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
-    """
-    This test breaks with packaging<22, which is currently required by Auth.
-    Die App is build to work with packaging>=22.0 though and this test should
-    be enabled once the Auth patch for updating this requirement is released.
-    """
+    # TODO: This test breaks with packaging<22, which is currently required by Auth.
 
     # def test_should_ignore_invalid_python_release_spec(self, requests_mocker):
     #     # given

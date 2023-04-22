@@ -69,7 +69,6 @@ class DistributionPackage:
             current=dist.version,
             is_editable=_is_distribution_editable(dist),
             requirements=_parse_requirements(dist.requires),
-            homepage_url=_determine_homepage_url(dist),
             summary=dist_metadata_value(dist, "Summary"),
         )
         dist_files = [
@@ -85,15 +84,15 @@ class DistributionPackage:
         return obj
 
 
-def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
-    if url := dist_metadata_value(dist, "Home-page"):
-        return url
-    values = dist.metadata.get_all("Project-URL")
-    while values:
-        k, v = [o.strip() for o in values.pop(0).split(",")]
-        if k.lower() == "homepage":
-            return v
-    return ""
+# def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
+#     if url := dist_metadata_value(dist, "Home-page"):
+#         return url
+#     values = dist.metadata.get_all("Project-URL")
+#     while values:
+#         k, v = [o.strip() for o in values.pop(0).split(",")]
+#         if k.lower() == "homepage":
+#             return v
+#     return ""
 
 
 def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
@@ -195,9 +194,11 @@ def update_packages_from_pypi(
         )
         r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
         if r.status_code == requests.codes.ok:
-            pypi_info = r.json()
+            pypi_data = r.json()
             latest = ""
-            for release, release_details in pypi_info["releases"].items():
+            pypi_info = pypi_data.get("info")
+            pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
+            for release, release_details in pypi_data["releases"].items():
                 try:
                     release_detail = (
                         release_details[-1] if len(release_details) > 0 else None
@@ -253,8 +254,10 @@ def update_packages_from_pypi(
                     f"response: {r.content}"
                 )
             latest = ""
+            pypi_url = ""
 
         packages[package_name].latest = latest
+        packages[package_name].homepage_url = pypi_url
 
     if use_threads:
         with concurrent.futures.ThreadPoolExecutor(

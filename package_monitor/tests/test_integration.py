@@ -1,11 +1,12 @@
 from unittest import mock
 
 import requests_mock
+
+from app_utils.testing import NoSocketsTestCase
+
 from package_monitor import tasks
 from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
-
-from app_utils.testing import NoSocketsTestCase
 
 from .factories import ImportlibDistributionStubFactory, PypiFactory, PypiReleaseFactory
 
