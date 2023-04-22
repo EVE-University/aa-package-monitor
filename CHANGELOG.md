@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Added localization to enable translations
+
+### Changed
+
 - Now shows link to PyPI project page instead of the project's homepage
 - Build process migrated to PEP 621
 - Added support for AA 4 / Django 4
@@ -19,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - PEP 660 packages are not detected as editable
+- Does not show homepage for some packages (#6)
 
 ## [1.8.1] - 2023-01-04
 

@@ -1,0 +1,150 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-04-22 21:18+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
+"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
+"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
+"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+#: templates/package_monitor/index.html:9
+msgid "never"
+msgstr ""
+
+#: templates/package_monitor/index.html:10
+msgid "Last updated"
+msgstr ""
+
+#: templates/package_monitor/index.html:16
+msgid "Refresh data now"
+msgstr ""
+
+#: templates/package_monitor/index.html:30
+msgid "Refreshing distributions"
+msgstr ""
+
+#: templates/package_monitor/index.html:35
+#, python-format
+msgid ""
+"\n"
+"                            Refreshing data for approx. %(all_count)s "
+"distributions...\n"
+"                        "
+msgstr ""
+
+#: templates/package_monitor/index.html:62
+msgid "All"
+msgstr ""
+
+#: templates/package_monitor/index.html:67
+msgid "Current"
+msgstr ""
+
+#: templates/package_monitor/index.html:72
+msgid "Update available"
+msgstr ""
+
+#: templates/package_monitor/index.html:78
+msgid "No information about new release available on PyPI"
+msgstr ""
+
+#: templates/package_monitor/index.html:79
+msgid "No Info"
+msgstr ""
+
+#: templates/package_monitor/index.html:92
+msgid "Name of this distribution package"
+msgstr ""
+
+#: templates/package_monitor/index.html:93
+msgid "Name"
+msgstr ""
+
+#: templates/package_monitor/index.html:97
+msgid "Currently installed version of this package"
+msgstr ""
+
+#: templates/package_monitor/index.html:98
+msgid "Installed"
+msgstr ""
+
+#: templates/package_monitor/index.html:102
+msgid ""
+"Latest available stable version compliant with all requirements for this "
+"package"
+msgstr ""
+
+#: templates/package_monitor/index.html:103
+msgid "Latest"
+msgstr ""
+
+#: templates/package_monitor/index.html:105
+msgid "Description"
+msgstr ""
+
+#: templates/package_monitor/index.html:108
+msgid "Currently installed Django apps included in this package"
+msgstr ""
+
+#: templates/package_monitor/index.html:109
+msgid "Included Apps"
+msgstr ""
+
+#: templates/package_monitor/index.html:113
+msgid "Other distribution packages that are using this package"
+msgstr ""
+
+#: templates/package_monitor/index.html:114
+msgid "Used By"
+msgstr ""
+
+#: templates/package_monitor/index.html:123
+msgid "Shows all known distribution packages."
+msgstr ""
+
+#: templates/package_monitor/index.html:125
+msgid "Shows only distribution packages that contain an installed Django app."
+msgstr ""
+
+#: templates/package_monitor/index.html:127
+msgid "In addition these packages are shown:"
+msgstr ""
+
+#: templates/package_monitor/index.html:131
+msgid ""
+"\n"
+"                    The latest stable of a package is retrieved from PyPI.\n"
+"                    Will show as \"?\" if PyPI has no info about a package.\n"
+"                "
+msgstr ""
+
+#: templates/package_monitor/index.html:141
+#, python-format
+msgid ""
+"\n"
+"                        Command for installing all %(outdated_count)s "
+"outdated packages\n"
+"                    "
+msgstr ""
+
+#: templates/package_monitor/index.html:148
+msgid "No outdated packages to install."
+msgstr ""
+
+#: views.py:37
+msgid "Distribution packages"
+msgstr ""
