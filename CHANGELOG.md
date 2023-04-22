@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Now shows link to PyPI project page instead of the project's homepage
+- Build process migrated to PEP 621
 
 ### Fixed
 
