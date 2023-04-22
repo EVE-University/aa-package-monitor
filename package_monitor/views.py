@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from app_utils.views import link_html, no_wrap_html, yesno_str
 
@@ -33,7 +34,7 @@ def index(request):
     )
     context = {
         "app_title": __title__,
-        "page_title": "Distribution packages",
+        "page_title": _("Distribution packages"),
         "updated_at": updated_at,
         "filter": filter,
         "all_count": distributions_qs.count(),
@@ -71,7 +72,7 @@ def package_list_data(request) -> JsonResponse:
         if dist.is_outdated:
             name_link_html += (
                 '&nbsp;<i class="fas fa-exclamation-circle" '
-                'title="Update available"></i>'
+                f'title="{_("Update available")}"></i>'
             )
 
         if dist.apps:
@@ -113,7 +114,7 @@ def package_list_data(request) -> JsonResponse:
 
         description = dist.description
         if dist.is_editable:
-            description += " [EDITABLE]"
+            description += f" [{_('EDITABLE')}]"
         data.append(
             {
                 "name": dist.name,
