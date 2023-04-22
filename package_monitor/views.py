@@ -2,8 +2,9 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
-from app_utils.views import link_html, no_wrap_html, yesno_str
+from app_utils.views import link_html, yesno_str
 
 from . import __title__
 from .app_settings import (
@@ -33,7 +34,7 @@ def index(request):
     )
     context = {
         "app_title": __title__,
-        "page_title": "Distribution packages",
+        "page_title": _("Distribution packages"),
         "updated_at": updated_at,
         "filter": filter,
         "all_count": distributions_qs.count(),
@@ -64,14 +65,18 @@ def package_list_data(request) -> JsonResponse:
 
     data = list()
     for dist in distributions_qs.order_by("name"):
+        dist: Distribution
         name_link_html = (
             link_html(dist.website_url, dist.name) if dist.website_url else dist.name
         )
         if dist.is_outdated:
-            name_link_html += '&nbsp;<i class="fas fa-exclamation-circle" title="Update available"></i>'
+            name_link_html += (
+                '&nbsp;<i class="fas fa-exclamation-circle" '
+                f'title="{_("Update available")}"></i>'
+            )
 
         if dist.apps:
-            _lst = [no_wrap_html(row) for row in dist.apps]
+            _lst = [row for row in dist.apps]
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
@@ -99,7 +104,7 @@ def package_list_data(request) -> JsonResponse:
             latest_html = "?"
         else:
             command = f"pip install {dist.pip_install_version}"
-            latest_html = no_wrap_html(
+            latest_html = (
                 f'<span class="copy_to_clipboard" '
                 f'title="{command}"'
                 f' data-clipboard-text="{command}">'
@@ -107,17 +112,20 @@ def package_list_data(request) -> JsonResponse:
                 '&nbsp;&nbsp;<i class="far fa-copy"></i></span>'
             )
 
+        description = dist.description
+        if dist.is_editable:
+            description += f" [{_('EDITABLE')}]"
         data.append(
             {
                 "name": dist.name,
-                "name_link": no_wrap_html(name_link_html),
+                "name_link": name_link_html,
                 "apps": apps_html,
                 "used_by": used_by_html,
                 "current": dist.installed_version,
                 "latest": latest_html,
                 "is_outdated": dist.is_outdated,
                 "is_outdated_str": yesno_str(dist.is_outdated),
-                "description": dist.description,
+                "description": description,
             }
         )
 

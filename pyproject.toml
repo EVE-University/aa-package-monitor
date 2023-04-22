@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aa-package-monitor"
+dynamic = ["version"]
+description = "An app that helps keep track of installed packages and outstanding updates for Alliance Auth"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.0",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+dependencies = [
+    "allianceauth>=3",
+    "allianceauth-app-utils>=1.8",
+    "importlib_metadata",
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://gitlab.com/ErikKalkoken/aa-package-monitor"
+Source = "https://gitlab.com/ErikKalkoken/aa-package-monitor"
+Changelog = "https://gitlab.com/ErikKalkoken/aa-package-monitor/-/blob/master/CHANGELOG.md"
+Tracker = "https://gitlab.com/ErikKalkoken/aa-package-monitor/-/issues"
+
+
+[tool.hatch.version]
+path = "package_monitor/__init__.py"
+
+[tool.hatch.build]
+include = [
+    "/package_monitor",
+]
+
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "THIRDPARTY",
+    "DJANGO",
+    "ALLIANCEAUTH",
+    "FIRSTPARTY",
+    "LOCALFOLDER"
+]
+known_allianceauth = ["allianceauth", "app_utils"]
+known_django = ["django", "django_webtest", "esi", "eveuniverse"]
+
+[tool.pylint.'MASTER']
+ignore-patterns = ["test_.*.py,__init__.py", "generate_.*.py"]
+
+[tool.pylint.'BASIC']
+good-names = ["i", "j", "k", "x", "f", "ex"]
+
+[tool.pylint.'FORMAT']
+max-line-length = 100
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = ["R", "C"]

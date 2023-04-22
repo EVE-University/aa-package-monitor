@@ -8,6 +8,7 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core import (
     DistributionPackage,
+    _is_distribution_editable,
     compile_package_requirements,
     dist_metadata_value,
     gather_distribution_packages,
@@ -52,7 +53,7 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertEqual(obj.latest, "")
         self.assertListEqual([str(x) for x in obj.requirements], ["bravo>=1.0.0"])
         self.assertEqual(obj.apps, ["alpha_app"])
-        self.assertEqual(obj.homepage_url, "https://www.alpha.com")
+        self.assertEqual(obj.homepage_url, "")
 
     def test_should_not_be_outdated(self):
         # given
@@ -72,19 +73,92 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when/then
         self.assertIsNone(obj.is_outdated())
 
-    def test_should_not_be_editable(self):
-        # given
-        obj = DistributionPackageFactory(name="alpha")
-        # when/then
-        self.assertFalse(obj._calc_is_editable("alpha"))
 
-    @mock.patch(MODULE_PATH + ".os.path.isfile")
-    def test_should_be_editable(self, mock_isfile):
+@mock.patch(MODULE_PATH + ".os.path.isfile")
+class TestIsDistributionEditable(NoSocketsTestCase):
+    def test_should_not_be_editable(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        # when/then
+        self.assertFalse(_is_distribution_editable(obj))
+
+    def test_should_be_editable_old_version(self, mock_isfile):
         # given
         mock_isfile.return_value = True
-        obj = DistributionPackageFactory(name="alpha")
+        obj = ImportlibDistributionStubFactory(name="alpha")
         # when/then
-        self.assertTrue(obj._calc_is_editable("alpha"))
+        self.assertTrue(_is_distribution_editable(obj))
+
+    def test_should_be_editable_pep660(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj._files_content = {
+            "direct_url.json": '{"dir_info": {"editable": true}, "url": "xxx"}'
+        }
+        # when/then
+        self.assertTrue(_is_distribution_editable(obj))
+
+    def test_should_not_be_editable_pep660(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj._files_content = {
+            "direct_url.json": '{"dir_info": {"editable": false}, "url": "xxx"}'
+        }
+        # when/then
+        self.assertFalse(_is_distribution_editable(obj))
+
+
+# class TestDetermineHomePageUrl(NoSocketsTestCase):
+#     def test_should_identify_homepage_old_style(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="my-homepage-url")
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
+
+#     def test_should_identify_homepage_pep_621_style(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in [
+#             "Documentation, other-url",
+#             "Homepage, my-homepage-url",
+#             "Issues, other-url",
+#         ]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
+
+#     def test_should_identify_homepage_pep_621_style_other_case(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in [
+#             "Documentation, other-url",
+#             "homepage, my-homepage-url",
+#             "Issues, other-url",
+#         ]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "my-homepage-url")
+
+#     def test_should_return_empty_string_when_no_url_found_with_pep_621(self):
+#         # given
+#         dist = ImportlibDistributionStubFactory(homepage_url="")
+#         for v in ["Documentation, other-url", "Issues, other-url"]:
+#             dist.metadata["Project-URL"] = v
+#         # when
+#         url = _determine_homepage_url(dist)
+#         # then
+#         self.assertEqual(url, "")
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
@@ -174,6 +248,9 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.1.0")
+        self.assertEqual(
+            packages["alpha"].homepage_url, "https://pypi.org/project/alpha/"
+        )
 
     def test_should_ignore_prereleases_when_stable(self, requests_mocker):
         # given
@@ -284,11 +361,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
-    """
-    This test breaks with packaging<22, which is currently required by Auth.
-    Die App is build to work with packaging>=22.0 though and this test should
-    be enabled once the Auth patch for updating this requirement is released.
-    """
+    # TODO: This test breaks with packaging<22, which is currently required by Auth.
 
     # def test_should_ignore_invalid_python_release_spec(self, requests_mocker):
     #     # given
@@ -315,12 +388,11 @@ class TestDistMetadataValue(NoSocketsTestCase):
         # when/then
         self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
 
-    def test_should_raise_error_when_prop_does_not_exist(self):
+    def test_should_return_empty_string_when_prop_does_not_exist(self):
         # given
         dist = ImportlibDistributionStubFactory(name="Alpha")
         # when/then
-        with self.assertRaises(KeyError):
-            dist_metadata_value(dist, "XXX")
+        self.assertEqual(dist_metadata_value(dist, "XXX"), "")
 
     def test_should_return_name(self):
         # given

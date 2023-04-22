@@ -1,0 +1,9 @@
+[main]
+host = https://www.transifex.com
+
+[o:kalkoken-apps:p:aa-package-monitor:r:django-po]
+file_filter  = package_monitor/locale/<lang>/LC_MESSAGES/django.po
+source_file  = package_monitor/locale/en/LC_MESSAGES/django.po
+source_lang  = en_US
+type         = PO
+minimum_perc = 0

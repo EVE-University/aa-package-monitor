@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 import os
 import sys
 from dataclasses import dataclass, field
@@ -66,9 +67,8 @@ class DistributionPackage:
         obj = cls(
             name=dist.name,
             current=dist.version,
-            is_editable=cls._calc_is_editable(dist.name),
+            is_editable=_is_distribution_editable(dist),
             requirements=_parse_requirements(dist.requires),
-            homepage_url=dist_metadata_value(dist, "Home-page"),
             summary=dist_metadata_value(dist, "Summary"),
         )
         dist_files = [
@@ -83,14 +83,34 @@ class DistributionPackage:
                         break
         return obj
 
-    @staticmethod
-    def _calc_is_editable(dist_name: str) -> bool:
-        """Is distribution an editable install?"""
-        for path_item in sys.path:
-            egg_link = os.path.join(path_item, dist_name + ".egg-link")
-            if os.path.isfile(egg_link):
-                return True
-        return False
+
+# def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
+#     if url := dist_metadata_value(dist, "Home-page"):
+#         return url
+#     values = dist.metadata.get_all("Project-URL")
+#     while values:
+#         k, v = [o.strip() for o in values.pop(0).split(",")]
+#         if k.lower() == "homepage":
+#             return v
+#     return ""
+
+
+def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
+    """Determine if a distribution is an editable install?"""
+    # method for new packages conforming with pep 660
+    direct_url_json = dist.read_text("direct_url.json")
+    if direct_url_json:
+        direct_url = json.loads(direct_url_json)
+        if "dir_info" in direct_url and direct_url["dir_info"].get("editable") is True:
+            return True
+
+    # method for old packages
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.name + ".egg-link")
+        if os.path.isfile(egg_link):
+            return True
+
+    return False
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
@@ -154,74 +174,39 @@ def update_packages_from_pypi(
         """
         nonlocal packages
 
-        current_python_version = version_parse(
-            f"{sys.version_info.major}.{sys.version_info.minor}"
-            f".{sys.version_info.micro}"
+        consolidated_requirements = _calc_consolidated_requirements(
+            package_name, requirements
         )
+        latest, pypi_url = _fetch_data_from_pypi(
+            packages[package_name], consolidated_requirements
+        )
+        packages[package_name].latest = latest
+        packages[package_name].homepage_url = pypi_url
+
+    def _calc_consolidated_requirements(package_name, requirements):
         consolidated_requirements = SpecifierSet()
         if package_name in requirements:
             for _, specifier in requirements[package_name].items():
                 consolidated_requirements &= specifier
+        return consolidated_requirements
 
-        package = packages[package_name]
+    def _fetch_data_from_pypi(package, consolidated_requirements):
+        """Fetch data for a package from PyPI."""
+        current_python_version = version_parse(
+            f"{sys.version_info.major}.{sys.version_info.minor}"
+            f".{sys.version_info.micro}"
+        )
         current_version = version_parse(package.current)
         current_is_prerelease = (
             str(current_version) == str(package.current)
             and current_version.is_prerelease
         )
         logger.info(
-            f"Fetching info for distribution package '{package.name}' " "from PyPI"
+            f"Fetching info for distribution package '{package.name}' from PyPI"
         )
+
         r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
-        if r.status_code == requests.codes.ok:
-            pypi_info = r.json()
-            latest = ""
-            for release, release_details in pypi_info["releases"].items():
-                try:
-                    release_detail = (
-                        release_details[-1] if len(release_details) > 0 else None
-                    )
-                    if release_detail:
-                        if release_detail["yanked"]:
-                            continue
-                        if (
-                            requires_python := release_detail.get("requires_python")
-                        ) and current_python_version not in SpecifierSet(
-                            requires_python
-                        ):
-                            continue
-
-                    my_release = version_parse(release)
-                    if str(my_release) == str(release) and (
-                        current_is_prerelease or not my_release.is_prerelease
-                    ):
-                        if len(consolidated_requirements) > 0:
-                            is_valid = my_release in consolidated_requirements
-                        else:
-                            is_valid = True
-
-                        if is_valid and (
-                            not latest or my_release > version_parse(latest)
-                        ):
-                            latest = release
-                except InvalidVersion:
-                    logger.warning(
-                        "%s: Ignoring release with invalid version: %s",
-                        package.name,
-                        release,
-                    )
-                except InvalidSpecifier:
-                    logger.warning(
-                        "%s: Ignoring release with invalid requires_python: %s",
-                        package.name,
-                        requires_python,
-                    )
-            if not latest:
-                logger.warning(
-                    f"Could not find a release of '{package.name}' "
-                    f"that matches all requirements: '{consolidated_requirements}''"
-                )
-        else:
+        if r.status_code != requests.codes.ok:
             if r.status_code == 404:
                 logger.info(f"Package '{package.name}' is not registered in PyPI")
             else:
@@ -231,9 +216,54 @@ def update_packages_from_pypi(
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
                 )
-            latest = ""
+            return "", ""
 
-        packages[package_name].latest = latest
+        pypi_data = r.json()
+        latest = ""
+        pypi_info = pypi_data.get("info")
+        pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
+        for release, release_details in pypi_data["releases"].items():
+            try:
+                release_detail = (
+                    release_details[-1] if len(release_details) > 0 else None
+                )
+                if release_detail:
+                    if release_detail["yanked"]:
+                        continue
+                    if (
+                        requires_python := release_detail.get("requires_python")
+                    ) and current_python_version not in SpecifierSet(requires_python):
+                        continue
+
+                my_release = version_parse(release)
+                if str(my_release) == str(release) and (
+                    current_is_prerelease or not my_release.is_prerelease
+                ):
+                    if len(consolidated_requirements) > 0:
+                        is_valid = my_release in consolidated_requirements
+                    else:
+                        is_valid = True
+
+                    if is_valid and (not latest or my_release > version_parse(latest)):
+                        latest = release
+            except InvalidVersion:
+                logger.warning(
+                    "%s: Ignoring release with invalid version: %s",
+                    package.name,
+                    release,
+                )
+            except InvalidSpecifier:
+                logger.warning(
+                    "%s: Ignoring release with invalid requires_python: %s",
+                    package.name,
+                    requires_python,
+                )
+        if not latest:
+            logger.warning(
+                f"Could not find a release of '{package.name}' "
+                f"that matches all requirements: '{consolidated_requirements}''"
+            )
+        return latest, pypi_url
 
     if use_threads:
         with concurrent.futures.ThreadPoolExecutor(
@@ -246,7 +276,11 @@ def update_packages_from_pypi(
 
 
 def dist_metadata_value(dist: importlib_metadata.Distribution, prop: str) -> str:
-    """Metadata value from distribution or empty string."""
-    if dist and dist.metadata[prop] and dist.metadata[prop] != "UNKNOWN":
-        return dist.metadata[prop]
+    """Metadata value from distribution or empty string.
+
+    Note: metadata can contain multiple values for the same key.
+    This method will return the first only!
+    """
+    if dist and (value := dist.metadata.get(prop)) and value != "UNKNOWN":
+        return value
     return ""

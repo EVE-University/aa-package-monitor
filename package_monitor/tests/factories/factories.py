@@ -1,70 +1,15 @@
-from dataclasses import asdict, dataclass, field
-from typing import Dict, Iterable, List
+from typing import Iterable
 
 import factory
 import factory.fuzzy
-from importlib_metadata import PackagePath
 from packaging.requirements import Requirement
 
 from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
 
+from .stubs import ImportlibDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
+
 faker = factory.faker.faker.Faker()
-
-
-class DjangoAppConfigStub:
-    class ModuleStub:
-        def __init__(self, file: str) -> None:
-            self.__file__ = file
-
-    def __init__(self, name: str, file: str) -> None:
-        self.name = name
-        self.module = self.ModuleStub(file)
-
-
-@dataclass
-class PypiUrl:
-    url: str
-    # incomplete
-
-
-@dataclass
-class PypiRelease:
-    comment_text: str
-    yanked: bool
-    requires_python: str = ""
-    # yanked_reason: str = None
-    # incomplete
-
-
-@dataclass
-class PypiInfo:
-    name: str
-    version: str
-    description: str = ""
-    home_page: str = ""
-    # summary: str
-    # author: str
-    # author_email: str
-    # license: str
-    # yanked: bool
-    # yanked_reason: str = None
-    # maintainer: str = None
-    # maintainer_email: str = None
-    # ...
-
-
-@dataclass
-class Pypi:
-    info: PypiInfo
-    last_serial: int
-    releases: Dict[str, PypiRelease]
-    urls: List[PypiUrl]
-    requires_dist: List[str] = field(default=list)
-    requires_python: str = ""
-
-    def asdict(self) -> dict:
-        return asdict(self)
 
 
 class PypiReleaseFactory(factory.Factory):
@@ -85,6 +30,8 @@ class PypiUrlFactory(factory.Factory):
 class PypiInfoFactory(factory.Factory):
     class Meta:
         model = PypiInfo
+
+    project_url = factory.LazyAttribute(lambda o: f"https://pypi.org/project/{o.name}/")
 
 
 class PypiFactory(factory.Factory):
@@ -109,34 +56,6 @@ class PypiFactory(factory.Factory):
         lambda o: {o.distribution.current: [PypiReleaseFactory()]}
     )
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
-
-
-class ImportlibDistributionStub:
-    def __init__(
-        self,
-        name: str,
-        version: str,
-        files: list,
-        requires: list = None,
-        homepage_url: str = "",
-        summary: str = "",
-    ) -> None:
-        self.metadata = {
-            "Name": name,
-            "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
-            "Summary": summary if summary != "" else "UNKNOWN",
-            "Version": version if version != "" else "UNKNOWN",
-        }
-        self.files = [PackagePath(f) for f in files]
-        self.requires = requires if requires else None
-
-    @property
-    def name(self):
-        return self.metadata["Name"]
-
-    @property
-    def version(self):
-        return self.metadata["Version"]
 
 
 class ImportlibDistributionStubFactory(factory.Factory):

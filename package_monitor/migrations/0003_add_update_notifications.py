@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("package_monitor", "0002_add_editable_and_refactor_json_fields"),
     ]
