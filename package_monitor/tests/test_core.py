@@ -2,17 +2,17 @@ from collections import namedtuple
 from unittest import mock
 
 import requests_mock
-from packaging.specifiers import SpecifierSet
-
-from app_utils.testing import NoSocketsTestCase
-
 from package_monitor.core import (
     DistributionPackage,
+    _is_distribution_editable,
     compile_package_requirements,
     dist_metadata_value,
     gather_distribution_packages,
     update_packages_from_pypi,
 )
+from packaging.specifiers import SpecifierSet
+
+from app_utils.testing import NoSocketsTestCase
 
 from .factories import (
     DistributionPackageFactory,
@@ -72,19 +72,44 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when/then
         self.assertIsNone(obj.is_outdated())
 
-    def test_should_not_be_editable(self):
-        # given
-        obj = DistributionPackageFactory(name="alpha")
-        # when/then
-        self.assertFalse(obj._calc_is_editable("alpha"))
 
-    @mock.patch(MODULE_PATH + ".os.path.isfile")
-    def test_should_be_editable(self, mock_isfile):
+@mock.patch(MODULE_PATH + ".os.path.isfile")
+class TestIsDistributionEditable(NoSocketsTestCase):
+    def test_should_not_be_editable(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        # when/then
+        self.assertFalse(_is_distribution_editable(obj))
+
+    def test_should_be_editable_old_version(self, mock_isfile):
         # given
         mock_isfile.return_value = True
-        obj = DistributionPackageFactory(name="alpha")
+        obj = ImportlibDistributionStubFactory(name="alpha")
         # when/then
-        self.assertTrue(obj._calc_is_editable("alpha"))
+        self.assertTrue(_is_distribution_editable(obj))
+
+    def test_should_be_editable_pep660(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj._files_content = {
+            "direct_url.json": '{"dir_info": {"editable": true}, "url": "xxx"}'
+        }
+        # when/then
+        self.assertTrue(_is_distribution_editable(obj))
+
+    def test_should_not_be_editable_pep660(self, mock_isfile):
+        # given
+        mock_isfile.return_value = False
+
+        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj._files_content = {
+            "direct_url.json": '{"dir_info": {"editable": false}, "url": "xxx"}'
+        }
+        # when/then
+        self.assertFalse(_is_distribution_editable(obj))
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

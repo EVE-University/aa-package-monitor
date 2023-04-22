@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 import os
 import sys
 from dataclasses import dataclass, field
@@ -66,7 +67,7 @@ class DistributionPackage:
         obj = cls(
             name=dist.name,
             current=dist.version,
-            is_editable=cls._calc_is_editable(dist.name),
+            is_editable=_is_distribution_editable(dist),
             requirements=_parse_requirements(dist.requires),
             homepage_url=dist_metadata_value(dist, "Home-page"),
             summary=dist_metadata_value(dist, "Summary"),
@@ -83,14 +84,23 @@ class DistributionPackage:
                         break
         return obj
 
-    @staticmethod
-    def _calc_is_editable(dist_name: str) -> bool:
-        """Is distribution an editable install?"""
-        for path_item in sys.path:
-            egg_link = os.path.join(path_item, dist_name + ".egg-link")
-            if os.path.isfile(egg_link):
-                return True
-        return False
+
+def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
+    """Determine if a distribution is an editable install?"""
+    # method for new packages conforming with pep 660
+    direct_url_json = dist.read_text("direct_url.json")
+    if direct_url_json:
+        direct_url = json.loads(direct_url_json)
+        if "dir_info" in direct_url and direct_url["dir_info"].get("editable") is True:
+            return True
+
+    # method for old packages
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.name + ".egg-link")
+        if os.path.isfile(egg_link):
+            return True
+
+    return False
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:

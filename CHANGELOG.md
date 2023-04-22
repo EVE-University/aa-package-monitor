@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- PEP 660 packages are not detected as editable
+
 ## [1.8.1] - 2023-01-04
 
 ### Fixed

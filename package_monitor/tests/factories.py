@@ -1,13 +1,12 @@
 from dataclasses import asdict, dataclass, field
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 import factory
 import factory.fuzzy
 from importlib_metadata import PackagePath
-from packaging.requirements import Requirement
-
 from package_monitor.core import DistributionPackage
 from package_monitor.models import Distribution
+from packaging.requirements import Requirement
 
 faker = factory.faker.faker.Faker()
 
@@ -129,6 +128,7 @@ class ImportlibDistributionStub:
         }
         self.files = [PackagePath(f) for f in files]
         self.requires = requires if requires else None
+        self._files_content = {}
 
     @property
     def name(self):
@@ -137,6 +137,11 @@ class ImportlibDistributionStub:
     @property
     def version(self):
         return self.metadata["Version"]
+
+    def read_text(self, filename: str) -> Optional[str]:
+        if filename in self._files_content:
+            return self._files_content[filename]
+        return ""
 
 
 class ImportlibDistributionStubFactory(factory.Factory):

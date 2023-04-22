@@ -64,6 +64,7 @@ def package_list_data(request) -> JsonResponse:
 
     data = list()
     for dist in distributions_qs.order_by("name"):
+        dist: Distribution
         name_link_html = (
             link_html(dist.website_url, dist.name) if dist.website_url else dist.name
         )
@@ -107,6 +108,9 @@ def package_list_data(request) -> JsonResponse:
                 '&nbsp;&nbsp;<i class="far fa-copy"></i></span>'
             )
 
+        description = dist.description
+        if dist.is_editable:
+            description += " [EDITABLE]"
         data.append(
             {
                 "name": dist.name,
@@ -117,7 +121,7 @@ def package_list_data(request) -> JsonResponse:
                 "latest": latest_html,
                 "is_outdated": dist.is_outdated,
                 "is_outdated_str": yesno_str(dist.is_outdated),
-                "description": dist.description,
+                "description": description,
             }
         )
 
