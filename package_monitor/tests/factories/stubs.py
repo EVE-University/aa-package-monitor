@@ -68,8 +68,11 @@ class PackageMetadataStub(MutableMapping):
     This is a dict-like type, which allows multiple values per key.
     """
 
-    def __init__(self):
+    def __init__(self, init_d: dict = None):
         self._d = defaultdict(list)
+        if init_d:
+            for k, v in init_d.items():
+                self[k] = v
 
     def __setitem__(self, key, value):
         self._d[key].append(value)
@@ -112,12 +115,14 @@ class ImportlibDistributionStub:
         homepage_url: str = "",
         summary: str = "",
     ) -> None:
-        self.metadata = {
-            "Name": name,
-            "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
-            "Summary": summary if summary != "" else "UNKNOWN",
-            "Version": version if version != "" else "UNKNOWN",
-        }
+        self.metadata = PackageMetadataStub(
+            {
+                "Name": name,
+                "Home-page": homepage_url if homepage_url != "" else "UNKNOWN",
+                "Summary": summary if summary != "" else "UNKNOWN",
+                "Version": version if version != "" else "UNKNOWN",
+            }
+        )
         self.files = [PackagePath(f) for f in files]
         self.requires = requires if requires else None
         self._files_content = {}

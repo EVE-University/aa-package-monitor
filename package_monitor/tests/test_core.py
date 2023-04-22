@@ -351,12 +351,11 @@ class TestDistMetadataValue(NoSocketsTestCase):
         # when/then
         self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
 
-    def test_should_raise_error_when_prop_does_not_exist(self):
+    def test_should_return_empty_string_when_prop_does_not_exist(self):
         # given
         dist = ImportlibDistributionStubFactory(name="Alpha")
         # when/then
-        with self.assertRaises(KeyError):
-            dist_metadata_value(dist, "XXX")
+        self.assertEqual(dist_metadata_value(dist, "XXX"), "")
 
     def test_should_return_name(self):
         # given
