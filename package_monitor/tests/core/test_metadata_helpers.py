@@ -1,14 +1,18 @@
 from unittest import mock
 
+from packaging.requirements import Requirement
+
 from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.metadata_helpers import (
     _extract_files,
+    identify_installed_django_apps,
     is_distribution_editable,
     metadata_value,
+    parse_requirements,
 )
 
-from ..factories import MetadataDistributionStubFactory
+from ..factories import DjangoAppConfigStub, MetadataDistributionStubFactory
 
 MODULE_PATH = "package_monitor.core.metadata_helpers"
 
@@ -68,6 +72,51 @@ class TestExtractFiles(NoSocketsTestCase):
         self.assertListEqual(
             _extract_files(dist, "__init__.py"), ["/bravo/green/__init__.py"]
         )
+
+
+@mock.patch(MODULE_PATH + ".django_apps", spec=True)
+class TestIdentifyInstalledDjangoApps(NoSocketsTestCase):
+    def test_should_identify_app(self, mock_django_apps):
+        # given
+        dist = MetadataDistributionStubFactory(
+            files=["alpha/__init__.py", "alpha/apps.py"]
+        )
+        app = DjangoAppConfigStub("alpha_app", "alpha/__init__.py")
+        mock_django_apps.get_app_configs.return_value = [app]
+        # when
+        result = identify_installed_django_apps(dist)
+        # then
+        self.assertListEqual(result, ["alpha_app"])
+
+    def test_should_not_identify_app(self, mock_django_apps):
+        # given
+        dist = MetadataDistributionStubFactory(files=["alpha/apps.py"])
+        mock_django_apps.get_app_configs.return_value = []
+        # when
+        result = identify_installed_django_apps(dist)
+        # then
+        self.assertListEqual(result, [])
+
+
+class TestParseRequirements(NoSocketsTestCase):
+    def test_should_parse_requirements_correctly(self):
+        # given
+        dist = MetadataDistributionStubFactory(requires=["bravo>=1.0.0", "alpha<5"])
+
+        # when
+        result = parse_requirements(dist)
+        # then
+        self.assertEqual(result, [Requirement("bravo>=1.0.0"), Requirement("alpha<5")])
+
+    def test_should_ignore_invalid_requirements(self):
+        # given
+        dist = MetadataDistributionStubFactory(
+            requires=["alpha<5;invalid", "bravo>=1.0.0"]
+        )
+        # when
+        result = parse_requirements(dist)
+        # then
+        self.assertEqual(result, [Requirement("bravo>=1.0.0")])
 
 
 # class TestDetermineHomePageUrl(NoSocketsTestCase):
