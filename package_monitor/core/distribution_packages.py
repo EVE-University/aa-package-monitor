@@ -70,7 +70,7 @@ class DistributionPackage:
             summary=dist_metadata_value(dist, "Summary"),
         )
         if not disable_app_check:
-            obj.apps = metadata_helpers.identify_django_apps(dist)
+            obj.apps = metadata_helpers.identify_installed_django_apps(dist)
         return obj
 
 

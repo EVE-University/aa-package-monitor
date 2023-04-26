@@ -28,7 +28,9 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
-    @mock.patch(MODULE_PATH + ".metadata_helpers.identify_django_apps", spec=True)
+    @mock.patch(
+        MODULE_PATH + ".metadata_helpers.identify_installed_django_apps", spec=True
+    )
     def test_should_create_from_importlib_distribution(self, mock_identify_django_apps):
         # given
         dist = MetadataDistributionStubFactory(

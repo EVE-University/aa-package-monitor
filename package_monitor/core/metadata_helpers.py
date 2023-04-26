@@ -28,9 +28,13 @@ def is_distribution_editable(dist: MetadataDistribution) -> bool:
     return False
 
 
-def identify_django_apps(dist: MetadataDistribution) -> List[str]:
-    """Identify Django apps in metadata distribution."""
+def identify_installed_django_apps(dist: MetadataDistribution) -> List[str]:
+    """Identify installed Django apps in metadata distribution
+    and return their app labels.
+    """
     found_apps = []
+    if "apps.py" not in {path.name for path in dist.files}:
+        return []
     for dist_file in _extract_files(dist, pattern="__init__.py"):
         for app in django_apps.get_app_configs():
             if not app.module:
