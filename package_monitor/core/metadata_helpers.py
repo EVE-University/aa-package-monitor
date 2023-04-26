@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from typing import List, Optional
 
 import importlib_metadata
 
@@ -23,6 +24,16 @@ def is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
             return True
 
     return False
+
+
+def extract_files(
+    dist: Optional[importlib_metadata.Distribution], pattern: str
+) -> List[str]:
+    """Extract file paths from a distribution which filename match a pattern."""
+    if not dist or not dist.files:
+        return []
+    dist_files = [str(f) for f in dist.files if f.name == pattern]
+    return dist_files
 
 
 # def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:

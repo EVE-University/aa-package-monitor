@@ -77,12 +77,6 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when/then
         self.assertIsInstance(str(obj), str)
 
-    def test_should_return_empty_list_when_no_files(self):
-        # given
-        dist = ImportlibDistributionStubFactory()
-        # when/then
-        self.assertListEqual(DistributionPackage._extract_dist_files(dist), [])
-
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestFetchRelevantPackages(NoSocketsTestCase):

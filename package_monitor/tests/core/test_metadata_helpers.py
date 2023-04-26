@@ -2,7 +2,10 @@ from unittest import mock
 
 from app_utils.testing import NoSocketsTestCase
 
-from package_monitor.core.metadata_helpers import is_distribution_editable
+from package_monitor.core.metadata_helpers import (
+    extract_files,
+    is_distribution_editable,
+)
 
 from ..factories import ImportlibDistributionStubFactory
 
@@ -46,6 +49,24 @@ class TestIsDistributionEditable(NoSocketsTestCase):
         }
         # when/then
         self.assertFalse(is_distribution_editable(obj))
+
+
+class TestExtractFiles(NoSocketsTestCase):
+    def test_should_return_empty_list_when_no_files_match(self):
+        # given
+        dist = ImportlibDistributionStubFactory()
+        # when/then
+        self.assertListEqual(extract_files(dist, "__init__.py"), [])
+
+    def test_should_return_matching_files(self):
+        # given
+        dist = ImportlibDistributionStubFactory(
+            files=["/alpha/xx.py", "/bravo/green/__init__.py", "/charlie/yy.py"]
+        )
+        # when/then
+        self.assertListEqual(
+            extract_files(dist, "__init__.py"), ["/bravo/green/__init__.py"]
+        )
 
 
 # class TestDetermineHomePageUrl(NoSocketsTestCase):

@@ -71,7 +71,7 @@ class DistributionPackage:
             requirements=_parse_requirements(dist.requires),
             summary=dist_metadata_value(dist, "Summary"),
         )
-        dist_files = cls._extract_dist_files(dist)
+        dist_files = metadata_helpers.extract_files(dist, pattern="__init__.py")
         if not disable_app_check:
             for dist_file in dist_files:
                 for app in django_apps.get_app_configs():
@@ -81,17 +81,6 @@ class DistributionPackage:
                             obj.apps.append(app.name)
                             break
         return obj
-
-    @staticmethod
-    def _extract_dist_files(
-        dist: Optional[importlib_metadata.Distribution],
-    ) -> List[str]:
-        if not dist or not dist.files:
-            return []
-        dist_files = [
-            "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
-        ]
-        return dist_files
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
