@@ -8,14 +8,13 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.distribution_packages import (
     DistributionPackage,
-    _is_distribution_editable,
     compile_package_requirements,
     dist_metadata_value,
     gather_distribution_packages,
     update_packages_from_pypi,
 )
 
-from .factories import (
+from ..factories import (
     DistributionPackageFactory,
     DjangoAppConfigStub,
     ImportlibDistributionStubFactory,
@@ -30,7 +29,6 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
-    @mock.patch(MODULE_PATH + ".os.path.isfile", lambda *args, **kwargs: False)
     @mock.patch(MODULE_PATH + ".django_apps", spec=True)
     def test_should_create_from_importlib_distribution(self, mock_django_apps):
         # given
@@ -84,93 +82,6 @@ class TestDistributionPackage(NoSocketsTestCase):
         dist = ImportlibDistributionStubFactory()
         # when/then
         self.assertListEqual(DistributionPackage._extract_dist_files(dist), [])
-
-
-@mock.patch(MODULE_PATH + ".os.path.isfile")
-class TestIsDistributionEditable(NoSocketsTestCase):
-    def test_should_not_be_editable(self, mock_isfile):
-        # given
-        mock_isfile.return_value = False
-        obj = ImportlibDistributionStubFactory(name="alpha")
-        # when/then
-        self.assertFalse(_is_distribution_editable(obj))
-
-    def test_should_be_editable_old_version(self, mock_isfile):
-        # given
-        mock_isfile.return_value = True
-        obj = ImportlibDistributionStubFactory(name="alpha")
-        # when/then
-        self.assertTrue(_is_distribution_editable(obj))
-
-    def test_should_be_editable_pep660(self, mock_isfile):
-        # given
-        mock_isfile.return_value = False
-
-        obj = ImportlibDistributionStubFactory(name="alpha")
-        obj._files_content = {
-            "direct_url.json": '{"dir_info": {"editable": true}, "url": "xxx"}'
-        }
-        # when/then
-        self.assertTrue(_is_distribution_editable(obj))
-
-    def test_should_not_be_editable_pep660(self, mock_isfile):
-        # given
-        mock_isfile.return_value = False
-
-        obj = ImportlibDistributionStubFactory(name="alpha")
-        obj._files_content = {
-            "direct_url.json": '{"dir_info": {"editable": false}, "url": "xxx"}'
-        }
-        # when/then
-        self.assertFalse(_is_distribution_editable(obj))
-
-
-# class TestDetermineHomePageUrl(NoSocketsTestCase):
-#     def test_should_identify_homepage_old_style(self):
-#         # given
-#         dist = ImportlibDistributionStubFactory(homepage_url="my-homepage-url")
-#         # when
-#         url = _determine_homepage_url(dist)
-#         # then
-#         self.assertEqual(url, "my-homepage-url")
-
-#     def test_should_identify_homepage_pep_621_style(self):
-#         # given
-#         dist = ImportlibDistributionStubFactory(homepage_url="")
-#         for v in [
-#             "Documentation, other-url",
-#             "Homepage, my-homepage-url",
-#             "Issues, other-url",
-#         ]:
-#             dist.metadata["Project-URL"] = v
-#         # when
-#         url = _determine_homepage_url(dist)
-#         # then
-#         self.assertEqual(url, "my-homepage-url")
-
-#     def test_should_identify_homepage_pep_621_style_other_case(self):
-#         # given
-#         dist = ImportlibDistributionStubFactory(homepage_url="")
-#         for v in [
-#             "Documentation, other-url",
-#             "homepage, my-homepage-url",
-#             "Issues, other-url",
-#         ]:
-#             dist.metadata["Project-URL"] = v
-#         # when
-#         url = _determine_homepage_url(dist)
-#         # then
-#         self.assertEqual(url, "my-homepage-url")
-
-#     def test_should_return_empty_string_when_no_url_found_with_pep_621(self):
-#         # given
-#         dist = ImportlibDistributionStubFactory(homepage_url="")
-#         for v in ["Documentation, other-url", "Issues, other-url"]:
-#             dist.metadata["Project-URL"] = v
-#         # when
-#         url = _determine_homepage_url(dist)
-#         # then
-#         self.assertEqual(url, "")
 
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)

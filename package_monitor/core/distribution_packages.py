@@ -1,6 +1,4 @@
 import concurrent.futures
-import json
-import os
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -20,6 +18,8 @@ from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
+
+from . import metadata_helpers
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
@@ -67,7 +67,7 @@ class DistributionPackage:
         obj = cls(
             name=dist.name,
             current=dist.version,
-            is_editable=_is_distribution_editable(dist),
+            is_editable=metadata_helpers.is_distribution_editable(dist),
             requirements=_parse_requirements(dist.requires),
             summary=dist_metadata_value(dist, "Summary"),
         )
@@ -92,35 +92,6 @@ class DistributionPackage:
             "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
         ]
         return dist_files
-
-
-# def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
-#     if url := dist_metadata_value(dist, "Home-page"):
-#         return url
-#     values = dist.metadata.get_all("Project-URL")
-#     while values:
-#         k, v = [o.strip() for o in values.pop(0).split(",")]
-#         if k.lower() == "homepage":
-#             return v
-#     return ""
-
-
-def _is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
-    """Determine if a distribution is an editable install?"""
-    # method for new packages conforming with pep 660
-    direct_url_json = dist.read_text("direct_url.json")
-    if direct_url_json:
-        direct_url = json.loads(direct_url_json)
-        if "dir_info" in direct_url and direct_url["dir_info"].get("editable") is True:
-            return True
-
-    # method for old packages
-    for path_item in sys.path:
-        egg_link = os.path.join(path_item, dist.name + ".egg-link")
-        if os.path.isfile(egg_link):
-            return True
-
-    return False
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
