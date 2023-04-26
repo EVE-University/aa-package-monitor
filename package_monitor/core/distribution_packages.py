@@ -122,33 +122,23 @@ def update_packages_from_pypi(
         """
         nonlocal packages
 
-        consolidated_requirements = _calc_consolidated_requirements(
-            package_name, requirements
-        )
-        latest, pypi_url = _fetch_data_from_pypi(
-            packages[package_name], consolidated_requirements
-        )
+        current_package = packages[package_name]
+        pypi_data = _fetch_data_from_pypi(current_package)
+        if pypi_data:
+            consolidated_requirements = _calc_consolidated_requirements(
+                package_name, requirements
+            )
+            latest, pypi_url = _determine_versions(
+                current_package, consolidated_requirements, pypi_data
+            )
+        else:
+            latest, pypi_url = "", ""
         packages[package_name].latest = latest
         packages[package_name].homepage_url = pypi_url
 
-    def _calc_consolidated_requirements(package_name, requirements):
-        consolidated_requirements = SpecifierSet()
-        if package_name in requirements:
-            for _, specifier in requirements[package_name].items():
-                consolidated_requirements &= specifier
-        return consolidated_requirements
-
-    def _fetch_data_from_pypi(package, consolidated_requirements):
+    def _fetch_data_from_pypi(package) -> Optional[dict]:
         """Fetch data for a package from PyPI."""
-        current_python_version = version_parse(
-            f"{sys.version_info.major}.{sys.version_info.minor}"
-            f".{sys.version_info.micro}"
-        )
-        current_version = version_parse(package.current)
-        current_is_prerelease = (
-            str(current_version) == str(package.current)
-            and current_version.is_prerelease
-        )
+
         logger.info(
             f"Fetching info for distribution package '{package.name}' from PyPI"
         )
@@ -164,9 +154,17 @@ def update_packages_from_pypi(
                     f"Status code: {r.status_code}, "
                     f"response: {r.content}"
                 )
-            return "", ""
+            return None
 
         pypi_data = r.json()
+        return pypi_data
+
+    def _determine_versions(package, consolidated_requirements, pypi_data):
+        current_is_prerelease = _is_current_pre_release(package)
+        current_python_version = version_parse(
+            f"{sys.version_info.major}.{sys.version_info.minor}"
+            f".{sys.version_info.micro}"
+        )
         latest = ""
         pypi_info = pypi_data.get("info")
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
@@ -213,6 +211,21 @@ def update_packages_from_pypi(
                 f"that matches all requirements: '{consolidated_requirements}''"
             )
         return latest, pypi_url
+
+    def _is_current_pre_release(package):
+        current_version = version_parse(package.current)
+        current_is_prerelease = (
+            str(current_version) == str(package.current)
+            and current_version.is_prerelease
+        )
+        return current_is_prerelease
+
+    def _calc_consolidated_requirements(package_name, requirements):
+        consolidated_requirements = SpecifierSet()
+        if package_name in requirements:
+            for _, specifier in requirements[package_name].items():
+                consolidated_requirements &= specifier
+        return consolidated_requirements
 
     if use_threads:
         with concurrent.futures.ThreadPoolExecutor(
