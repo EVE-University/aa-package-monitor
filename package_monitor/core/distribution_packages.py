@@ -38,6 +38,14 @@ class DistributionPackage:
             return version_parse(self.current) < version_parse(self.latest)
         return None
 
+    def is_prerelease(self) -> bool:
+        """Determine if this package is a prerelease."""
+        current_version = version_parse(self.current)
+        current_is_prerelease = (
+            str(current_version) == str(self.current) and current_version.is_prerelease
+        )
+        return current_is_prerelease
+
     @classmethod
     def create_from_metadata_distribution(
         cls, dist: importlib_metadata.Distribution, disable_app_check=False

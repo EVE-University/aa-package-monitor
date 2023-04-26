@@ -68,6 +68,18 @@ class TestDistributionPackage(NoSocketsTestCase):
         # when/then
         self.assertIsInstance(str(obj), str)
 
+    def test_should_detect_as_prerelease(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0a1")
+        # when/then
+        self.assertTrue(obj.is_prerelease())
+
+    def test_should_detect_not_as_prerelease(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0")
+        # when/then
+        self.assertFalse(obj.is_prerelease())
+
 
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestFetchRelevantPackages(NoSocketsTestCase):

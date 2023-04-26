@@ -33,9 +33,11 @@ def identify_installed_django_apps(dist: MetadataDistribution) -> List[str]:
     """Identify installed Django apps in metadata distribution
     and return their app labels.
     """
-    found_apps = []
+    if not dist.files:
+        return []
     if "apps.py" not in {path.name for path in dist.files}:
         return []
+    found_apps = []
     for dist_file in _extract_files(dist, pattern="__init__.py"):
         for app in django_apps.get_app_configs():
             if not app.module:
