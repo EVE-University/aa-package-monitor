@@ -69,7 +69,7 @@ class PackageMetadataStub(MutableMapping):
     This is a dict-like type, which allows multiple values per key.
     """
 
-    def __init__(self, init_d: dict = None):
+    def __init__(self, init_d: Optional[dict] = None):
         self._d = defaultdict(list)
         if init_d:
             for k, v in init_d.items():
@@ -112,13 +112,13 @@ class PackageMetadataStub(MutableMapping):
         return v
 
 
-class ImportlibDistributionStub:
+class MetadataDistributionStub:
     def __init__(
         self,
         name: str,
         version: str,
         files: list,
-        requires: list = None,
+        requires: Optional[list] = None,
         homepage_url: str = "",
         summary: str = "",
     ) -> None:

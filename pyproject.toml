@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "allianceauth>=3",
-    "allianceauth-app-utils>=1.8",
+    "allianceauth-app-utils>=1.17.1",
     "importlib_metadata",
     "requests",
 ]

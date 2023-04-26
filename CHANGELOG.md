@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.9.1] - 2023-04-26
+
+### Changed
+
+- Improve performance when checking for installed Django apps in distribution package
+
+### Fixed
+
+- Various minor fixes
+
 ## [1.9.0] - 2023-04-22
 
 ### Changed
