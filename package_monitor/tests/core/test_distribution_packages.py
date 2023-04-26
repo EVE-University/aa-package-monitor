@@ -40,7 +40,7 @@ class TestDistributionPackage(NoSocketsTestCase):
         )
         mock_identify_django_apps.return_value = ["alpha_app"]
         # when
-        obj = DistributionPackage.create_from_distribution(dist)
+        obj = DistributionPackage.create_from_metadata_distribution(dist)
         # then
         self.assertEqual(obj.name, "Alpha")
         self.assertEqual(obj.name_normalized, "alpha")

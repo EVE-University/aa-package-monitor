@@ -52,12 +52,12 @@ class DistributionPackage:
         return None
 
     @classmethod
-    def create_from_distribution(
+    def create_from_metadata_distribution(
         cls, dist: importlib_metadata.Distribution, disable_app_check=False
     ):
-        """Create new object from an importlib distribution.
+        """Create new object from a metadata distribution.
 
-        This is the only place where we are accessing the importlib API
+        This is the only place where we are accessing the importlib metadata API
         for a specific distribution package and are thus storing
         all needed information about that package in our new object.
         Should additional information be needed sometimes it should be fetched here too.
@@ -77,7 +77,7 @@ class DistributionPackage:
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     """Gather distribution packages and detect Django apps."""
     packages = [
-        DistributionPackage.create_from_distribution(dist)
+        DistributionPackage.create_from_metadata_distribution(dist)
         for dist in importlib_metadata.distributions()
         if dist.metadata["Name"]
     ]

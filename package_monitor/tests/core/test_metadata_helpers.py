@@ -4,7 +4,6 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.metadata_helpers import (
     _extract_files,
-    _is_django_app,
     is_distribution_editable,
 )
 
@@ -68,14 +67,6 @@ class TestExtractFiles(NoSocketsTestCase):
         self.assertListEqual(
             _extract_files(dist, "__init__.py"), ["/bravo/green/__init__.py"]
         )
-
-
-class IsDjangoApp(NoSocketsTestCase):
-    def test_should_identify_as_django_app(self):
-        # given
-        dist = MetadataDistributionStubFactory()
-        # when
-        self.assertTrue(_is_django_app(dist))
 
 
 # class TestDetermineHomePageUrl(NoSocketsTestCase):

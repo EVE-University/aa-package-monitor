@@ -5,12 +5,12 @@ import os
 import sys
 from typing import List, Optional
 
-import importlib_metadata
+from importlib_metadata import Distribution as MetadataDistribution
 
 from django.apps import apps as django_apps
 
 
-def is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
+def is_distribution_editable(dist: MetadataDistribution) -> bool:
     """Determine if a distribution is an editable install?"""
     # method for new packages conforming with pep 660
     direct_url_json = dist.read_text("direct_url.json")
@@ -28,11 +28,9 @@ def is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
     return False
 
 
-def identify_django_apps(dist: importlib_metadata.Distribution) -> List[str]:
+def identify_django_apps(dist: MetadataDistribution) -> List[str]:
     """Identify Django apps in metadata distribution."""
     found_apps = []
-    if not _is_django_app(dist):
-        return []
     for dist_file in _extract_files(dist, pattern="__init__.py"):
         for app in django_apps.get_app_configs():
             if not app.module:
@@ -44,9 +42,7 @@ def identify_django_apps(dist: importlib_metadata.Distribution) -> List[str]:
     return found_apps
 
 
-def _extract_files(
-    dist: Optional[importlib_metadata.Distribution], pattern: str
-) -> List[str]:
+def _extract_files(dist: Optional[MetadataDistribution], pattern: str) -> List[str]:
     """Extract file paths from a distribution which filename match a pattern."""
     if not dist or not dist.files:
         return []
@@ -54,11 +50,7 @@ def _extract_files(
     return dist_files
 
 
-def _is_django_app(dist) -> bool:
-    return True
-
-
-# def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
+# def _determine_homepage_url(dist: MetadataDistribution) -> str:
 #     if url := dist_metadata_value(dist, "Home-page"):
 #         return url
 #     values = dist.metadata.get_all("Project-URL")

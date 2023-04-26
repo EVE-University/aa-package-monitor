@@ -29,7 +29,9 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         mock_distributions.side_effect = distributions
         mock_django_apps.get_app_configs.return_value = []
         pypi_alpha = PypiFactory(
-            distribution=DistributionPackage.create_from_distribution(dist_alpha)
+            distribution=DistributionPackage.create_from_metadata_distribution(
+                dist_alpha
+            )
         )
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
         requests_mocker.register_uri(
