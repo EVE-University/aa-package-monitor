@@ -6,7 +6,7 @@
 {% block details %}
 
     <span class="pull-right">
-        {% translate "never" as never_text %}
+        {% translate "not yet" as never_text %}
         {% translate 'Last updated' %} {{ updated_at|naturaltime|default_if_none:never_text }}&nbsp;&nbsp;
         <button
             type="button"

@@ -31,6 +31,7 @@ compilemessages:
 	django-admin compilemessages \
 		-l de \
 		-l es \
+		-l en \
 		-l fr_FR \
 		-l it_IT \
 		-l ja \
