@@ -71,17 +71,27 @@ class DistributionPackage:
             requirements=_parse_requirements(dist.requires),
             summary=dist_metadata_value(dist, "Summary"),
         )
-        dist_files = [
-            "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
-        ]
+        dist_files = cls._extract_dist_files(dist)
         if not disable_app_check:
             for dist_file in dist_files:
                 for app in django_apps.get_app_configs():
-                    my_file = app.module.__file__
-                    if my_file.endswith(dist_file):
-                        obj.apps.append(app.name)
-                        break
+                    if app.module:
+                        my_file = app.module.__file__
+                        if my_file.endswith(dist_file):
+                            obj.apps.append(app.name)
+                            break
         return obj
+
+    @staticmethod
+    def _extract_dist_files(
+        dist: Optional[importlib_metadata.Distribution],
+    ) -> List[str]:
+        if not dist or not dist.files:
+            return []
+        dist_files = [
+            "/" + str(f) for f in dist.files if str(f).endswith("__init__.py")
+        ]
+        return dist_files
 
 
 # def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:
@@ -123,18 +133,19 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     return {obj.name_normalized: obj for obj in packages}
 
 
-def _parse_requirements(requires: list) -> List[Requirement]:
+def _parse_requirements(requires: Optional[list]) -> List[Requirement]:
     """Parse requirements from a distribution and return them.
 
     Invalid requirements will be ignored.
     """
+    if not requires:
+        return []
     requirements = list()
-    if requires:
-        for r in requires:
-            try:
-                requirements.append(Requirement(r))
-            except InvalidRequirement:
-                pass
+    for r in requires:
+        try:
+            requirements.append(Requirement(r))
+        except InvalidRequirement:
+            pass
     return requirements
 
 
@@ -223,6 +234,7 @@ def update_packages_from_pypi(
         pypi_info = pypi_data.get("info")
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
         for release, release_details in pypi_data["releases"].items():
+            requires_python = ""
             try:
                 release_detail = (
                     release_details[-1] if len(release_details) > 0 else None

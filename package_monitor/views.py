@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from app_utils.views import link_html, yesno_str
+from app_utils.views import link_html, yesnonone_str
 
 from . import __title__
 from .app_settings import (
@@ -124,7 +124,7 @@ def package_list_data(request) -> JsonResponse:
                 "current": dist.installed_version,
                 "latest": latest_html,
                 "is_outdated": dist.is_outdated,
-                "is_outdated_str": yesno_str(dist.is_outdated),
+                "is_outdated_str": yesnonone_str(dist.is_outdated),
                 "description": description,
             }
         )
