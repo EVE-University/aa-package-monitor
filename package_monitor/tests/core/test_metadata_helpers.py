@@ -5,6 +5,7 @@ from app_utils.testing import NoSocketsTestCase
 from package_monitor.core.metadata_helpers import (
     _extract_files,
     is_distribution_editable,
+    metadata_value,
 )
 
 from ..factories import MetadataDistributionStubFactory
@@ -115,3 +116,35 @@ class TestExtractFiles(NoSocketsTestCase):
 #         url = _determine_homepage_url(dist)
 #         # then
 #         self.assertEqual(url, "")
+
+
+class TestDistMetadataValue(NoSocketsTestCase):
+    def test_should_return_value_when_exists(self):
+        # given
+        dist = MetadataDistributionStubFactory(name="Alpha")
+        # when/then
+        self.assertEqual(metadata_value(dist, "Name"), "Alpha")
+
+    def test_should_return_empty_string_when_prop_does_not_exist(self):
+        # given
+        dist = MetadataDistributionStubFactory(name="Alpha")
+        # when/then
+        self.assertEqual(metadata_value(dist, "XXX"), "")
+
+    def test_should_return_name(self):
+        # given
+        dist = MetadataDistributionStubFactory(name="Alpha")
+        # when/then
+        self.assertEqual(metadata_value(dist, "Name"), "Alpha")
+
+    def test_should_return_empty_string_when_value_is_undefined(self):
+        # given
+        dist = MetadataDistributionStubFactory(homepage_url="")
+        # when/then
+        self.assertEqual(metadata_value(dist, "Home-page"), "")
+
+    def test_should_return_empty_string_when_value_is_none(self):
+        # given
+        dist = MetadataDistributionStubFactory(homepage_url=None)
+        # when/then
+        self.assertEqual(metadata_value(dist, "Home-page"), "")

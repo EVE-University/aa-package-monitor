@@ -6,6 +6,7 @@ import sys
 from typing import List, Optional
 
 from importlib_metadata import Distribution as MetadataDistribution
+from packaging.requirements import InvalidRequirement, Requirement
 
 from django.apps import apps as django_apps
 
@@ -63,3 +64,28 @@ def _extract_files(dist: Optional[MetadataDistribution], pattern: str) -> List[s
 #         if k.lower() == "homepage":
 #             return v
 #     return ""
+
+
+def parse_requirements(dist: MetadataDistribution) -> List[Requirement]:
+    """Parse requirements from a distribution and return them.
+    Invalid requirements will be ignored.
+    """
+    if not dist.requires:
+        return []
+    requirements = []
+    for r in dist.requires:
+        try:
+            requirements.append(Requirement(r))
+        except InvalidRequirement:
+            pass
+    return requirements
+
+
+def metadata_value(dist: MetadataDistribution, prop: str) -> str:
+    """Metadata value from distribution or empty string.
+    Note: metadata can contain multiple values for the same key.
+    This method will return the first only!
+    """
+    if dist and (value := dist.metadata.get(prop)) and value != "UNKNOWN":
+        return value
+    return ""

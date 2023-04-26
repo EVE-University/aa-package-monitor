@@ -1,3 +1,5 @@
+"""Handle parsed distribution packages."""
+
 import concurrent.futures
 import sys
 from dataclasses import dataclass, field
@@ -6,7 +8,7 @@ from typing import Dict, List, Optional
 import importlib_metadata
 import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
-from packaging.requirements import InvalidRequirement, Requirement
+from packaging.requirements import Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion
@@ -66,8 +68,8 @@ class DistributionPackage:
             name=dist.name,
             current=dist.version,
             is_editable=metadata_helpers.is_distribution_editable(dist),
-            requirements=_parse_requirements(dist.requires),
-            summary=dist_metadata_value(dist, "Summary"),
+            requirements=metadata_helpers.parse_requirements(dist),
+            summary=metadata_helpers.metadata_value(dist, "Summary"),
         )
         if not disable_app_check:
             obj.apps = metadata_helpers.identify_installed_django_apps(dist)
@@ -82,22 +84,6 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
         if dist.metadata["Name"]
     ]
     return {obj.name_normalized: obj for obj in packages}
-
-
-def _parse_requirements(requires: Optional[list]) -> List[Requirement]:
-    """Parse requirements from a distribution and return them.
-
-    Invalid requirements will be ignored.
-    """
-    if not requires:
-        return []
-    requirements = list()
-    for r in requires:
-        try:
-            requirements.append(Requirement(r))
-        except InvalidRequirement:
-            pass
-    return requirements
 
 
 def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
@@ -236,14 +222,3 @@ def update_packages_from_pypi(
     else:
         for package_name in packages.keys():
             thread_update_latest_from_pypi(package_name)
-
-
-def dist_metadata_value(dist: importlib_metadata.Distribution, prop: str) -> str:
-    """Metadata value from distribution or empty string.
-
-    Note: metadata can contain multiple values for the same key.
-    This method will return the first only!
-    """
-    if dist and (value := dist.metadata.get(prop)) and value != "UNKNOWN":
-        return value
-    return ""

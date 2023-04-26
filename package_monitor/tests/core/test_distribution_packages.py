@@ -9,7 +9,6 @@ from app_utils.testing import NoSocketsTestCase
 from package_monitor.core.distribution_packages import (
     DistributionPackage,
     compile_package_requirements,
-    dist_metadata_value,
     gather_distribution_packages,
     update_packages_from_pypi,
 )
@@ -295,35 +294,3 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     #     )
     #     # then
     #     self.assertEqual(packages["alpha"].latest, "1.0.0")
-
-
-class TestDistMetadataValue(NoSocketsTestCase):
-    def test_should_return_value_when_exists(self):
-        # given
-        dist = MetadataDistributionStubFactory(name="Alpha")
-        # when/then
-        self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
-
-    def test_should_return_empty_string_when_prop_does_not_exist(self):
-        # given
-        dist = MetadataDistributionStubFactory(name="Alpha")
-        # when/then
-        self.assertEqual(dist_metadata_value(dist, "XXX"), "")
-
-    def test_should_return_name(self):
-        # given
-        dist = MetadataDistributionStubFactory(name="Alpha")
-        # when/then
-        self.assertEqual(dist_metadata_value(dist, "Name"), "Alpha")
-
-    def test_should_return_empty_string_when_value_is_undefined(self):
-        # given
-        dist = MetadataDistributionStubFactory(homepage_url="")
-        # when/then
-        self.assertEqual(dist_metadata_value(dist, "Home-page"), "")
-
-    def test_should_return_empty_string_when_value_is_none(self):
-        # given
-        dist = MetadataDistributionStubFactory(homepage_url=None)
-        # when/then
-        self.assertEqual(dist_metadata_value(dist, "Home-page"), "")
