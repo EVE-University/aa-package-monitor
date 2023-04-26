@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 import importlib_metadata
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import parse as version_parse
 
@@ -45,6 +46,14 @@ class DistributionPackage:
             str(current_version) == str(self.current) and current_version.is_prerelease
         )
         return current_is_prerelease
+
+    def calc_consolidated_requirements(self, requirements: dict) -> SpecifierSet:
+        """Determine consolidated requirements for this package."""
+        consolidated_requirements = SpecifierSet()
+        if self.name_normalized in requirements:
+            for _, specifier in requirements[self.name_normalized].items():
+                consolidated_requirements &= specifier
+        return consolidated_requirements
 
     @classmethod
     def create_from_metadata_distribution(

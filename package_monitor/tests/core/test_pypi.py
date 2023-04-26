@@ -1,11 +1,15 @@
 from collections import namedtuple
 from unittest import mock
 
-import requests_mock
+from requests_mock import Mocker
 
 from app_utils.testing import NoSocketsTestCase
 
-from package_monitor.core.pypi import update_packages_from_pypi
+from package_monitor.core.pypi import (
+    _fetch_data_from_pypi,
+    _fetch_pypi_url,
+    update_packages_from_pypi,
+)
 from package_monitor.tests.factories import (
     DistributionPackageFactory,
     PypiFactory,
@@ -18,7 +22,7 @@ MODULE_PATH = "package_monitor.core.pypi"
 SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
-@requests_mock.Mocker()
+@Mocker()
 class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_update_packages(self, requests_mocker):
         # given
@@ -148,3 +152,52 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
+
+
+@Mocker()
+class TestFetchDataFromPypi(NoSocketsTestCase):
+    def test_should_return_data(self, requests_mocker: Mocker):
+        # given
+        obj = DistributionPackageFactory(name="alpha")
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", json={"alpha": 1}
+        )
+        # when
+        result = _fetch_data_from_pypi(obj)
+        # then
+        self.assertEqual(result, {"alpha": 1})
+
+    def test_should_return_none_when_package_does_not_exist(
+        self, requests_mocker: Mocker
+    ):
+        # given
+        obj = DistributionPackageFactory(name="alpha")
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", status_code=404
+        )
+        # when
+        result = _fetch_data_from_pypi(obj)
+        # then
+        self.assertIsNone(result)
+
+    def test_should_return_none_on_other_http_errors(self, requests_mocker: Mocker):
+        # given
+        obj = DistributionPackageFactory(name="alpha")
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", status_code=500
+        )
+        # when
+        result = _fetch_data_from_pypi(obj)
+        # then
+        self.assertIsNone(result)
+
+
+class TestFetchPypiUrl(NoSocketsTestCase):
+    def test_should_return_url(self):
+        # given
+        distribution = DistributionPackageFactory(name="alpha")
+        data = PypiFactory(distribution=distribution)
+        # when
+        result = _fetch_pypi_url(data.asdict())
+        # then
+        self.assertEqual(result, "https://pypi.org/project/alpha/")

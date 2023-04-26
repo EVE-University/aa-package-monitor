@@ -35,6 +35,8 @@ class PypiInfoFactory(factory.Factory):
 
 
 class PypiFactory(factory.Factory):
+    """A data object on PyPI. Create from DistributionPackage"""
+
     class Meta:
         model = Pypi
         exclude = ("distribution",)

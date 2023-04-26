@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 import requests
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
-from packaging.version import InvalidVersion
+from packaging.version import InvalidVersion, Version
 from packaging.version import parse as version_parse
 
 from allianceauth.services.hooks import get_extension_logger
@@ -17,8 +17,13 @@ from package_monitor.core.distribution_packages import DistributionPackage
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
-# max workers used when fetching info from PyPI for packages
+# max workers used when fetching info from PyPI via UI
 MAX_THREAD_WORKERS = 30
+
+
+def pypi_api_url(project_name: str) -> str:
+    """Generate PyPI API URL."""
+    return f"https://pypi.org/pypi/{project_name}/json"
 
 
 def update_packages_from_pypi(
@@ -37,13 +42,8 @@ def update_packages_from_pypi(
         current_package = packages[package_name]
         pypi_data = _fetch_data_from_pypi(current_package)
         if pypi_data:
-            consolidated_requirements = _calc_consolidated_requirements(
-                package_name, requirements
-            )
             pypi_url = _fetch_pypi_url(pypi_data)
-            latest = _determine_latest_version(
-                current_package, consolidated_requirements, pypi_data
-            )
+            latest = _determine_latest_version(current_package, requirements, pypi_data)
         else:
             latest, pypi_url = "", ""
         packages[package_name].latest = latest
@@ -64,7 +64,8 @@ def _fetch_data_from_pypi(package: DistributionPackage) -> Optional[dict]:
 
     logger.info(f"Fetching info for distribution package '{package.name}' from PyPI")
 
-    r = requests.get(f"https://pypi.org/pypi/{package.name}/json", timeout=(5, 30))
+    url = pypi_api_url(package.name)
+    r = requests.get(url, timeout=(5, 30))
     if r.status_code != requests.codes.ok:
         if r.status_code == 404:
             logger.info(f"Package '{package.name}' is not registered in PyPI")
@@ -87,9 +88,11 @@ def _fetch_pypi_url(pypi_data) -> str:
 
 
 def _determine_latest_version(
-    package: DistributionPackage, consolidated_requirements, pypi_data: dict
+    package: DistributionPackage, requirements, pypi_data: dict
 ) -> str:
     """Determine latest version of a distribution package on PyPI."""
+    consolidated_requirements = package.calc_consolidated_requirements(requirements)
+    current_python_version = _current_python_version()
     latest = ""
     for release, release_details in pypi_data["releases"].items():
         requires_python = ""
@@ -100,7 +103,7 @@ def _determine_latest_version(
                     continue
                 if (
                     requires_python := release_detail.get("requires_python")
-                ) and _current_python_version() not in SpecifierSet(requires_python):
+                ) and current_python_version not in SpecifierSet(requires_python):
                     continue
 
             my_release = version_parse(release)
@@ -134,19 +137,9 @@ def _determine_latest_version(
     return latest
 
 
-def _current_python_version() -> str:
+def _current_python_version() -> Version:
     current_python_version = version_parse(
         f"{sys.version_info.major}.{sys.version_info.minor}"
         f".{sys.version_info.micro}"
     )
     return current_python_version
-
-
-def _calc_consolidated_requirements(
-    package_name: str, requirements: dict
-) -> SpecifierSet:
-    consolidated_requirements = SpecifierSet()
-    if package_name in requirements:
-        for _, specifier in requirements[package_name].items():
-            consolidated_requirements &= specifier
-    return consolidated_requirements
