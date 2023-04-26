@@ -7,7 +7,7 @@ from packaging.requirements import Requirement
 from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
-from .stubs import ImportlibDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
+from .stubs import MetadataDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
 
 faker = factory.faker.faker.Faker()
 
@@ -58,9 +58,9 @@ class PypiFactory(factory.Factory):
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
 
 
-class ImportlibDistributionStubFactory(factory.Factory):
+class MetadataDistributionStubFactory(factory.Factory):
     class Meta:
-        model = ImportlibDistributionStub
+        model = MetadataDistributionStub
 
     name = factory.Faker("last_name")
     # files = ["dummy_1/file_1.py", "dummy_1/__init__.py"]

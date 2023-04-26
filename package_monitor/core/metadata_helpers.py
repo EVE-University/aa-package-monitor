@@ -28,7 +28,23 @@ def is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
     return False
 
 
-def extract_files(
+def identify_django_apps(dist: importlib_metadata.Distribution) -> List[str]:
+    """Identify Django apps in metadata distribution."""
+    found_apps = []
+    if not _is_django_app(dist):
+        return []
+    for dist_file in _extract_files(dist, pattern="__init__.py"):
+        for app in django_apps.get_app_configs():
+            if not app.module:
+                continue
+            my_file = app.module.__file__
+            if my_file.endswith(dist_file):
+                found_apps.append(app.name)
+                break
+    return found_apps
+
+
+def _extract_files(
     dist: Optional[importlib_metadata.Distribution], pattern: str
 ) -> List[str]:
     """Extract file paths from a distribution which filename match a pattern."""
@@ -38,19 +54,8 @@ def extract_files(
     return dist_files
 
 
-def identify_django_apps(dist: importlib_metadata.Distribution) -> List[str]:
-    """Identify Django apps in metadata distribution."""
-    dist_files = extract_files(dist, pattern="__init__.py")
-    found_apps = []
-    for dist_file in dist_files:
-        for app in django_apps.get_app_configs():
-            if not app.module:
-                continue
-            my_file = app.module.__file__
-            if my_file.endswith(dist_file):
-                found_apps.append(app.name)
-                break
-    return found_apps
+def _is_django_app(dist) -> bool:
+    return True
 
 
 # def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:

@@ -8,7 +8,7 @@ from package_monitor import tasks
 from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
-from .factories import ImportlibDistributionStubFactory, PypiFactory, PypiReleaseFactory
+from .factories import MetadataDistributionStubFactory, PypiFactory, PypiReleaseFactory
 
 CORE_PATH = "package_monitor.core.distribution_packages"
 CORE_HELPERS_PATH = "package_monitor.core.metadata_helpers"
@@ -24,7 +24,7 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         self, mock_distributions, mock_django_apps, requests_mocker
     ):
         # given
-        dist_alpha = ImportlibDistributionStubFactory(name="alpha", version="1.0.0")
+        dist_alpha = MetadataDistributionStubFactory(name="alpha", version="1.0.0")
         distributions = lambda: iter([dist_alpha])  # noqa: E731
         mock_distributions.side_effect = distributions
         mock_django_apps.get_app_configs.return_value = []

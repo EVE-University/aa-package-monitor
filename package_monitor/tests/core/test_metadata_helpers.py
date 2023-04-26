@@ -3,11 +3,12 @@ from unittest import mock
 from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.metadata_helpers import (
-    extract_files,
+    _extract_files,
+    _is_django_app,
     is_distribution_editable,
 )
 
-from ..factories import ImportlibDistributionStubFactory
+from ..factories import MetadataDistributionStubFactory
 
 MODULE_PATH = "package_monitor.core.metadata_helpers"
 
@@ -17,14 +18,14 @@ class TestIsDistributionEditable(NoSocketsTestCase):
     def test_should_not_be_editable(self, mock_isfile):
         # given
         mock_isfile.return_value = False
-        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj = MetadataDistributionStubFactory(name="alpha")
         # when/then
         self.assertFalse(is_distribution_editable(obj))
 
     def test_should_be_editable_old_version(self, mock_isfile):
         # given
         mock_isfile.return_value = True
-        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj = MetadataDistributionStubFactory(name="alpha")
         # when/then
         self.assertTrue(is_distribution_editable(obj))
 
@@ -32,7 +33,7 @@ class TestIsDistributionEditable(NoSocketsTestCase):
         # given
         mock_isfile.return_value = False
 
-        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj = MetadataDistributionStubFactory(name="alpha")
         obj._files_content = {
             "direct_url.json": '{"dir_info": {"editable": true}, "url": "xxx"}'
         }
@@ -43,7 +44,7 @@ class TestIsDistributionEditable(NoSocketsTestCase):
         # given
         mock_isfile.return_value = False
 
-        obj = ImportlibDistributionStubFactory(name="alpha")
+        obj = MetadataDistributionStubFactory(name="alpha")
         obj._files_content = {
             "direct_url.json": '{"dir_info": {"editable": false}, "url": "xxx"}'
         }
@@ -54,19 +55,27 @@ class TestIsDistributionEditable(NoSocketsTestCase):
 class TestExtractFiles(NoSocketsTestCase):
     def test_should_return_empty_list_when_no_files_match(self):
         # given
-        dist = ImportlibDistributionStubFactory()
+        dist = MetadataDistributionStubFactory()
         # when/then
-        self.assertListEqual(extract_files(dist, "__init__.py"), [])
+        self.assertListEqual(_extract_files(dist, "__init__.py"), [])
 
     def test_should_return_matching_files(self):
         # given
-        dist = ImportlibDistributionStubFactory(
+        dist = MetadataDistributionStubFactory(
             files=["/alpha/xx.py", "/bravo/green/__init__.py", "/charlie/yy.py"]
         )
         # when/then
         self.assertListEqual(
-            extract_files(dist, "__init__.py"), ["/bravo/green/__init__.py"]
+            _extract_files(dist, "__init__.py"), ["/bravo/green/__init__.py"]
         )
+
+
+class IsDjangoApp(NoSocketsTestCase):
+    def test_should_identify_as_django_app(self):
+        # given
+        dist = MetadataDistributionStubFactory()
+        # when
+        self.assertTrue(_is_django_app(dist))
 
 
 # class TestDetermineHomePageUrl(NoSocketsTestCase):

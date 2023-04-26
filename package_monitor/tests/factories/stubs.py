@@ -112,7 +112,7 @@ class PackageMetadataStub(MutableMapping):
         return v
 
 
-class ImportlibDistributionStub:
+class MetadataDistributionStub:
     def __init__(
         self,
         name: str,
