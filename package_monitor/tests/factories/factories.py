@@ -4,7 +4,7 @@ import factory
 import factory.fuzzy
 from packaging.requirements import Requirement
 
-from package_monitor.core import DistributionPackage
+from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
 from .stubs import ImportlibDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl

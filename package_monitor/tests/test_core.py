@@ -6,7 +6,7 @@ from packaging.specifiers import SpecifierSet
 
 from app_utils.testing import NoSocketsTestCase
 
-from package_monitor.core import (
+from package_monitor.core.distribution_packages import (
     DistributionPackage,
     _is_distribution_editable,
     compile_package_requirements,
@@ -24,7 +24,7 @@ from .factories import (
     make_packages,
 )
 
-MODULE_PATH = "package_monitor.core"
+MODULE_PATH = "package_monitor.core.distribution_packages"
 
 SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
@@ -72,6 +72,18 @@ class TestDistributionPackage(NoSocketsTestCase):
         obj = DistributionPackageFactory(current="1.0.0", latest=None)
         # when/then
         self.assertIsNone(obj.is_outdated())
+
+    def test_should_have_str(self):
+        # given
+        obj = DistributionPackageFactory(current="1.0.0", latest=None)
+        # when/then
+        self.assertIsInstance(str(obj), str)
+
+    def test_should_return_empty_list_when_no_files(self):
+        # given
+        dist = ImportlibDistributionStubFactory()
+        # when/then
+        self.assertListEqual(DistributionPackage._extract_dist_files(dist), [])
 
 
 @mock.patch(MODULE_PATH + ".os.path.isfile")

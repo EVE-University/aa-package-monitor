@@ -5,15 +5,18 @@ import requests_mock
 from app_utils.testing import NoSocketsTestCase
 
 from package_monitor import tasks
-from package_monitor.core import DistributionPackage
+from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
 from .factories import ImportlibDistributionStubFactory, PypiFactory, PypiReleaseFactory
 
+CORE_PATH = "package_monitor.core.distribution_packages"
+MANAGERS_PATH = "package_monitor.managers"
 
-@mock.patch("package_monitor.managers.PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
-@mock.patch("package_monitor.core.django_apps", spec=True)
-@mock.patch("package_monitor.core.importlib_metadata.distributions", spec=True)
+
+@mock.patch(MANAGERS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
+@mock.patch(CORE_PATH + ".django_apps", spec=True)
+@mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
 @requests_mock.Mocker()
 class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
     def test_should_update_packages(

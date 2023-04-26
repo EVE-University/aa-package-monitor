@@ -14,7 +14,7 @@ from .app_settings import (
     PACKAGE_MONITOR_SHOW_ALL_PACKAGES,
     PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
-from .core import (
+from .core.distribution_packages import (
     DistributionPackage,
     compile_package_requirements,
     gather_distribution_packages,
