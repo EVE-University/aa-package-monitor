@@ -12,8 +12,6 @@ from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion
 from packaging.version import parse as version_parse
 
-from django.apps import apps as django_apps
-
 from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
@@ -71,15 +69,8 @@ class DistributionPackage:
             requirements=_parse_requirements(dist.requires),
             summary=dist_metadata_value(dist, "Summary"),
         )
-        dist_files = metadata_helpers.extract_files(dist, pattern="__init__.py")
         if not disable_app_check:
-            for dist_file in dist_files:
-                for app in django_apps.get_app_configs():
-                    if app.module:
-                        my_file = app.module.__file__
-                        if my_file.endswith(dist_file):
-                            obj.apps.append(app.name)
-                            break
+            obj.apps = metadata_helpers.identify_django_apps(dist)
         return obj
 
 

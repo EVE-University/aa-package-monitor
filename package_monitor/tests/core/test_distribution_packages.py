@@ -16,7 +16,6 @@ from package_monitor.core.distribution_packages import (
 
 from ..factories import (
     DistributionPackageFactory,
-    DjangoAppConfigStub,
     ImportlibDistributionStubFactory,
     PypiFactory,
     PypiReleaseFactory,
@@ -29,8 +28,8 @@ SysVersionInfo = namedtuple("SysVersionInfo", ["major", "minor", "micro"])
 
 
 class TestDistributionPackage(NoSocketsTestCase):
-    @mock.patch(MODULE_PATH + ".django_apps", spec=True)
-    def test_should_create_from_importlib_distribution(self, mock_django_apps):
+    @mock.patch(MODULE_PATH + ".metadata_helpers.identify_django_apps", spec=True)
+    def test_should_create_from_importlib_distribution(self, mock_identify_django_apps):
         # given
         dist = ImportlibDistributionStubFactory(
             name="Alpha",
@@ -39,9 +38,7 @@ class TestDistributionPackage(NoSocketsTestCase):
             files=["alpha/__init__.py"],
             homepage_url="https://www.alpha.com",
         )
-        mock_django_apps.get_app_configs.return_value = [
-            DjangoAppConfigStub("alpha_app", "/alpha/__init__.py")
-        ]
+        mock_identify_django_apps.return_value = ["alpha_app"]
         # when
         obj = DistributionPackage.create_from_distribution(dist)
         # then

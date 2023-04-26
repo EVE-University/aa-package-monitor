@@ -7,6 +7,8 @@ from typing import List, Optional
 
 import importlib_metadata
 
+from django.apps import apps as django_apps
+
 
 def is_distribution_editable(dist: importlib_metadata.Distribution) -> bool:
     """Determine if a distribution is an editable install?"""
@@ -34,6 +36,21 @@ def extract_files(
         return []
     dist_files = [str(f) for f in dist.files if f.name == pattern]
     return dist_files
+
+
+def identify_django_apps(dist: importlib_metadata.Distribution) -> List[str]:
+    """Identify Django apps in metadata distribution."""
+    dist_files = extract_files(dist, pattern="__init__.py")
+    found_apps = []
+    for dist_file in dist_files:
+        for app in django_apps.get_app_configs():
+            if not app.module:
+                continue
+            my_file = app.module.__file__
+            if my_file.endswith(dist_file):
+                found_apps.append(app.name)
+                break
+    return found_apps
 
 
 # def _determine_homepage_url(dist: importlib_metadata.Distribution) -> str:

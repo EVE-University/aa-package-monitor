@@ -11,11 +11,12 @@ from package_monitor.models import Distribution
 from .factories import ImportlibDistributionStubFactory, PypiFactory, PypiReleaseFactory
 
 CORE_PATH = "package_monitor.core.distribution_packages"
+CORE_HELPERS_PATH = "package_monitor.core.metadata_helpers"
 MANAGERS_PATH = "package_monitor.managers"
 
 
 @mock.patch(MANAGERS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
-@mock.patch(CORE_PATH + ".django_apps", spec=True)
+@mock.patch(CORE_HELPERS_PATH + ".django_apps", spec=True)
 @mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
 @requests_mock.Mocker()
 class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
