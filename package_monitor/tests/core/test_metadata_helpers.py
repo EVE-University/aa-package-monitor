@@ -97,6 +97,18 @@ class TestIdentifyInstalledDjangoApps(NoSocketsTestCase):
         # then
         self.assertListEqual(result, [])
 
+    def test_should_handle_no_module_file(self, mock_django_apps):
+        # given
+        dist = MetadataDistributionStubFactory(
+            files=["alpha/__init__.py", "alpha/apps.py"]
+        )
+        app = DjangoAppConfigStub("alpha_app", None)
+        mock_django_apps.get_app_configs.return_value = [app]
+        # when
+        result = identify_installed_django_apps(dist)
+        # then
+        self.assertListEqual(result, [])
+
 
 class TestParseRequirements(NoSocketsTestCase):
     def test_should_parse_requirements_correctly(self):

@@ -43,7 +43,7 @@ def identify_installed_django_apps(dist: MetadataDistribution) -> List[str]:
             if not app.module:
                 continue
             my_file = app.module.__file__
-            if my_file.endswith(dist_file):
+            if my_file and my_file.endswith(dist_file):
                 found_apps.append(app.name)
                 break
     return found_apps

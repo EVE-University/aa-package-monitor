@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.9.2] - 2023-05-02
+
+### Fixed
+
+- Fails to identify Django app when module has no file
+
 ## [1.9.1] - 2023-04-26
 
 ### Changed
