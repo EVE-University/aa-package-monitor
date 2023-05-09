@@ -3,19 +3,22 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+# Translators:
+# Peter Pfeufer, 2023
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-04-23 21:44+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2023-04-22 19:15+0000\n"
+"Last-Translator: Peter Pfeufer, 2023\n"
+"Language-Team: German (https://app.transifex.com/kalkoken-apps/teams/107978/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: de\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: templates/package_monitor/index.html:9
@@ -24,102 +27,105 @@ msgstr ""
 
 #: templates/package_monitor/index.html:10
 msgid "Last updated"
-msgstr ""
+msgstr "Zuletzt aktualisiert"
 
 #: templates/package_monitor/index.html:16
 msgid "Refresh data now"
-msgstr ""
+msgstr "Daten jetzt aktualisieren"
 
 #: templates/package_monitor/index.html:30
 msgid "Refreshing distributions"
-msgstr ""
+msgstr "Pakete aktualisieren"
 
 #: templates/package_monitor/index.html:35
 #, python-format
 msgid ""
 "\n"
-"                            Refreshing data for approx. %(all_count)s "
-"distributions...\n"
+"                            Refreshing data for approx. %(all_count)s distributions...\n"
 "                        "
 msgstr ""
+"\n"
+"Aktualisierung der Daten für ca. %(all_count)s Pakete..."
 
 #: templates/package_monitor/index.html:62
 msgid "All"
-msgstr ""
+msgstr "Alle"
 
 #: templates/package_monitor/index.html:67
 msgid "Current"
-msgstr ""
+msgstr "Aktuell"
 
 #: templates/package_monitor/index.html:72
 msgid "Update available"
-msgstr ""
+msgstr "Aktualisierung verfügbar"
 
 #: templates/package_monitor/index.html:78
 msgid "No information about new release available on PyPI"
-msgstr ""
+msgstr "Keine Informationen über neue Version auf PyPI verfügbar"
 
 #: templates/package_monitor/index.html:79
 msgid "No Info"
-msgstr ""
+msgstr "Keine Informationen"
 
 #: templates/package_monitor/index.html:92
 msgid "Name of this distribution package"
-msgstr ""
+msgstr "Name des Paketes"
 
 #: templates/package_monitor/index.html:93
 msgid "Name"
-msgstr ""
+msgstr "Name"
 
 #: templates/package_monitor/index.html:97
 msgid "Currently installed version of this package"
-msgstr ""
+msgstr "Aktuell installierte Version des Paketes"
 
 #: templates/package_monitor/index.html:98
 msgid "Installed"
-msgstr ""
+msgstr "Installiert"
 
 #: templates/package_monitor/index.html:102
 msgid ""
 "Latest available stable version compliant with all requirements for this "
 "package"
 msgstr ""
+"Neueste verfügbare stabile Version, die alle Anforderungen für dieses Paket "
+"erfüllt"
 
 #: templates/package_monitor/index.html:103
 msgid "Latest"
-msgstr ""
+msgstr "Neueste"
 
 #: templates/package_monitor/index.html:105
 msgid "Description"
-msgstr ""
+msgstr "Beschreibung"
 
 #: templates/package_monitor/index.html:108
 msgid "Currently installed Django apps included in this package"
-msgstr ""
+msgstr "Derzeit installierte Django-Apps, die in diesem Paket enthalten sind"
 
 #: templates/package_monitor/index.html:109
 msgid "Included Apps"
-msgstr ""
+msgstr "Enthaltene Apps"
 
 #: templates/package_monitor/index.html:113
 msgid "Other distribution packages that are using this package"
-msgstr ""
+msgstr "Andere Pakete, die dieses Paket verwenden"
 
 #: templates/package_monitor/index.html:114
 msgid "Used By"
-msgstr ""
+msgstr "Genutzt von"
 
 #: templates/package_monitor/index.html:123
 msgid "Shows all known distribution packages."
-msgstr ""
+msgstr "Zeige alle bekannten Pakete."
 
 #: templates/package_monitor/index.html:125
 msgid "Shows only distribution packages that contain an installed Django app."
-msgstr ""
+msgstr "Zeigt nur Pakete an, die eine installierte Django-App enthalten."
 
 #: templates/package_monitor/index.html:127
 msgid "In addition these packages are shown:"
-msgstr ""
+msgstr "Zusätzlich werden diese Pakete angezeigt:"
 
 #: templates/package_monitor/index.html:131
 msgid ""
@@ -128,20 +134,24 @@ msgid ""
 "                    Will show as \"?\" if PyPI has no info about a package.\n"
 "                "
 msgstr ""
+"\n"
+"Der neueste Stable eines Pakets wird von PyPI abgerufen.\n"
+"Wird als \"?\" wenn PyPI keine Informationen über ein Paket hat."
 
 #: templates/package_monitor/index.html:141
 #, python-format
 msgid ""
 "\n"
-"                        Command for installing all %(outdated_count)s "
-"outdated packages\n"
+"                        Command for installing all %(outdated_count)s outdated packages\n"
 "                    "
 msgstr ""
+"\n"
+"Kommando zur Installation aller %(outdated_count)s veralteten Pakete"
 
 #: templates/package_monitor/index.html:148
 msgid "No outdated packages to install."
-msgstr ""
+msgstr "Keine veralteten Pakete zu installieren."
 
 #: views.py:37
 msgid "Distribution packages"
-msgstr ""
+msgstr "Pakete"
