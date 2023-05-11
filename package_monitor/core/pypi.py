@@ -118,13 +118,13 @@ def _determine_latest_version(
                 if is_valid and (not latest or my_release > version_parse(latest)):
                     latest = release
         except InvalidVersion:
-            logger.warning(
+            logger.info(
                 "%s: Ignoring release with invalid version: %s",
                 package.name,
                 release,
             )
         except InvalidSpecifier:
-            logger.warning(
+            logger.info(
                 "%s: Ignoring release with invalid requires_python: %s",
                 package.name,
                 requires_python,
