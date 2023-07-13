@@ -69,9 +69,9 @@ class DistributionPackage:
         return consolidated_requirements
 
     def update_from_pypi(self, requirements: dict) -> bool:
-        """Update from PyPI.
+        """Update latest version and URL from PyPI.
 
-        Return True if update successful, else False.
+        Return True if update was successful, else False.
         """
 
         pypi_data = self._fetch_data_from_pypi()
@@ -100,6 +100,7 @@ class DistributionPackage:
     def _determine_latest_version(
         self, pypi_data_releases, consolidated_requirements, system_python_version
     ):
+        """Determine latest valid version available on PyPI."""
         latest = ""
         for release, release_details in pypi_data_releases.items():
             requires_python = ""
@@ -110,6 +111,7 @@ class DistributionPackage:
                 if release_detail:
                     if release_detail["yanked"]:
                         continue
+
                     if (
                         requires_python := release_detail.get("requires_python")
                     ) and system_python_version not in SpecifierSet(requires_python):
@@ -143,7 +145,9 @@ class DistributionPackage:
         return latest
 
     def _fetch_data_from_pypi(self) -> Optional[dict]:
-        """Fetch data for a package from PyPI."""
+        """Fetch data for a package from PyPI and return it
+        or return None if there was an API error.
+        """
 
         logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
 

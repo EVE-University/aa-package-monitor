@@ -283,6 +283,22 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
+    def test_should_ignore_releases_not_matching_consolidated_requirements(
+        self, requests_mocker
+    ):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        requirements = {"alpha": {"bravo": SpecifierSet("<=1.0.0")}}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        requests_mocker.register_uri(
+            "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+        )
+        # when
+        dist_alpha.update_from_pypi(requirements=requirements)
+        # then
+        self.assertEqual(dist_alpha.latest, "1.0.0")
+
 
 @Mocker()
 class TestFetchDataFromPypi(NoSocketsTestCase):
