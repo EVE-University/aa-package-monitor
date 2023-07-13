@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Generic, Iterable, TypeVar
 
 import factory
 import factory.fuzzy
@@ -9,7 +9,14 @@ from package_monitor.models import Distribution
 
 from .stubs import MetadataDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
 
+T = TypeVar("T")
+
 faker = factory.faker.faker.Faker()
+
+
+class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
+    def __call__(cls, *args, **kwargs) -> T:
+        return super().__call__(*args, **kwargs)
 
 
 class PypiReleaseFactory(factory.Factory):
@@ -34,7 +41,7 @@ class PypiInfoFactory(factory.Factory):
     project_url = factory.LazyAttribute(lambda o: f"https://pypi.org/project/{o.name}/")
 
 
-class PypiFactory(factory.Factory):
+class PypiFactory(factory.Factory, metaclass=BaseMetaFactory[Pypi]):
     """A data object on PyPI. Create from DistributionPackage"""
 
     class Meta:
@@ -60,7 +67,9 @@ class PypiFactory(factory.Factory):
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
 
 
-class MetadataDistributionStubFactory(factory.Factory):
+class MetadataDistributionStubFactory(
+    factory.Factory, metaclass=BaseMetaFactory[MetadataDistributionStub]
+):
     class Meta:
         model = MetadataDistributionStub
 
@@ -93,7 +102,9 @@ class MetadataDistributionStubFactory(factory.Factory):
         return kwargs
 
 
-class DistributionPackageFactory(factory.Factory):
+class DistributionPackageFactory(
+    factory.Factory, metaclass=BaseMetaFactory[DistributionPackage]
+):
     class Meta:
         model = DistributionPackage
         exclude = ("requires",)
@@ -121,7 +132,9 @@ class DistributionPackageFactory(factory.Factory):
         return []
 
 
-class DistributionFactory(factory.django.DjangoModelFactory):
+class DistributionFactory(
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[Distribution]
+):
     class Meta:
         model = Distribution
         django_get_or_create = ("name",)
