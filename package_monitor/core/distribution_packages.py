@@ -78,16 +78,14 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        consolidated_requirements = self.calc_consolidated_requirements(requirements)
         system_python_version = determine_system_python_version()
         latest = self._determine_latest_version(
-            pypi_data["releases"], consolidated_requirements, system_python_version
+            pypi_data["releases"], requirements, system_python_version
         )
 
         if not latest:
             logger.warning(
-                f"Could not find a release for '{self.name}' "
-                f"that matches all requirements: '{consolidated_requirements}''"
+                "%s: Could not find any release that matches all requirements", self
             )
 
         self.latest = latest
@@ -98,9 +96,10 @@ class DistributionPackage:
         return True
 
     def _determine_latest_version(
-        self, pypi_data_releases, consolidated_requirements, system_python_version
+        self, pypi_data_releases, requirements, system_python_version
     ):
         """Determine latest valid version available on PyPI."""
+        consolidated_requirements = self.calc_consolidated_requirements(requirements)
         latest = ""
         for release, release_details in pypi_data_releases.items():
             requires_python = ""

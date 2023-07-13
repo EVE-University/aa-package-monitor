@@ -38,6 +38,8 @@ class PypiInfo:
     description: str = ""
     home_page: str = ""
     project_url: str = ""
+    requires_dist: List[str] = field(default=list)
+    requires_python: str = ""
     # summary: str
     # author: str
     # author_email: str
@@ -55,8 +57,6 @@ class Pypi:
     last_serial: int
     releases: Dict[str, PypiRelease]
     urls: List[PypiUrl]
-    requires_dist: List[str] = field(default=list)
-    requires_python: str = ""
 
     def asdict(self) -> dict:
         return asdict(self)

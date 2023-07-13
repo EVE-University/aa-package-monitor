@@ -37,8 +37,13 @@ class PypiUrlFactory(factory.Factory):
 class PypiInfoFactory(factory.Factory):
     class Meta:
         model = PypiInfo
+        exclude = ("requirements",)
 
     project_url = factory.LazyAttribute(lambda o: f"https://pypi.org/project/{o.name}/")
+    requires_dist = factory.LazyAttribute(
+        lambda o: [str(obj) for obj in o.requirements]
+    )
+    requires_python = "~=3.7"
 
 
 class PypiFactory(factory.Factory, metaclass=BaseMetaFactory[Pypi]):
@@ -54,13 +59,10 @@ class PypiFactory(factory.Factory, metaclass=BaseMetaFactory[Pypi]):
             version=o.distribution.current,
             description=o.distribution.summary,
             home_page=o.distribution.homepage_url,
+            requirements=o.distribution.requirements,
         )
     )
     last_serial = factory.fuzzy.FuzzyInteger(1_000_000, 10_000_000)
-    requires_dist = factory.LazyAttribute(
-        lambda o: [str(obj) for obj in o.distribution.requirements]
-    )
-    requires_python = "~=3.7"
     releases = factory.LazyAttribute(
         lambda o: {o.distribution.current: [PypiReleaseFactory()]}
     )
