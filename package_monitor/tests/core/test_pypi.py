@@ -6,8 +6,8 @@ from requests_mock import Mocker
 from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.pypi import (
+    _extract_pypi_url,
     _fetch_data_from_pypi,
-    _fetch_pypi_url,
     update_packages_from_pypi,
 )
 from package_monitor.tests.factories import (
@@ -198,6 +198,6 @@ class TestFetchPypiUrl(NoSocketsTestCase):
         distribution = DistributionPackageFactory(name="alpha")
         data = PypiFactory(distribution=distribution)
         # when
-        result = _fetch_pypi_url(data.asdict())
+        result = _extract_pypi_url(data.asdict())
         # then
         self.assertEqual(result, "https://pypi.org/project/alpha/")
