@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Changed
+
+- Demoted log messages about ignoring invalid versions to info
+- Migrated to flit for build
+
 ## [1.10.0] - 2023-05-09
 
 ### Added
