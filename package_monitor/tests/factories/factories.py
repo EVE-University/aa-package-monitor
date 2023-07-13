@@ -102,7 +102,7 @@ class DistributionPackageFactory(factory.Factory):
 
     name = factory.Faker("last_name")
     is_editable = False
-    latest = factory.LazyAttribute(lambda o: o.current)
+    # latest = factory.LazyAttribute(lambda o: o.current)
     homepage_url = factory.Faker("url")
     summary = factory.Faker("sentence")
 
