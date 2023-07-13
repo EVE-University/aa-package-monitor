@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.11.0] - TBD
+
 ### Changed
 
 - Demoted log messages about ignoring invalid versions to info
