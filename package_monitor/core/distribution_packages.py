@@ -79,9 +79,29 @@ class DistributionPackage:
             return False
 
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
-        current_python_version = self._current_python_version()
+        system_python_version = determine_system_python_version()
+        latest = self._determine_latest_version(
+            pypi_data["releases"], consolidated_requirements, system_python_version
+        )
+
+        if not latest:
+            logger.warning(
+                f"Could not find a release for '{self.name}' "
+                f"that matches all requirements: '{consolidated_requirements}''"
+            )
+
+        self.latest = latest
+
+        pypi_info = pypi_data.get("info")
+        pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
+        self.homepage_url = pypi_url
+        return True
+
+    def _determine_latest_version(
+        self, pypi_data_releases, consolidated_requirements, system_python_version
+    ):
         latest = ""
-        for release, release_details in pypi_data["releases"].items():
+        for release, release_details in pypi_data_releases.items():
             requires_python = ""
             try:
                 release_detail = (
@@ -92,7 +112,7 @@ class DistributionPackage:
                         continue
                     if (
                         requires_python := release_detail.get("requires_python")
-                    ) and current_python_version not in SpecifierSet(requires_python):
+                    ) and system_python_version not in SpecifierSet(requires_python):
                         continue
 
                 my_release = version_parse(release)
@@ -120,18 +140,7 @@ class DistributionPackage:
                     requires_python,
                 )
 
-        if not latest:
-            logger.warning(
-                f"Could not find a release of '{self.name}' "
-                f"that matches all requirements: '{consolidated_requirements}''"
-            )
-
-        self.latest = latest
-
-        pypi_info = pypi_data.get("info")
-        pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
-        self.homepage_url = pypi_url
-        return True
+        return latest
 
     def _fetch_data_from_pypi(self) -> Optional[dict]:
         """Fetch data for a package from PyPI."""
@@ -154,14 +163,6 @@ class DistributionPackage:
 
         pypi_data = r.json()
         return pypi_data
-
-    @staticmethod
-    def _current_python_version() -> Version:
-        current_python_version = version_parse(
-            f"{sys.version_info.major}.{sys.version_info.minor}"
-            f".{sys.version_info.micro}"
-        )
-        return current_python_version
 
     @classmethod
     def create_from_metadata_distribution(
@@ -241,3 +242,12 @@ def update_packages_from_pypi(
     else:
         for package in packages.values():
             thread_update_latest_from_pypi(package)
+
+
+def determine_system_python_version() -> Version:
+    """Return current Python version of this system."""
+    result = version_parse(
+        f"{sys.version_info.major}.{sys.version_info.minor}"
+        f".{sys.version_info.micro}"
+    )
+    return result
