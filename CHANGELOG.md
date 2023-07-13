@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Demoted log messages about ignoring invalid versions to info
 - Migrated to flit for build
+- Add support for Python 3.11
 
 ## [1.10.0] - 2023-05-09
 
