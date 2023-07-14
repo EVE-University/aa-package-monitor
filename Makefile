@@ -43,9 +43,6 @@ compilemessages:
 coverage:
 	coverage run ../myauth/manage.py test $(package).tests --keepdb --failfast --debug-mode && coverage html && coverage report
 
-pylint:
-	pylint --load-plugins pylint_django $(package)
-
 check_complexity:
 	flake8 $(package) --max-complexity=10
 

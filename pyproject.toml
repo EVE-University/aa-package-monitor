@@ -1,13 +1,12 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "aa-package-monitor"
-dynamic = ["version"]
-description = "An app that helps keep track of installed packages and outstanding updates for Alliance Auth"
+dynamic = ["version", "description"]
 readme = "README.md"
-license = "MIT"
+license = {file = "LICENSE"}
 requires-python = ">=3.8"
 authors = [
     { name = "Erik Kalkoken", email = "kalkoken87@gmail.com" },
@@ -23,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
@@ -39,15 +39,8 @@ Source = "https://gitlab.com/ErikKalkoken/aa-package-monitor"
 Changelog = "https://gitlab.com/ErikKalkoken/aa-package-monitor/-/blob/master/CHANGELOG.md"
 Tracker = "https://gitlab.com/ErikKalkoken/aa-package-monitor/-/issues"
 
-
-[tool.hatch.version]
-path = "package_monitor/__init__.py"
-
-[tool.hatch.build]
-include = [
-    "/package_monitor",
-]
-
+[tool.flit.module]
+name = "package_monitor"
 
 [tool.isort]
 profile = "black"

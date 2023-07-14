@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Generic, Iterable, TypeVar
 
 import factory
 import factory.fuzzy
@@ -9,7 +9,14 @@ from package_monitor.models import Distribution
 
 from .stubs import MetadataDistributionStub, Pypi, PypiInfo, PypiRelease, PypiUrl
 
+T = TypeVar("T")
+
 faker = factory.faker.faker.Faker()
+
+
+class BaseMetaFactory(Generic[T], factory.base.FactoryMetaClass):
+    def __call__(cls, *args, **kwargs) -> T:
+        return super().__call__(*args, **kwargs)
 
 
 class PypiReleaseFactory(factory.Factory):
@@ -30,11 +37,16 @@ class PypiUrlFactory(factory.Factory):
 class PypiInfoFactory(factory.Factory):
     class Meta:
         model = PypiInfo
+        exclude = ("requirements",)
 
     project_url = factory.LazyAttribute(lambda o: f"https://pypi.org/project/{o.name}/")
+    requires_dist = factory.LazyAttribute(
+        lambda o: [str(obj) for obj in o.requirements]
+    )
+    requires_python = "~=3.7"
 
 
-class PypiFactory(factory.Factory):
+class PypiFactory(factory.Factory, metaclass=BaseMetaFactory[Pypi]):
     """A data object on PyPI. Create from DistributionPackage"""
 
     class Meta:
@@ -47,20 +59,19 @@ class PypiFactory(factory.Factory):
             version=o.distribution.current,
             description=o.distribution.summary,
             home_page=o.distribution.homepage_url,
+            requirements=o.distribution.requirements,
         )
     )
     last_serial = factory.fuzzy.FuzzyInteger(1_000_000, 10_000_000)
-    requires_dist = factory.LazyAttribute(
-        lambda o: [str(obj) for obj in o.distribution.requirements]
-    )
-    requires_python = "~=3.7"
     releases = factory.LazyAttribute(
         lambda o: {o.distribution.current: [PypiReleaseFactory()]}
     )
     urls = factory.LazyAttribute(lambda o: [PypiUrlFactory()])
 
 
-class MetadataDistributionStubFactory(factory.Factory):
+class MetadataDistributionStubFactory(
+    factory.Factory, metaclass=BaseMetaFactory[MetadataDistributionStub]
+):
     class Meta:
         model = MetadataDistributionStub
 
@@ -93,7 +104,9 @@ class MetadataDistributionStubFactory(factory.Factory):
         return kwargs
 
 
-class DistributionPackageFactory(factory.Factory):
+class DistributionPackageFactory(
+    factory.Factory, metaclass=BaseMetaFactory[DistributionPackage]
+):
     class Meta:
         model = DistributionPackage
         exclude = ("requires",)
@@ -102,7 +115,7 @@ class DistributionPackageFactory(factory.Factory):
 
     name = factory.Faker("last_name")
     is_editable = False
-    latest = factory.LazyAttribute(lambda o: o.current)
+    # latest = factory.LazyAttribute(lambda o: o.current)
     homepage_url = factory.Faker("url")
     summary = factory.Faker("sentence")
 
@@ -121,7 +134,9 @@ class DistributionPackageFactory(factory.Factory):
         return []
 
 
-class DistributionFactory(factory.django.DjangoModelFactory):
+class DistributionFactory(
+    factory.django.DjangoModelFactory, metaclass=BaseMetaFactory[Distribution]
+):
     class Meta:
         model = Distribution
         django_get_or_create = ("name",)

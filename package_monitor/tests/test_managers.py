@@ -45,7 +45,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         # then
         self.assertEqual(Distribution.objects.count(), 2)
         obj = Distribution.objects.get(name="alpha")
-        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
         self.assertTrue(obj.has_installed_apps)
         self.assertEqual(obj.website_url, "https://www.alpha.com")
@@ -78,7 +78,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.first()
         self.assertEqual(obj.name, "Alpha")
-        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
     def test_should_update_all_with_threads(
@@ -97,7 +97,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.first()
         self.assertEqual(obj.name, "alpha")
-        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
     def test_should_update_existing_packages(
@@ -116,7 +116,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
-        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
     def test_should_remove_stale_packages(
@@ -136,7 +136,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
-        self.assertEqual(obj.latest_version, "1.0.0")
+        self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
     def test_should_set_is_outdated_to_none_when_no_pypi_infos(

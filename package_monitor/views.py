@@ -22,10 +22,10 @@ def index(request):
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
     distributions_qs = Distribution.objects.filter_visible()
-    filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM)
-    if not filter:
+    my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM)
+    if not my_filter:
         app_count = Distribution.objects.filter_visible().outdated_count()
-        filter = "outdated" if app_count and app_count > 0 else "current"
+        my_filter = "outdated" if app_count and app_count > 0 else "current"
     outdated_install_command = (
         Distribution.objects.filter_visible()
         .filter(is_outdated=True)
@@ -36,7 +36,7 @@ def index(request):
         "app_title": __title__,
         "page_title": _("Distribution packages"),
         "updated_at": updated_at,
-        "filter": filter,
+        "filter": my_filter,
         "all_count": distributions_qs.count(),
         "current_count": distributions_qs.filter(is_outdated=False).count(),
         "outdated_count": distributions_qs.outdated_count(),

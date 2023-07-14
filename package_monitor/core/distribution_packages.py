@@ -1,16 +1,29 @@
 """Handle parsed distribution packages."""
 
+import concurrent.futures
+import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 import importlib_metadata
+import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import Requirement
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, Version
 from packaging.version import parse as version_parse
 
+from allianceauth.services.hooks import get_extension_logger
+from app_utils.logging import LoggerAddTag
+
+from package_monitor import __title__
+
 from . import metadata_helpers
+
+MAX_THREAD_WORKERS = 30
+
+logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 
 @dataclass
@@ -54,6 +67,105 @@ class DistributionPackage:
             for _, specifier in requirements[self.name_normalized].items():
                 consolidated_requirements &= specifier
         return consolidated_requirements
+
+    def update_from_pypi(self, requirements: dict) -> bool:
+        """Update latest version and URL from PyPI.
+
+        Return True if update was successful, else False.
+        """
+
+        pypi_data = self._fetch_data_from_pypi()
+        if not pypi_data:
+            return False
+
+        system_python_version = determine_system_python_version()
+        latest = self._determine_latest_version(
+            pypi_data["releases"], requirements, system_python_version
+        )
+
+        if not latest:
+            logger.warning(
+                "%s: Could not find any release that matches all requirements", self
+            )
+
+        self.latest = latest
+
+        pypi_info = pypi_data.get("info")
+        pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
+        self.homepage_url = pypi_url
+        return True
+
+    def _determine_latest_version(
+        self, pypi_data_releases, requirements, system_python_version
+    ):
+        """Determine latest valid version available on PyPI."""
+        consolidated_requirements = self.calc_consolidated_requirements(requirements)
+        latest = ""
+        for release, release_details in pypi_data_releases.items():
+            requires_python = ""
+            try:
+                release_detail = (
+                    release_details[-1] if len(release_details) > 0 else None
+                )
+                if release_detail:
+                    if release_detail["yanked"]:
+                        continue
+
+                    if (
+                        requires_python := release_detail.get("requires_python")
+                    ) and system_python_version not in SpecifierSet(requires_python):
+                        continue
+
+                my_release = version_parse(release)
+                if str(my_release) == str(release) and (
+                    self.is_prerelease() or not my_release.is_prerelease
+                ):
+                    if len(consolidated_requirements) > 0:
+                        is_valid = my_release in consolidated_requirements
+                    else:
+                        is_valid = True
+
+                    if is_valid and (not latest or my_release > version_parse(latest)):
+                        latest = release
+
+            except InvalidVersion:
+                logger.info(
+                    "%s: Ignoring release with invalid version: %s",
+                    self.name,
+                    release,
+                )
+            except InvalidSpecifier:
+                logger.info(
+                    "%s: Ignoring release with invalid requires_python: %s",
+                    self.name,
+                    requires_python,
+                )
+
+        return latest
+
+    def _fetch_data_from_pypi(self) -> Optional[dict]:
+        """Fetch data for a package from PyPI and return it
+        or return None if there was an API error.
+        """
+
+        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
+
+        url = f"https://pypi.org/pypi/{self.name}/json"
+        r = requests.get(url, timeout=(5, 30))
+        if r.status_code != requests.codes.ok:
+            if r.status_code == 404:
+                logger.info(f"Package '{self.name}' is not registered in PyPI")
+            else:
+                logger.warning(
+                    "Failed to retrieve infos from PyPI for "
+                    f"package '{self.name}'. "
+                    f"Status code: {r.status_code}, "
+                    f"response: {r.content}"
+                )
+            return None
+
+        pypi_data = r.json()
+        return pypi_data
 
     @classmethod
     def create_from_metadata_distribution(
@@ -108,3 +220,37 @@ def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> di
                     requirements[requirement_name][package.name] = requirement.specifier
 
     return requirements
+
+
+def update_packages_from_pypi(
+    packages: Dict[str, DistributionPackage], requirements: dict, use_threads=False
+) -> None:
+    """Update packages with latest versions and URL from PyPI in accordance
+    with the given requirements and updates the packages.
+    """
+
+    def thread_update_latest_from_pypi(current_package: DistributionPackage) -> None:
+        """Retrieves latest valid version from PyPI and updates packages
+        Note: This inner function can run as thread
+        """
+        nonlocal packages
+
+        current_package.update_from_pypi(requirements)
+
+    if use_threads:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=MAX_THREAD_WORKERS
+        ) as executor:
+            executor.map(thread_update_latest_from_pypi, packages.values())
+    else:
+        for package in packages.values():
+            thread_update_latest_from_pypi(package)
+
+
+def determine_system_python_version() -> Version:
+    """Return current Python version of this system."""
+    result = version_parse(
+        f"{sys.version_info.major}.{sys.version_info.minor}"
+        f".{sys.version_info.micro}"
+    )
+    return result
