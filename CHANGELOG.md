@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.11.0] - TBD
 
+### Added
+
+- Added support for Python 3.11
+
 ### Changed
 
 - Demoted log messages about ignoring invalid versions to info
 - Migrated to flit for build
-- Add support for Python 3.11
+- Refactored core logic
+- Improved test suite
 
 ## [1.10.0] - 2023-05-09
 
