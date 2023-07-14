@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Use asyncio instead of threads for fetching data from PyPI
 
+### Fixed
+
+- Update task duration is too long (#3)
+
 ## [1.11.0] - 2023-07-14
 
 ### Added

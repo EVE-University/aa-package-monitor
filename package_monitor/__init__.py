@@ -4,5 +4,5 @@ and outstanding updates for Alliance Auth.
 
 default_app_config = "package_monitor.apps.PackageMonitorConfig"
 
-__version__ = "1.11.0"
+__version__ = "1.11.1"
 __title__ = "Package Monitor"
