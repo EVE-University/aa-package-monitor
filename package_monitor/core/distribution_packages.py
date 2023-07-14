@@ -1,12 +1,12 @@
-"""Handle parsed distribution packages."""
+"""Core logic for parsed distribution packages."""
 
-import concurrent.futures
+import asyncio
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+import aiohttp
 import importlib_metadata
-import requests
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
 from packaging.requirements import Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
@@ -20,8 +20,6 @@ from app_utils.logging import LoggerAddTag
 from package_monitor import __title__
 
 from . import metadata_helpers
-
-MAX_THREAD_WORKERS = 30
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
@@ -68,13 +66,15 @@ class DistributionPackage:
                 consolidated_requirements &= specifier
         return consolidated_requirements
 
-    def update_from_pypi(self, requirements: dict) -> bool:
+    async def update_from_pypi_async(
+        self, requirements: dict, session: aiohttp.ClientSession
+    ) -> bool:
         """Update latest version and URL from PyPI.
 
         Return True if update was successful, else False.
         """
 
-        pypi_data = self._fetch_data_from_pypi()
+        pypi_data = await self._fetch_data_from_pypi_async(session)
         if not pypi_data:
             return False
 
@@ -94,6 +94,32 @@ class DistributionPackage:
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
         self.homepage_url = pypi_url
         return True
+
+    async def _fetch_data_from_pypi_async(
+        self, session: aiohttp.ClientSession
+    ) -> Optional[dict]:
+        """Fetch data for a package from PyPI and return it
+        or return None if there was an API error.
+        """
+
+        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
+
+        url = f"https://pypi.org/pypi/{self.name}/json"
+        async with session.get(url) as resp:
+            if not resp.ok:
+                if resp.status == 404:
+                    logger.info("Package '%s' is not registered in PyPI", self.name)
+                else:
+                    logger.warning(
+                        "Failed to retrieve infos from PyPI for "
+                        "package '%s'. "
+                        "Status code: %d, "
+                        "response: %s"
+                    ), self.name, resp.status, await resp.text()
+                return None
+
+            pypi_data = await resp.json()
+            return pypi_data
 
     def _determine_latest_version(
         self, pypi_data_releases, requirements, system_python_version
@@ -142,30 +168,6 @@ class DistributionPackage:
                 )
 
         return latest
-
-    def _fetch_data_from_pypi(self) -> Optional[dict]:
-        """Fetch data for a package from PyPI and return it
-        or return None if there was an API error.
-        """
-
-        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
-
-        url = f"https://pypi.org/pypi/{self.name}/json"
-        r = requests.get(url, timeout=(5, 30))
-        if r.status_code != requests.codes.ok:
-            if r.status_code == 404:
-                logger.info(f"Package '{self.name}' is not registered in PyPI")
-            else:
-                logger.warning(
-                    "Failed to retrieve infos from PyPI for "
-                    f"package '{self.name}'. "
-                    f"Status code: {r.status_code}, "
-                    f"response: {r.content}"
-                )
-            return None
-
-        pypi_data = r.json()
-        return pypi_data
 
     @classmethod
     def create_from_metadata_distribution(
@@ -223,28 +225,24 @@ def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> di
 
 
 def update_packages_from_pypi(
-    packages: Dict[str, DistributionPackage], requirements: dict, use_threads=False
+    packages: Dict[str, DistributionPackage], requirements: dict
 ) -> None:
     """Update packages with latest versions and URL from PyPI in accordance
     with the given requirements and updates the packages.
     """
 
-    def thread_update_latest_from_pypi(current_package: DistributionPackage) -> None:
-        """Retrieves latest valid version from PyPI and updates packages
-        Note: This inner function can run as thread
-        """
-        nonlocal packages
+    async def update_packages_from_pypi_async() -> None:
+        """Update packages from PyPI concurrently."""
+        async with aiohttp.ClientSession() as session:
+            tasks = [
+                asyncio.create_task(
+                    package.update_from_pypi_async(requirements, session)
+                )
+                for package in packages.values()
+            ]
+            await asyncio.gather(*tasks)
 
-        current_package.update_from_pypi(requirements)
-
-    if use_threads:
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=MAX_THREAD_WORKERS
-        ) as executor:
-            executor.map(thread_update_latest_from_pypi, packages.values())
-    else:
-        for package in packages.values():
-            thread_update_latest_from_pypi(package)
+    asyncio.run(update_packages_from_pypi_async())
 
 
 def determine_system_python_version() -> Version:

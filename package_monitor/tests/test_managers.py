@@ -41,7 +41,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
             "alpha": {"bravo": SpecifierSet(">=1.0.0")}
         }
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 2)
         obj = Distribution.objects.get(name="alpha")
@@ -73,30 +73,11 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
         mock_compile_package_requirements.return_value = {}
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.first()
         self.assertEqual(obj.name, "Alpha")
-        self.assertEqual(obj.installed_version, "1.0.0")
-        self.assertFalse(obj.is_outdated)
-
-    def test_should_update_all_with_threads(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        Distribution.objects.update_all(use_threads=True)
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.first()
-        self.assertEqual(obj.name, "alpha")
         self.assertEqual(obj.installed_version, "1.0.0")
         self.assertFalse(obj.is_outdated)
 
@@ -112,7 +93,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         DistributionFactory(name="alpha", installed_version="0.9.0")
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
@@ -132,7 +113,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         DistributionFactory(name="alpha", installed_version="0.9.0")
         DistributionFactory(name="bravo", installed_version="1.0.0")
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
@@ -151,7 +132,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         DistributionFactory(name="alpha", installed_version="0.9.0")
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
@@ -171,7 +152,7 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         mock_gather_distribution_packages.return_value = packages
         mock_compile_package_requirements.return_value = {}
         # when
-        Distribution.objects.update_all(use_threads=False)
+        Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")
@@ -200,7 +181,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         # when
         with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all(use_threads=False)
+            Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")
@@ -223,7 +204,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         # when
         with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False):
-            Distribution.objects.update_all(use_threads=False)
+            Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")
@@ -253,7 +234,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         # when
         with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all(use_threads=False)
+            Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")
@@ -283,7 +264,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         # when
         with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all(use_threads=False)
+            Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")
@@ -306,9 +287,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         mock_compile_package_requirements.return_value = {}
         # when
         with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all(
-                use_threads=False, notifications_disabled=True
-            )
+            Distribution.objects.update_all(notifications_disabled=True)
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")
@@ -333,7 +312,7 @@ class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
         with mock.patch(
             MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True
         ), mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False):
-            Distribution.objects.update_all(use_threads=False)
+            Distribution.objects.update_all()
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="Alpha")

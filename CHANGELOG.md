@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.11.1] - 2023-07-14
+
+### Changed
+
+- Use asyncio instead of threads for fetching data from PyPI
+
 ## [1.11.0] - 2023-07-14
 
 ### Added

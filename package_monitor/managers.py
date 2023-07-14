@@ -60,16 +60,14 @@ class DistributionQuerySet(models.QuerySet):
 
 
 class DistributionManagerBase(models.Manager):
-    def update_all(
-        self, use_threads: bool = False, notifications_disabled: bool = False
-    ) -> int:
+    def update_all(self, notifications_disabled: bool = False) -> int:
         """Update the list of relevant distribution packages in the database."""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
         )
         packages = gather_distribution_packages()
         requirements = compile_package_requirements(packages)
-        update_packages_from_pypi(packages, requirements, use_threads)
+        update_packages_from_pypi(packages, requirements)
         self._save_packages(
             packages=packages,
             requirements=requirements,

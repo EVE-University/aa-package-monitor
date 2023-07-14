@@ -1,8 +1,6 @@
-from unittest import mock
+from unittest import TestCase, mock
 
-import requests_mock
-
-from app_utils.testing import NoSocketsTestCase
+from aioresponses import aioresponses
 
 from package_monitor import tasks
 from package_monitor.core.distribution_packages import DistributionPackage
@@ -18,8 +16,8 @@ MANAGERS_PATH = "package_monitor.managers"
 @mock.patch(MANAGERS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
 @mock.patch(CORE_HELPERS_PATH + ".django_apps", spec=True)
 @mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
-@requests_mock.Mocker()
-class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
+class TestUpdatePackagesFromPyPi(TestCase):
+    @aioresponses()
     def test_should_update_packages(
         self, mock_distributions, mock_django_apps, requests_mocker
     ):
@@ -34,8 +32,8 @@ class TestUpdatePackagesFromPyPi(NoSocketsTestCase):
             )
         )
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-        requests_mocker.register_uri(
-            "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
+        requests_mocker.get(
+            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
         )
         # when
         tasks.update_distributions()
