@@ -75,9 +75,9 @@ def parse_requirements(dist: MetadataDistribution) -> List[Requirement]:
     if not dist.requires:
         return []
     requirements = []
-    for r in dist.requires:
+    for requirement in dist.requires:
         try:
-            requirements.append(Requirement(r))
+            requirements.append(Requirement(requirement))
         except InvalidRequirement:
             pass
     return requirements

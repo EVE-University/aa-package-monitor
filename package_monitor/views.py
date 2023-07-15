@@ -1,3 +1,5 @@
+"""Views for Package Monitor."""
+
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -19,6 +21,7 @@ PACKAGE_LIST_FILTER_PARAM = "filter"
 @login_required
 @permission_required("package_monitor.basic_access")
 def index(request):
+    """Main view."""
     obj = Distribution.objects.first()
     updated_at = obj.updated_at if obj else None
     distributions_qs = Distribution.objects.filter_visible()
@@ -51,7 +54,7 @@ def index(request):
 @login_required
 @permission_required("package_monitor.basic_access")
 def package_list_data(request) -> JsonResponse:
-    """Returns the packages as list in JSON.
+    """Return the packages as list in JSON.
     Specify different subsets with the "filter" GET parameter
     """
     my_filter = request.GET.get(PACKAGE_LIST_FILTER_PARAM, "")
@@ -63,7 +66,7 @@ def package_list_data(request) -> JsonResponse:
     elif my_filter == "unknown":
         distributions_qs = distributions_qs.filter(is_outdated__isnull=True)
 
-    data = list()
+    data = []
     for dist in distributions_qs.order_by("name"):
         dist: Distribution
         name_link_html = (
@@ -76,7 +79,7 @@ def package_list_data(request) -> JsonResponse:
             )
 
         if dist.apps:
-            _lst = [row for row in dist.apps]
+            _lst = list(dist.apps)
             apps_html = "<br>".join(_lst) if _lst else "-"
         else:
             apps_html = ""
@@ -135,5 +138,6 @@ def package_list_data(request) -> JsonResponse:
 @login_required
 @permission_required("package_monitor.basic_access")
 def refresh_distributions(request):
-    Distribution.objects.update_all(use_threads=True, notifications_disabled=True)
+    """Ajax view for refreshing all distributions."""
+    Distribution.objects.update_all(notifications_disabled=True)
     return HttpResponse("ok")

@@ -1,7 +1,9 @@
+"""Commands for Package Monitor."""
+
 from django.core.management.base import BaseCommand
 
-from ... import __title__, __version__
-from ...models import Distribution
+from package_monitor import __title__, __version__
+from package_monitor.models import Distribution
 
 
 class Command(BaseCommand):
@@ -16,7 +18,7 @@ class Command(BaseCommand):
             f"With {outdated_count} package(s) currently showing as outdated."
         )
         self.stdout.write("This can take a minute...Please wait")
-        package_count = Distribution.objects.update_all(use_threads=True)
+        package_count = Distribution.objects.update_all()
         outdated_count = Distribution.objects.filter_visible().outdated_count()
         self.stdout.write(
             self.style.SUCCESS(

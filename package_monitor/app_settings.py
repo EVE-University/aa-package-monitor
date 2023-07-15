@@ -1,3 +1,5 @@
+"""Settings for Package Monitor."""
+
 from app_utils.app_settings import clean_setting
 
 PACKAGE_MONITOR_EXCLUDE_PACKAGES = clean_setting(

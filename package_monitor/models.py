@@ -1,3 +1,5 @@
+"""Models for Package Monitor."""
+
 from django.db import models
 
 from .managers import DistributionManager
@@ -80,6 +82,7 @@ class Distribution(models.Model):
 
     @property
     def pip_install_version(self) -> str:
+        """Return string for pip installing the latest version of this package."""
         return (
             f"{self.name}=={self.latest_version}" if self.latest_version else self.name
         )
