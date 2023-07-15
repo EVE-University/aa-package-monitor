@@ -7,12 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.11.1] - 2023-07-14
+## [1.11.1] - 2023-07-15
 
 ### Changed
 
 - Use asyncio instead of threads for fetching data from PyPI
 - Reenable feature for Python markers (requires packaging>22)
+- Add pylint to CI
 
 ### Fixed
 

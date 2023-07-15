@@ -3,7 +3,7 @@ stages:
   - test
   - deploy
 
-pre-commit-check:
+pre-commit:
   stage: checks
   image: python:3.10-bullseye
   variables:
@@ -23,7 +23,7 @@ pre-commit-check:
     - python -V
     - pip install tox
 
-checks-pylint:
+pylint:
   stage: checks
   extends: .tox_setup
   image: python:3.10-bullseye
