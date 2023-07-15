@@ -17,6 +17,12 @@ MANAGERS_PATH = "package_monitor.managers"
 @mock.patch(CORE_HELPERS_PATH + ".django_apps", spec=True)
 @mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestUpdatePackagesFromPyPi(TestCase):
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super().tearDownClass()
+        # workaround to remove obj which is not cleaned up
+        Distribution.objects.all().delete()
+
     @aioresponses()
     def test_should_update_packages(
         self, mock_distributions, mock_django_apps, requests_mocker
