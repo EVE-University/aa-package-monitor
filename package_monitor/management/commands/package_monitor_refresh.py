@@ -1,7 +1,9 @@
+"""Commands for Package Monitor."""
+
 from django.core.management.base import BaseCommand
 
-from ... import __title__, __version__
-from ...models import Distribution
+from package_monitor import __title__, __version__
+from package_monitor.models import Distribution
 
 
 class Command(BaseCommand):

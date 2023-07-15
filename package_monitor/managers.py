@@ -1,3 +1,5 @@
+"""Managers for Package Monitor."""
+
 from typing import Dict, Set
 
 from django.db import models
@@ -27,7 +29,10 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 
 class DistributionQuerySet(models.QuerySet):
+    """QuerySets for Distribution."""
+
     def outdated_count(self) -> int:
+        """Return count of outdated packages."""
         return self.filter(is_outdated=True).count()
 
     def build_install_command(self) -> str:
@@ -60,6 +65,8 @@ class DistributionQuerySet(models.QuerySet):
 
 
 class DistributionManagerBase(models.Manager):
+    """Manager for Distribution."""
+
     def update_all(self, notifications_disabled: bool = False) -> int:
         """Update the list of relevant distribution packages in the database."""
         logger.info(

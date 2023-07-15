@@ -1,3 +1,5 @@
+"""Urls for Package Monitor."""
+
 from django.urls import path
 
 from . import views
