@@ -31,6 +31,7 @@ dependencies = [
     "allianceauth-app-utils>=1.17.1",
     "importlib_metadata",
     "aiohttp>=3.8",
+    "packaging>=22",
 ]
 
 [project.urls]

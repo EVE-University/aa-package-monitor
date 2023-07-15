@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Use asyncio instead of threads for fetching data from PyPI
+- Reenable feature for Python markers (requires packaging>22)
 
 ### Fixed
 

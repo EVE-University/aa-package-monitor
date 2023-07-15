@@ -128,19 +128,19 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
 
-    # def test_should_ignore_python_version_requirements(self):
-    #     # given
-    #     dist_alpha = DistributionPackageFactory(name="alpha")
-    #     dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
-    #     dist_charlie = DistributionPackageFactory(
-    #         name="charlie", requires=["alpha >= 1.0.0 ; python_version < 3.7"]
-    #     )
-    #     packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
-    #     # when
-    #     result = compile_package_requirements(packages)
-    #     # then
-    #     expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
-    #     self.assertDictEqual(expected, result)
+    def test_should_ignore_python_version_requirements(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha")
+        dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
+        dist_charlie = DistributionPackageFactory(
+            name="charlie", requires=['alpha >= 1.0.0 ; python_version < "3.7"']
+        )
+        packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
+        # when
+        result = compile_package_requirements(packages)
+        # then
+        expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
+        self.assertDictEqual(expected, result)
 
     def test_should_ignore_invalid_extra_requirements(self):
         # given
@@ -155,25 +155,6 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
-
-    # TODO: This test breaks with packaging<22, which is currently required by Auth.
-
-    # def test_should_ignore_invalid_python_release_spec(self, requests_mocker):
-    #     # given
-    #     dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-    #     packages = make_packages(dist_alpha)
-    #     requirements = {}
-    #     pypi_alpha = PypiFactory(distribution=dist_alpha)
-    #     pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.4.*")]
-    #     requests_mocker.get(
-    #         "GET", "https://pypi.org/pypi/alpha/json", json=pypi_alpha.asdict()
-    #     )
-    #     # when
-    #     update_packages_from_pypi(
-    #         packages=packages, requirements=requirements
-    #     )
-    #     # then
-    #     self.assertEqual(packages["alpha"].latest, "1.0.0")
 
 
 @mock.patch(MODULE_PATH + ".DistributionPackage._fetch_data_from_pypi_async")
@@ -307,19 +288,22 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
-    # async def test_should_ignore_newest_release_when_its_requirements_are_not_matching(
-    #     self, mock_fetch_data_from_pypi_async
-    # ):
-    #     # given
-    #     dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
-    #     requirements = {"bravo": {"charlie": SpecifierSet("<=1.0.0")}}
-    #     pypi_alpha = PypiFactory(distribution=dist_alpha)
-    #     pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-    #     mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
-    #     # when
-    #     dist_alpha.update_from_pypi(requirements=requirements)
-    #     # then
-    #     self.assertEqual(dist_alpha.latest, "1.0.0")
+    async def test_should_ignore_invalid_python_release_spec(
+        self, mock_fetch_data_from_pypi_async
+    ):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = make_packages(dist_alpha)
+        requirements = {}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.4.*")]
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
+        # when
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
+        # then
+        self.assertEqual(packages["alpha"].latest, "1.0.0")
 
 
 class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
