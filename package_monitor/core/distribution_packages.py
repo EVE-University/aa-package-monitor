@@ -114,8 +114,11 @@ class DistributionPackage:
                         "Failed to retrieve infos from PyPI for "
                         "package '%s'. "
                         "Status code: %d, "
-                        "response: %s"
-                    ), self.name, resp.status, await resp.text()
+                        "response: %s",
+                        self.name,
+                        resp.status,
+                        await resp.text(),
+                    )
                 return None
 
             pypi_data = await resp.json()

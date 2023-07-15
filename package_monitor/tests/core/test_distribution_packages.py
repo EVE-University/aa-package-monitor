@@ -176,177 +176,146 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
     #     self.assertEqual(packages["alpha"].latest, "1.0.0")
 
 
+@mock.patch(MODULE_PATH + ".DistributionPackage._fetch_data_from_pypi_async")
 class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
-    @aioresponses()
-    async def test_should_update_packages(self, requests_mocker):
+    async def test_should_update_packages(self, mock_fetch_data_from_pypi_async):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
         # then
         self.assertEqual(dist_alpha.latest, "1.1.0")
         self.assertEqual(dist_alpha.homepage_url, "https://pypi.org/project/alpha/")
 
-    @aioresponses()
-    async def test_should_ignore_prereleases_when_stable(self, requests_mocker):
+    async def test_should_ignore_prereleases_when_stable(
+        self, mock_fetch_data_from_pypi_async
+    ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0a1"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
 
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
-    @aioresponses()
-    async def test_should_include_prereleases_when_prerelease(self, requests_mocker):
+    async def test_should_include_prereleases_when_prerelease(
+        self, mock_fetch_data_from_pypi_async
+    ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0a1")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.0.0a2"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
 
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0a2")
 
-    @aioresponses()
-    async def test_should_not_update_package_on_network_error(self, requests_mocker):
+    async def test_should_not_update_package_on_network_error(
+        self, mock_fetch_data_from_pypi_async
+    ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", status=500, body="Test error"
-        )
+        mock_fetch_data_from_pypi_async.return_value = None
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
-
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
         # then
         self.assertEqual(dist_alpha.latest, "")
 
-    @aioresponses()
-    async def test_should_ignore_yanked_releases(self, requests_mocker):
+    async def test_should_ignore_yanked_releases(self, mock_fetch_data_from_pypi_async):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(yanked=True)]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
-
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
-    @aioresponses()
     async def test_should_ignore_releases_with_incompatible_python_requirement(
-        self, requests_mocker
+        self, mock_fetch_data_from_pypi_async
     ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory(requires_python=">=3.7")]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         with mock.patch(MODULE_PATH + ".sys") as mock_sys:
             mock_sys.version_info = SysVersionInfo(3, 6, 9)
-
-            async with aiohttp.ClientSession() as session:
-                await dist_alpha.update_from_pypi_async(
-                    requirements=requirements, session=session
-                )
-
+            await dist_alpha.update_from_pypi_async(
+                requirements=requirements, session=mock.MagicMock()
+            )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
-    @aioresponses()
-    async def test_should_ignore_invalid_release_version(self, requests_mocker):
+    async def test_should_ignore_invalid_release_version(
+        self, mock_fetch_data_from_pypi_async
+    ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["a3"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
-
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
-    @aioresponses()
     async def test_should_ignore_releases_not_matching_consolidated_requirements(
-        self, requests_mocker
+        self, mock_fetch_data_from_pypi_async
     ):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {"alpha": {"bravo": SpecifierSet("<=1.0.0")}}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-        requests_mocker.get(
-            "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-        )
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
-        async with aiohttp.ClientSession() as session:
-            await dist_alpha.update_from_pypi_async(
-                requirements=requirements, session=session
-            )
-
+        await dist_alpha.update_from_pypi_async(
+            requirements=requirements, session=mock.MagicMock()
+        )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
 
     # async def test_should_ignore_newest_release_when_its_requirements_are_not_matching(
-    #     self, requests_mocker
+    #     self, mock_fetch_data_from_pypi_async
     # ):
     #     # given
     #     dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
     #     requirements = {"bravo": {"charlie": SpecifierSet("<=1.0.0")}}
     #     pypi_alpha = PypiFactory(distribution=dist_alpha)
     #     pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
-    #     requests_mocker.get(
-    #         "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
-    #     )
+    #     mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
     #     # when
     #     dist_alpha.update_from_pypi(requirements=requirements)
     #     # then
