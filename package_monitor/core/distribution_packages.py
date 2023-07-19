@@ -75,9 +75,15 @@ class DistributionPackage:
         Return True if update was successful, else False.
         """
 
+        unipypi_data = await self._fetch_data_from_unipypi_async(session)
+
         pypi_data = await self._fetch_data_from_pypi_async(session)
-        if not pypi_data:
+        if not (pypi_data or unipypi_data):
             return False
+        elif unipypi_data and pypi_data:
+            pypi_data["releases"].update(unipypi_data["releases"])
+        elif unipypi_data and not pypi_data:
+            pypi_data = unipypi_data
 
         system_python_version = determine_system_python_version()
         latest = self._determine_latest_version(
@@ -124,6 +130,35 @@ class DistributionPackage:
 
             pypi_data = await resp.json()
             return pypi_data
+        
+    async def _fetch_data_from_unipypi_async(
+        self, session: aiohttp.ClientSession
+    ) -> Optional[dict]:
+        """Fetch data for a package from PyPI and return it
+        or return None if there was an API error.
+        """
+
+        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
+
+        url = f"https://pypi.eveuniversity.org/{self.name}/json"
+        async with session.get(url) as resp:
+            if not resp.ok:
+                if resp.status == 404:
+                    logger.info("Package '%s' is not registered in PyPI", self.name)
+                else:
+                    logger.warning(
+                        "Failed to retrieve infos from PyPI for "
+                        "package '%s'. "
+                        "Status code: %d, "
+                        "response: %s",
+                        self.name,
+                        resp.status,
+                        await resp.text(),
+                    )
+                return None
+
+            pypi_data = await resp.json()
+            return pypi_data
 
     def _determine_latest_version(
         self, pypi_data_releases, requirements, system_python_version
@@ -138,8 +173,9 @@ class DistributionPackage:
                     release_details[-1] if len(release_details) > 0 else None
                 )
                 if release_detail:
-                    if release_detail["yanked"]:
-                        continue
+                    if "yanked" in release_detail:
+                        if release_detail["yanked"]:
+                            continue
 
                     if (
                         requires_python := release_detail.get("requires_python")
