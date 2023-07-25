@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -208,7 +209,7 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
 
 def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
-    requirements = {}
+    requirements = defaultdict(dict)
     for package in packages.values():
         for requirement in package.requirements:
             requirement_name = canonicalize_name(requirement.name)
@@ -220,9 +221,8 @@ def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> di
                         is_valid = False
                 else:
                     is_valid = True
+
                 if is_valid:
-                    if requirement_name not in requirements:
-                        requirements[requirement_name] = {}
                     requirements[requirement_name][package.name] = requirement.specifier
 
     return requirements
