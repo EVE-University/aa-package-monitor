@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, TypeVar
+from typing import Generic, TypeVar
 
 import factory
 import factory.fuzzy
@@ -156,5 +156,5 @@ class DistributionFactory(
         return f"{major}.{minor}.{patch}"
 
 
-def make_packages(*packages: Iterable[DistributionPackage]):
+def make_packages(*packages: DistributionPackage):
     return {obj.name_normalized: obj for obj in packages}
