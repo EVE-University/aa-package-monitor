@@ -2,13 +2,14 @@
 
 import asyncio
 import sys
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 import aiohttp
 import importlib_metadata
 from packaging.markers import UndefinedComparison, UndefinedEnvironmentName
-from packaging.requirements import Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
@@ -18,6 +19,7 @@ from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
+from package_monitor.app_settings import PACKAGE_MONITOR_CUSTOM_REQUIREMENTS
 
 from . import metadata_helpers
 
@@ -208,24 +210,39 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
 
 def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
     """Consolidate requirements from all known distributions and known packages"""
-    requirements = {}
+    requirements = defaultdict(dict)
+
+    # add requirements from all packages
     for package in packages.values():
         for requirement in package.requirements:
-            requirement_name = canonicalize_name(requirement.name)
-            if requirement_name in packages:
-                if requirement.marker:
-                    try:
-                        is_valid = requirement.marker.evaluate()
-                    except (UndefinedEnvironmentName, UndefinedComparison):
-                        is_valid = False
-                else:
-                    is_valid = True
-                if is_valid:
-                    if requirement_name not in requirements:
-                        requirements[requirement_name] = {}
-                    requirements[requirement_name][package.name] = requirement.specifier
+            _add_valid_requirement(requirements, requirement, package.name, packages)
 
-    return requirements
+    # add requirements from settings (if any)
+    for requirement_string in PACKAGE_MONITOR_CUSTOM_REQUIREMENTS:
+        try:
+            requirement = Requirement(requirement_string)
+        except InvalidRequirement:
+            continue
+        _add_valid_requirement(requirements, requirement, "CUSTOM", packages)
+
+    return dict(requirements)
+
+
+def _add_valid_requirement(
+    requirements: dict, requirement: Requirement, package_name: str, packages: dict
+):
+    requirement_name = canonicalize_name(requirement.name)
+    if requirement_name in packages:
+        if requirement.marker:
+            try:
+                is_valid = requirement.marker.evaluate()
+            except (UndefinedEnvironmentName, UndefinedComparison):
+                is_valid = False
+        else:
+            is_valid = True
+
+        if is_valid:
+            requirements[requirement_name][package_name] = requirement.specifier
 
 
 def update_packages_from_pypi(
