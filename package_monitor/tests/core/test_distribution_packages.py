@@ -133,6 +133,22 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         }
         self.assertDictEqual(expected, result)
 
+    def test_should_ignore_invalid_requirements_in_setting(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha")
+        dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
+        packages = make_packages(dist_alpha, dist_bravo)
+        # when
+        with mock.patch(
+            MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", ["alpha>2", "INVALID"]
+        ):
+            result = compile_package_requirements(packages)
+        # then
+        expected = {
+            "alpha": {"bravo": SpecifierSet(">=1.0.0"), "CUSTOM": SpecifierSet(">2")}
+        }
+        self.assertDictEqual(expected, result)
+
     def test_should_ignore_invalid_requirements(self):
         # given
         dist_alpha = DistributionPackageFactory(name="alpha")
