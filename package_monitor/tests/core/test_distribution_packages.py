@@ -140,7 +140,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         packages = make_packages(dist_alpha, dist_bravo)
         # when
         with mock.patch(
-            MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", ["alpha>2", "INVALID"]
+            MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", ["alpha>2", "x!"]
         ):
             result = compile_package_requirements(packages)
         # then
