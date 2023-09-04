@@ -111,9 +111,42 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
         packages = make_packages(dist_alpha, dist_bravo)
         # when
-        result = compile_package_requirements(packages)
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", []):
+            result = compile_package_requirements(packages)
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
+        self.assertDictEqual(expected, result)
+
+    def test_should_include_requirements_from_settings(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha")
+        dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
+        packages = make_packages(dist_alpha, dist_bravo)
+        # when
+        with mock.patch(
+            MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", ["alpha>2"]
+        ):
+            result = compile_package_requirements(packages)
+        # then
+        expected = {
+            "alpha": {"bravo": SpecifierSet(">=1.0.0"), "CUSTOM": SpecifierSet(">2")}
+        }
+        self.assertDictEqual(expected, result)
+
+    def test_should_ignore_invalid_requirements_in_setting(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha")
+        dist_bravo = DistributionPackageFactory(name="bravo", requires=["alpha>=1.0.0"])
+        packages = make_packages(dist_alpha, dist_bravo)
+        # when
+        with mock.patch(
+            MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", ["alpha>2", "x!"]
+        ):
+            result = compile_package_requirements(packages)
+        # then
+        expected = {
+            "alpha": {"bravo": SpecifierSet(">=1.0.0"), "CUSTOM": SpecifierSet(">2")}
+        }
         self.assertDictEqual(expected, result)
 
     def test_should_ignore_invalid_requirements(self):
@@ -123,7 +156,8 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         dist_charlie = DistributionPackageFactory(name="charlie", requires=["123"])
         packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
-        result = compile_package_requirements(packages)
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", []):
+            result = compile_package_requirements(packages)
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
@@ -137,7 +171,8 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         )
         packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
-        result = compile_package_requirements(packages)
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", []):
+            result = compile_package_requirements(packages)
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)
@@ -151,7 +186,8 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         )
         packages = make_packages(dist_alpha, dist_bravo, dist_charlie)
         # when
-        result = compile_package_requirements(packages)
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", []):
+            result = compile_package_requirements(packages)
         # then
         expected = {"alpha": {"bravo": SpecifierSet(">=1.0.0")}}
         self.assertDictEqual(expected, result)

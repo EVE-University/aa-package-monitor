@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.12.0] - 2023-07-25
+
+### Added
+
+- Ability to specify additional local requirements via settings. This allows you to block package monitor from showing upgrades to versions that you are not interested in (e.g. because a specific version is broken or you want to keep an older version for compatibility reasons.)
+
 ## [1.11.1] - 2023-07-15
 
 ### Changed

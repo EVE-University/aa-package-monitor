@@ -158,6 +158,7 @@ Note that all settings are optional and the app will use the documented default 
 
 Name | Description | Default
 -- | -- | --
+`PACKAGE_MONITOR_CUSTOM_REQUIREMENTS`| List of custom requirements that all potential updates are checked against. Example: `["Sphinx<6"]` | `[]`
 `PACKAGE_MONITOR_EXCLUDE_PACKAGES`| Names of distribution packages to excluded from monitoring.  | `[]`
 `PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `[]`
 `PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`| Whether to notify when an update is available for a currently installed distribution package. Notifications will be sent as AA notification to all admins. | `False`

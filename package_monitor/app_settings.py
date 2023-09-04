@@ -2,6 +2,13 @@
 
 from app_utils.app_settings import clean_setting
 
+PACKAGE_MONITOR_CUSTOM_REQUIREMENTS = clean_setting(
+    "PACKAGE_MONITOR_CUSTOM_REQUIREMENTS", default_value=[]
+)
+"""List of custom requirements that all potential updates are checked against.
+Example: ["gunicorn<20"]
+"""
+
 PACKAGE_MONITOR_EXCLUDE_PACKAGES = clean_setting(
     "PACKAGE_MONITOR_EXCLUDE_PACKAGES", default_value=[]
 )
