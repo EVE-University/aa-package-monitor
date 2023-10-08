@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-23 21:44+0200\n"
+"POT-Creation-Date: 2023-10-08 14:10+0200\n"
 "PO-Revision-Date: 2023-04-22 19:15+0000\n"
 "Last-Translator: Тимур Шихалиев, 2023\n"
 "Language-Team: Russian (https://app.transifex.com/kalkoken-apps/teams/107978/ru/)\n"
@@ -153,6 +153,6 @@ msgstr ""
 msgid "No outdated packages to install."
 msgstr "Нет устаревших пакетов к установке."
 
-#: views.py:37
+#: views.py:40
 msgid "Distribution packages"
 msgstr "Пакеты дистрибутивов"

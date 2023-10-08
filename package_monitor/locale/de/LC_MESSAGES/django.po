@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-23 21:44+0200\n"
+"POT-Creation-Date: 2023-10-08 14:10+0200\n"
 "PO-Revision-Date: 2023-04-22 19:15+0000\n"
 "Last-Translator: Peter Pfeufer, 2023\n"
 "Language-Team: German (https://app.transifex.com/kalkoken-apps/teams/107978/de/)\n"
@@ -23,7 +23,7 @@ msgstr ""
 
 #: templates/package_monitor/index.html:9
 msgid "not yet"
-msgstr ""
+msgstr "Noch nicht"
 
 #: templates/package_monitor/index.html:10
 msgid "Last updated"
@@ -152,6 +152,6 @@ msgstr ""
 msgid "No outdated packages to install."
 msgstr "Keine veralteten Pakete zu installieren."
 
-#: views.py:37
+#: views.py:40
 msgid "Distribution packages"
 msgstr "Pakete"
