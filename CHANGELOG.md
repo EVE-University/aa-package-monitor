@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.13.0] - 2023-10-08
+
+### Added
+
+- German localization (:de:)
+
 ## [1.12.0] - 2023-07-25
 
 ### Added

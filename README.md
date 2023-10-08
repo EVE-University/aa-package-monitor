@@ -39,7 +39,7 @@ Features:
 - Option to show all known distribution packages (as opposed to only the ones that belong to installed Django apps)
 - Copy the respective command for a package update to your clipboard directly from the package list
 - Can automatically notify admins when there is an update available for a currently installed package
-- Supported languages: English :us:, Russian :ru:
+- Supported languages: English :us:, German :de: and Russian :ru:
 
 >**Hint**: Update notifications are sent as AA notifications to all admins. We recommend using [Discord Notify](https://gitlab.com/ErikKalkoken/aa-discordnotify) to automatically forward those notifications to Discord as DMs.
 
