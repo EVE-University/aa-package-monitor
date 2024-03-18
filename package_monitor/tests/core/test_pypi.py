@@ -2,8 +2,10 @@ from unittest import IsolatedAsyncioTestCase
 
 import aiohttp
 from aioresponses import aioresponses
+from packaging.version import Version
 
-from package_monitor.core.pypi import fetch_data_from_pypi_async
+from package_monitor.core.pypi import fetch_data_from_pypi_async, fetch_pypi_releases
+from package_monitor.tests.factories import DistributionPackageFactory, PypiFactory
 
 
 class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
@@ -40,3 +42,33 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
             result = await fetch_data_from_pypi_async(session, "alpha")
         # then
         self.assertIsNone(result)
+
+
+class TestFetchPypiReleases(IsolatedAsyncioTestCase):
+    @aioresponses()
+    async def test_should_return_data(self, requests_mocker: aioresponses):
+        # given
+        dist_1 = DistributionPackageFactory(name="alpha", current="1.2.3")
+        pypi_1 = PypiFactory(distribution=dist_1)
+        requests_mocker.get(
+            "https://pypi.org/pypi/alpha/1.2.3/json", payload=pypi_1.asdict()
+        )
+        dist_2 = DistributionPackageFactory(name="alpha", current="1.2.5")
+        pypi_2 = PypiFactory(distribution=dist_2)
+        requests_mocker.get(
+            "https://pypi.org/pypi/alpha/1.2.5/json", payload=pypi_2.asdict()
+        )
+        versions = [Version("1.2.3"), Version("1.2.5")]
+
+        # when
+        async with aiohttp.ClientSession() as session:
+            result = await fetch_pypi_releases(session, "alpha", versions)
+
+        # then
+        self.assertSetEqual(set(result.keys()), {"1.2.3", "1.2.5"})
+        p = result["1.2.3"]
+        self.assertEqual(p["name"], "alpha")
+        self.assertEqual(p["version"], "1.2.3")
+        p = result["1.2.5"]
+        self.assertEqual(p["name"], "alpha")
+        self.assertEqual(p["version"], "1.2.5")

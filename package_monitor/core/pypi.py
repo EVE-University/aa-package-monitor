@@ -15,12 +15,12 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 async def fetch_data_from_pypi_async(
     session: aiohttp.ClientSession, name: str, version: str = None
 ) -> Optional[dict]:
-    """Fetch data for a distribution package from PyPI and return it.
+    """Fetch data for a PyPI project or release and return it.
 
     Returns None if there was an API error.
 
     When the optional ``version`` is specified it will return the data
-    for a specific version instead of the default data for a package.
+    for a specific release instead of the project data.
     """
     if not version:
         path = name
@@ -52,8 +52,11 @@ async def fetch_data_from_pypi_async(
 async def fetch_pypi_releases(
     session: aiohttp.ClientSession, name: str, releases: List[Version]
 ) -> dict:
+    """Fetch and return data for releases of a pypi project."""
     tasks = [
-        fetch_data_from_pypi_async(session, name=name, version=r) for r in releases
+        asyncio.create_task(fetch_data_from_pypi_async(session, name=name, version=r))
+        for r in releases
     ]
-    results = asyncio.gather(*tasks)
+    r = await asyncio.gather(*tasks)
+    results = {o["info"]["version"]: o["info"] for o in r}
     return results
