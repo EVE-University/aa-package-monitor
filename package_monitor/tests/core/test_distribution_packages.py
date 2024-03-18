@@ -10,6 +10,7 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.distribution_packages import (
     DistributionPackage,
+    _fetch_data_from_pypi_async,
     compile_package_requirements,
     determine_system_python_version,
     gather_distribution_packages,
@@ -195,7 +196,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         self.assertDictEqual(expected, result)
 
 
-@mock.patch(MODULE_PATH + ".DistributionPackage._fetch_data_from_pypi_async")
+@mock.patch(MODULE_PATH + "._fetch_data_from_pypi_async")
 class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.python_version = determine_system_python_version()
@@ -367,11 +368,10 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
     @aioresponses()
     async def test_should_return_data(self, requests_mocker: aioresponses):
         # given
-        obj = DistributionPackageFactory(name="alpha")
         requests_mocker.get("https://pypi.org/pypi/alpha/json", payload={"alpha": 1})
         # when
         async with aiohttp.ClientSession() as session:
-            result = await obj._fetch_data_from_pypi_async(session)
+            result = await _fetch_data_from_pypi_async("alpha", session)
         # then
         self.assertEqual(result, {"alpha": 1})
 
@@ -380,11 +380,10 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
         self, requests_mocker: aioresponses
     ):
         # given
-        obj = DistributionPackageFactory(name="alpha")
         requests_mocker.get("https://pypi.org/pypi/alpha/json", status=404)
         # when
         async with aiohttp.ClientSession() as session:
-            result = await obj._fetch_data_from_pypi_async(session)
+            result = await _fetch_data_from_pypi_async("alpha", session)
         # then
         self.assertIsNone(result)
 
@@ -393,10 +392,9 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
         self, requests_mocker: aioresponses
     ):
         # given
-        obj = DistributionPackageFactory(name="alpha")
         requests_mocker.get("https://pypi.org/pypi/alpha/json", status=500)
         # when
         async with aiohttp.ClientSession() as session:
-            result = await obj._fetch_data_from_pypi_async(session)
+            result = await _fetch_data_from_pypi_async("alpha", session)
         # then
         self.assertIsNone(result)

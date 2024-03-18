@@ -80,7 +80,7 @@ class DistributionPackage:
         Return True if update was successful, else False.
         """
 
-        pypi_data = await self._fetch_data_from_pypi_async(session)
+        pypi_data = await _fetch_data_from_pypi_async(self.name, session)
         if not pypi_data:
             return False
 
@@ -90,7 +90,7 @@ class DistributionPackage:
             consolidated_requirements=consolidated_requirements,
             system_python=system_python,
         )
-        latest = self._determine_latest_available_update(
+        latest = await self._determine_latest_available_update(
             updates=updates, consolidated_requirements=consolidated_requirements
         )
 
@@ -100,35 +100,6 @@ class DistributionPackage:
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
         self.homepage_url = pypi_url
         return True
-
-    async def _fetch_data_from_pypi_async(
-        self, session: aiohttp.ClientSession
-    ) -> Optional[dict]:
-        """Fetch data for a package from PyPI and return it
-        or return None if there was an API error.
-        """
-
-        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
-
-        url = f"https://pypi.org/pypi/{self.name}/json"
-        async with session.get(url) as resp:
-            if not resp.ok:
-                if resp.status == 404:
-                    logger.info("Package '%s' is not registered in PyPI", self.name)
-                else:
-                    logger.warning(
-                        "Failed to retrieve infos from PyPI for "
-                        "package '%s'. "
-                        "Status code: %d, "
-                        "response: %s",
-                        self.name,
-                        resp.status,
-                        await resp.text(),
-                    )
-                return None
-
-            pypi_data = await resp.json()
-            return pypi_data
 
     def _determine_available_updates(
         self,
@@ -212,7 +183,7 @@ class DistributionPackage:
 
         return True
 
-    def _determine_latest_available_update(
+    async def _determine_latest_available_update(
         self, updates: List[Version], consolidated_requirements: SpecifierSet
     ) -> Optional[Version]:
         """Determines latest available and valid update and returns it.
@@ -221,8 +192,9 @@ class DistributionPackage:
         if not updates:
             return None
 
-        valid_updates = []
+        # releases = await fetch_releases(self.name, updates)
 
+        valid_updates = []
         for update in updates:
             valid_updates.append(update)
 
@@ -333,3 +305,37 @@ def determine_system_python_version() -> Version:
         f".{sys.version_info.micro}"
     )
     return result
+
+
+async def _fetch_data_from_pypi_async(
+    name: str, session: aiohttp.ClientSession
+) -> Optional[dict]:
+    """Fetch data for a package from PyPI and return it
+    or return None if there was an API error.
+    """
+
+    logger.info(f"Fetching info for distribution package '{name}' from PyPI")
+
+    url = f"https://pypi.org/pypi/{name}/json"
+    async with session.get(url) as resp:
+        if not resp.ok:
+            if resp.status == 404:
+                logger.info("Package '%s' is not registered in PyPI", name)
+            else:
+                logger.warning(
+                    "Failed to retrieve infos from PyPI for "
+                    "package '%s'. "
+                    "Status code: %d, "
+                    "response: %s",
+                    name,
+                    resp.status,
+                    await resp.text(),
+                )
+            return None
+
+        pypi_data = await resp.json()
+        return pypi_data
+
+
+async def fetch_releases(pypi_name: str, releases: List[Version]) -> dict:
+    return {}
