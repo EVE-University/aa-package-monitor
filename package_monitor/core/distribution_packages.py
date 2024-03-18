@@ -132,7 +132,7 @@ class DistributionPackage:
     ):
         """Determine latest valid version available on PyPI."""
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
-        latest = None
+        releases = []
         for release, release_details in pypi_data_releases.items():
             version = self._release_version(release)
             if not version:
@@ -154,10 +154,11 @@ class DistributionPackage:
                 ):
                     continue
 
-            if not latest or version > latest:
-                latest = version
+            releases.append(version)
 
-        return str(latest)
+        releases.sort()
+        latest = releases.pop()
+        return str(latest) if latest else ""
 
     def _release_version(self, version_string: str) -> Optional[Version]:
         try:
