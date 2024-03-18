@@ -84,10 +84,14 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        latest = self._determine_latest_valid_update(
+        consolidated_requirements = self.calc_consolidated_requirements(requirements)
+        updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
-            consolidated_requirements=self.calc_consolidated_requirements(requirements),
+            consolidated_requirements=consolidated_requirements,
             system_python=system_python,
+        )
+        latest = self._determine_latest_available_update(
+            updates=updates, consolidated_requirements=consolidated_requirements
         )
 
         self.latest = str(latest) if latest else self.current
@@ -126,13 +130,15 @@ class DistributionPackage:
             pypi_data = await resp.json()
             return pypi_data
 
-    def _determine_latest_valid_update(
+    def _determine_available_updates(
         self,
         pypi_data_releases: dict,
         consolidated_requirements: SpecifierSet,
         system_python: Version,
-    ) -> Optional[Version]:
-        """Determine latest valid update available on PyPI."""
+    ) -> List[Version]:
+        """Determine latest valid updates available on PyPI
+        and return them as ascending list.
+        """
         updates = []
         current_version = (
             version_parse(self.current) if self.current else Version("0.0.0")
@@ -161,12 +167,7 @@ class DistributionPackage:
 
             updates.append(version)
 
-        if not updates:
-            return None
-
-        updates.sort()
-        latest = updates.pop()
-        return latest
+        return updates
 
     def _release_version(self, version_string: str) -> Optional[Version]:
         try:
@@ -210,6 +211,24 @@ class DistributionPackage:
                 return False
 
         return True
+
+    def _determine_latest_available_update(
+        self, updates: List[Version], consolidated_requirements: SpecifierSet
+    ) -> Optional[Version]:
+        """Determines latest available and valid update and returns it.
+        Or return None if none are available.
+        """
+        if not updates:
+            return None
+
+        valid_updates = []
+
+        for update in updates:
+            valid_updates.append(update)
+
+        valid_updates.sort()
+        latest = valid_updates.pop()
+        return latest
 
     @classmethod
     def create_from_metadata_distribution(
