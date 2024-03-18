@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.15.0] - TBD
+
 ## Added
 
 - Added ability to determine requirements of potential updates and filter out those which are not matching. For example if you have AA 3.4 installed and the latest update to one of your apps requires AA 4.0, it will no longer be shown.

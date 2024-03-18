@@ -193,6 +193,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         self.assertDictEqual(expected, result)
 
 
+# TODO: Add comprehensive tests for new "deep requirements" feature
 @mock.patch(MODULE_PATH + ".fetch_data_from_pypi_async")
 class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
@@ -209,6 +210,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=self.python_version,
         )
         # then
@@ -228,6 +230,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=self.python_version,
         )
 
@@ -247,6 +250,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=self.python_version,
         )
 
@@ -266,6 +270,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=self.python_version,
         )
         # then
@@ -282,6 +287,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=self.python_version,
         )
         # then
@@ -300,6 +306,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
+            package_versions={},
             system_python=Version("3.6.9"),
         )
         # then
@@ -319,6 +326,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
+            package_versions={},
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -337,6 +345,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
+            package_versions={},
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -356,6 +365,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
+            package_versions={},
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")

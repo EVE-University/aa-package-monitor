@@ -196,6 +196,18 @@ class DistributionPackage:
         if not updates:
             return None
 
+        if not package_versions:
+            valid_updates = updates
+        else:
+            valid_updates = await self._gather_valid_updates(
+                session, updates, package_versions
+            )
+
+        valid_updates.sort()
+        latest = valid_updates.pop() if valid_updates else None
+        return latest
+
+    async def _gather_valid_updates(self, session, updates, package_versions):
         valid_updates = []
         releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
         for _, info in releases.items():
@@ -222,9 +234,7 @@ class DistributionPackage:
             update = version_parse(info["version"])
             valid_updates.append(update)
 
-        valid_updates.sort()
-        latest = valid_updates.pop() if valid_updates else None
-        return latest
+        return valid_updates
 
     @classmethod
     def create_from_metadata_distribution(
