@@ -371,7 +371,7 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
         requests_mocker.get("https://pypi.org/pypi/alpha/json", payload={"alpha": 1})
         # when
         async with aiohttp.ClientSession() as session:
-            result = await _fetch_data_from_pypi_async("alpha", session)
+            result = await _fetch_data_from_pypi_async(session, "alpha")
         # then
         self.assertEqual(result, {"alpha": 1})
 
@@ -383,7 +383,7 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
         requests_mocker.get("https://pypi.org/pypi/alpha/json", status=404)
         # when
         async with aiohttp.ClientSession() as session:
-            result = await _fetch_data_from_pypi_async("alpha", session)
+            result = await _fetch_data_from_pypi_async(session, "alpha")
         # then
         self.assertIsNone(result)
 
@@ -395,6 +395,6 @@ class TestFetchDataFromPypi(IsolatedAsyncioTestCase):
         requests_mocker.get("https://pypi.org/pypi/alpha/json", status=500)
         # when
         async with aiohttp.ClientSession() as session:
-            result = await _fetch_data_from_pypi_async("alpha", session)
+            result = await _fetch_data_from_pypi_async(session, "alpha")
         # then
         self.assertIsNone(result)

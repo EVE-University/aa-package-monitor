@@ -80,7 +80,7 @@ class DistributionPackage:
         Return True if update was successful, else False.
         """
 
-        pypi_data = await _fetch_data_from_pypi_async(self.name, session)
+        pypi_data = await _fetch_data_from_pypi_async(session, name=self.name)
         if not pypi_data:
             return False
 
@@ -308,26 +308,33 @@ def determine_system_python_version() -> Version:
 
 
 async def _fetch_data_from_pypi_async(
-    name: str, session: aiohttp.ClientSession
+    session: aiohttp.ClientSession, name: str, version: str = None
 ) -> Optional[dict]:
-    """Fetch data for a package from PyPI and return it
-    or return None if there was an API error.
+    """Fetch data for a distribution package from PyPI and return it.
+
+    Returns None if there was an API error.
+
+    When the optional ``version`` is specified it will return the data
+    for a specific version instead of the default data for a package.
     """
+    if not version:
+        path = name
+    else:
+        path = f"{name}/{version}"
+    url = f"https://pypi.org/pypi/{path}/json"
+    logger.info("Fetching info for url: %s", url)
 
-    logger.info(f"Fetching info for distribution package '{name}' from PyPI")
-
-    url = f"https://pypi.org/pypi/{name}/json"
     async with session.get(url) as resp:
         if not resp.ok:
             if resp.status == 404:
-                logger.info("Package '%s' is not registered in PyPI", name)
+                logger.info("PyPI URL not found: %s", url)
             else:
                 logger.warning(
-                    "Failed to retrieve infos from PyPI for "
-                    "package '%s'. "
+                    "Failed to retrieve data from PyPI for "
+                    "url '%s'. "
                     "Status code: %d, "
                     "response: %s",
-                    name,
+                    url,
                     resp.status,
                     await resp.text(),
                 )
