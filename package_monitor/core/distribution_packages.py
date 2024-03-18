@@ -134,26 +134,6 @@ class DistributionPackage:
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
         latest = None
         for release, release_details in pypi_data_releases.items():
-            requires_python = ""
-            release_detail = release_details[-1] if len(release_details) > 0 else None
-            if release_detail:
-                if release_detail["yanked"]:
-                    continue
-
-                if requires_python := release_detail.get("requires_python"):
-                    try:
-                        required_python_versions = SpecifierSet(requires_python)
-                    except InvalidSpecifier:
-                        logger.info(
-                            "%s: Ignoring release with invalid requires_python: %s",
-                            self.name,
-                            requires_python,
-                        )
-                        continue
-
-                    if system_python_version not in required_python_versions:
-                        continue
-
             try:
                 my_release = version_parse(release)
             except InvalidVersion:
@@ -177,6 +157,26 @@ class DistributionPackage:
 
             if not is_valid:
                 continue
+
+            requires_python = ""
+            release_detail = release_details[-1] if len(release_details) > 0 else None
+            if release_detail:
+                if release_detail["yanked"]:
+                    continue
+
+                if requires_python := release_detail.get("requires_python"):
+                    try:
+                        required_python_versions = SpecifierSet(requires_python)
+                    except InvalidSpecifier:
+                        logger.info(
+                            "%s: Ignoring release with invalid requires_python: %s",
+                            self.name,
+                            requires_python,
+                        )
+                        continue
+
+                    if system_python_version not in required_python_versions:
+                        continue
 
             if not latest or my_release > latest:
                 latest = my_release
