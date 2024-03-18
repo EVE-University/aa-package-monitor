@@ -70,7 +70,10 @@ class DistributionPackage:
         return consolidated_requirements
 
     async def update_from_pypi_async(
-        self, requirements: dict, session: aiohttp.ClientSession
+        self,
+        requirements: dict,
+        system_python: Version,
+        session: aiohttp.ClientSession,
     ) -> bool:
         """Update latest version and URL from PyPI.
 
@@ -81,9 +84,8 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        system_python_version = determine_system_python_version()
         latest = self._determine_latest_version(
-            pypi_data["releases"], requirements, system_python_version
+            pypi_data["releases"], requirements, system_python
         )
 
         if not latest:
@@ -128,7 +130,7 @@ class DistributionPackage:
             return pypi_data
 
     def _determine_latest_version(
-        self, pypi_data_releases, requirements, system_python_version: Version
+        self, pypi_data_releases, requirements, system_python: Version
     ):
         """Determine latest valid version available on PyPI."""
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
@@ -155,9 +157,7 @@ class DistributionPackage:
                 if release_detail["yanked"]:
                     continue
 
-                if not self._required_python_matches(
-                    release_detail, system_python_version
-                ):
+                if not self._required_python_matches(release_detail, system_python):
                     continue
 
             updates.append(version)
@@ -291,10 +291,15 @@ def update_packages_from_pypi(
 
     async def update_packages_from_pypi_async() -> None:
         """Update packages from PyPI concurrently."""
+        system_python_version = determine_system_python_version()
         async with aiohttp.ClientSession() as session:
             tasks = [
                 asyncio.create_task(
-                    package.update_from_pypi_async(requirements, session)
+                    package.update_from_pypi_async(
+                        requirements=requirements,
+                        system_python=system_python_version,
+                        session=session,
+                    )
                 )
                 for package in packages.values()
             ]
