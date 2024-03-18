@@ -20,6 +20,7 @@ from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
 from package_monitor.app_settings import PACKAGE_MONITOR_CUSTOM_REQUIREMENTS
+from package_monitor.core.pypi import fetch_data_from_pypi_async
 
 from . import metadata_helpers
 
@@ -61,7 +62,7 @@ class DistributionPackage:
         )
         return current_is_prerelease
 
-    def calc_consolidated_requirements(self, requirements: dict) -> SpecifierSet:
+    def _calc_consolidated_requirements(self, requirements: dict) -> SpecifierSet:
         """Determine consolidated requirements for this package."""
         consolidated_requirements = SpecifierSet()
         if self.name_normalized in requirements:
@@ -80,18 +81,20 @@ class DistributionPackage:
         Return True if update was successful, else False.
         """
 
-        pypi_data = await _fetch_data_from_pypi_async(session, name=self.name)
+        pypi_data = await fetch_data_from_pypi_async(session, name=self.name)
         if not pypi_data:
             return False
 
-        consolidated_requirements = self.calc_consolidated_requirements(requirements)
+        consolidated_requirements = self._calc_consolidated_requirements(requirements)
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
             consolidated_requirements=consolidated_requirements,
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
-            updates=updates, consolidated_requirements=consolidated_requirements
+            session,
+            updates=updates,
+            consolidated_requirements=consolidated_requirements,
         )
 
         self.latest = str(latest) if latest else self.current
@@ -184,7 +187,10 @@ class DistributionPackage:
         return True
 
     async def _determine_latest_available_update(
-        self, updates: List[Version], consolidated_requirements: SpecifierSet
+        self,
+        session: aiohttp.ClientSession,
+        updates: List[Version],
+        consolidated_requirements: SpecifierSet,
     ) -> Optional[Version]:
         """Determines latest available and valid update and returns it.
         Or return None if none are available.
@@ -192,11 +198,14 @@ class DistributionPackage:
         if not updates:
             return None
 
-        # releases = await fetch_releases(self.name, updates)
-
         valid_updates = []
-        for update in updates:
-            valid_updates.append(update)
+        # releases = await _fetch_pypi_releases(session, name=name, releases=updates)
+        # for release in releases:
+        #     info = release["info"]
+        #     update = version_parse(info["version"])
+        #     valid_updates.append(update)
+        for u in updates:
+            valid_updates.append(u)
 
         valid_updates.sort()
         latest = valid_updates.pop()
@@ -305,44 +314,3 @@ def determine_system_python_version() -> Version:
         f".{sys.version_info.micro}"
     )
     return result
-
-
-async def _fetch_data_from_pypi_async(
-    session: aiohttp.ClientSession, name: str, version: str = None
-) -> Optional[dict]:
-    """Fetch data for a distribution package from PyPI and return it.
-
-    Returns None if there was an API error.
-
-    When the optional ``version`` is specified it will return the data
-    for a specific version instead of the default data for a package.
-    """
-    if not version:
-        path = name
-    else:
-        path = f"{name}/{version}"
-    url = f"https://pypi.org/pypi/{path}/json"
-    logger.info("Fetching info for url: %s", url)
-
-    async with session.get(url) as resp:
-        if not resp.ok:
-            if resp.status == 404:
-                logger.info("PyPI URL not found: %s", url)
-            else:
-                logger.warning(
-                    "Failed to retrieve data from PyPI for "
-                    "url '%s'. "
-                    "Status code: %d, "
-                    "response: %s",
-                    url,
-                    resp.status,
-                    await resp.text(),
-                )
-            return None
-
-        pypi_data = await resp.json()
-        return pypi_data
-
-
-async def fetch_releases(pypi_name: str, releases: List[Version]) -> dict:
-    return {}

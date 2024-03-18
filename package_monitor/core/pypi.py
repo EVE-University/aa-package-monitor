@@ -1,0 +1,59 @@
+import asyncio
+from typing import List, Optional
+
+import aiohttp
+from packaging.version import Version
+
+from allianceauth.services.hooks import get_extension_logger
+from app_utils.logging import LoggerAddTag
+
+from package_monitor import __title__
+
+logger = LoggerAddTag(get_extension_logger(__name__), __title__)
+
+
+async def fetch_data_from_pypi_async(
+    session: aiohttp.ClientSession, name: str, version: str = None
+) -> Optional[dict]:
+    """Fetch data for a distribution package from PyPI and return it.
+
+    Returns None if there was an API error.
+
+    When the optional ``version`` is specified it will return the data
+    for a specific version instead of the default data for a package.
+    """
+    if not version:
+        path = name
+    else:
+        path = f"{name}/{version}"
+    url = f"https://pypi.org/pypi/{path}/json"
+    logger.info("Fetching info for url: %s", url)
+
+    async with session.get(url) as resp:
+        if not resp.ok:
+            if resp.status == 404:
+                logger.info("PyPI URL not found: %s", url)
+            else:
+                logger.warning(
+                    "Failed to retrieve data from PyPI for "
+                    "url '%s'. "
+                    "Status code: %d, "
+                    "response: %s",
+                    url,
+                    resp.status,
+                    await resp.text(),
+                )
+            return None
+
+        pypi_data = await resp.json()
+        return pypi_data
+
+
+async def fetch_pypi_releases(
+    session: aiohttp.ClientSession, name: str, releases: List[Version]
+) -> dict:
+    tasks = [
+        fetch_data_from_pypi_async(session, name=name, version=r) for r in releases
+    ]
+    results = asyncio.gather(*tasks)
+    return results
