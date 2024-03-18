@@ -85,7 +85,9 @@ class DistributionPackage:
             return False
 
         latest = self._determine_latest_valid_update(
-            pypi_data["releases"], requirements, system_python
+            pypi_data_releases=pypi_data["releases"],
+            consolidated_requirements=self.calc_consolidated_requirements(requirements),
+            system_python=system_python,
         )
 
         self.latest = str(latest) if latest else self.current
@@ -125,10 +127,12 @@ class DistributionPackage:
             return pypi_data
 
     def _determine_latest_valid_update(
-        self, pypi_data_releases, requirements, system_python: Version
+        self,
+        pypi_data_releases: dict,
+        consolidated_requirements: SpecifierSet,
+        system_python: Version,
     ) -> Optional[Version]:
         """Determine latest valid update available on PyPI."""
-        consolidated_requirements = self.calc_consolidated_requirements(requirements)
         updates = []
         current_version = (
             version_parse(self.current) if self.current else Version("0.0.0")
