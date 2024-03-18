@@ -84,16 +84,11 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        latest = self._determine_latest_version(
+        latest = self._determine_latest_valid_update(
             pypi_data["releases"], requirements, system_python
         )
 
-        if not latest:
-            logger.warning(
-                "%s: Could not find any release that matches all requirements", self
-            )
-
-        self.latest = latest
+        self.latest = str(latest) if latest else self.current
 
         pypi_info = pypi_data.get("info")
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
@@ -129,10 +124,10 @@ class DistributionPackage:
             pypi_data = await resp.json()
             return pypi_data
 
-    def _determine_latest_version(
+    def _determine_latest_valid_update(
         self, pypi_data_releases, requirements, system_python: Version
-    ):
-        """Determine latest valid version available on PyPI."""
+    ) -> Optional[Version]:
+        """Determine latest valid update available on PyPI."""
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
         updates = []
         current_version = (
@@ -149,7 +144,7 @@ class DistributionPackage:
             if not self._release_is_valid(consolidated_requirements, version):
                 continue
 
-            if version < current_version:
+            if version <= current_version:
                 continue
 
             release_detail = release_details[-1] if len(release_details) > 0 else None
@@ -163,11 +158,11 @@ class DistributionPackage:
             updates.append(version)
 
         if not updates:
-            return ""
+            return None
 
         updates.sort()
         latest = updates.pop()
-        return str(latest)
+        return latest
 
     def _release_version(self, version_string: str) -> Optional[Version]:
         try:
