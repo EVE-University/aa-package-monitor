@@ -207,9 +207,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.1.0")
@@ -226,9 +226,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
 
         # then
@@ -245,9 +245,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
 
         # then
@@ -264,9 +264,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = None
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "")
@@ -280,9 +280,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -298,9 +298,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=Version("3.6.9"),
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -316,9 +316,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -334,9 +334,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -353,9 +353,9 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
         # when
         await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            session=mock.MagicMock(),
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")

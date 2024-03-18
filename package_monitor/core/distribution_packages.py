@@ -20,9 +20,9 @@ from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
 from package_monitor.app_settings import PACKAGE_MONITOR_CUSTOM_REQUIREMENTS
-from package_monitor.core.pypi import fetch_data_from_pypi_async
 
 from . import metadata_helpers
+from .pypi import fetch_data_from_pypi_async, fetch_pypi_releases
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
@@ -62,19 +62,19 @@ class DistributionPackage:
         )
         return current_is_prerelease
 
-    def _calc_consolidated_requirements(self, requirements: dict) -> SpecifierSet:
-        """Determine consolidated requirements for this package."""
-        consolidated_requirements = SpecifierSet()
+    def _calc_package_requirements(self, requirements: dict) -> SpecifierSet:
+        """Determine requirements for this package."""
+        result = SpecifierSet()
         if self.name_normalized in requirements:
             for _, specifier in requirements[self.name_normalized].items():
-                consolidated_requirements &= specifier
-        return consolidated_requirements
+                result &= specifier
+        return result
 
     async def update_from_pypi_async(
         self,
+        session: aiohttp.ClientSession,
         requirements: dict,
         system_python: Version,
-        session: aiohttp.ClientSession,
     ) -> bool:
         """Update latest version and URL from PyPI.
 
@@ -85,16 +85,16 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        consolidated_requirements = self._calc_consolidated_requirements(requirements)
+        package_requirements = self._calc_package_requirements(requirements)
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
-            consolidated_requirements=consolidated_requirements,
+            package_requirements=package_requirements,
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
             session,
             updates=updates,
-            consolidated_requirements=consolidated_requirements,
+            consolidated_requirements=package_requirements,
         )
 
         self.latest = str(latest) if latest else self.current
@@ -107,7 +107,7 @@ class DistributionPackage:
     def _determine_available_updates(
         self,
         pypi_data_releases: dict,
-        consolidated_requirements: SpecifierSet,
+        package_requirements: SpecifierSet,
         system_python: Version,
     ) -> List[Version]:
         """Determine latest valid updates available on PyPI
@@ -125,7 +125,7 @@ class DistributionPackage:
             if version.is_prerelease and not self.is_prerelease():
                 continue
 
-            if not self._release_is_valid(consolidated_requirements, version):
+            if not self._release_is_valid(package_requirements, version):
                 continue
 
             if version <= current_version:
@@ -160,12 +160,12 @@ class DistributionPackage:
         return version
 
     def _release_is_valid(
-        self, consolidated_requirements: SpecifierSet, version: Version
+        self, package_requirements: SpecifierSet, version: Version
     ) -> bool:
-        if len(consolidated_requirements) == 0:
+        if len(package_requirements) == 0:
             return True
 
-        return version in consolidated_requirements
+        return version in package_requirements
 
     def _required_python_matches(
         self, release_detail, system_python_version: Version
@@ -199,13 +199,10 @@ class DistributionPackage:
             return None
 
         valid_updates = []
-        # releases = await _fetch_pypi_releases(session, name=name, releases=updates)
-        # for release in releases:
-        #     info = release["info"]
-        #     update = version_parse(info["version"])
-        #     valid_updates.append(update)
-        for u in updates:
-            valid_updates.append(u)
+        releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
+        for _, info in releases.items():
+            update = version_parse(info["version"])
+            valid_updates.append(update)
 
         valid_updates.sort()
         latest = valid_updates.pop()
@@ -295,9 +292,9 @@ def update_packages_from_pypi(
             tasks = [
                 asyncio.create_task(
                     package.update_from_pypi_async(
+                        session=session,
                         requirements=requirements,
                         system_python=system_python_version,
-                        session=session,
                     )
                 )
                 for package in packages.values()
