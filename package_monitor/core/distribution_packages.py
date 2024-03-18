@@ -128,7 +128,7 @@ class DistributionPackage:
             return pypi_data
 
     def _determine_latest_version(
-        self, pypi_data_releases, requirements, system_python_version
+        self, pypi_data_releases, requirements, system_python_version: Version
     ):
         """Determine latest valid version available on PyPI."""
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
@@ -141,33 +141,18 @@ class DistributionPackage:
             if version.is_prerelease and not self.is_prerelease():
                 continue
 
-            if len(consolidated_requirements) > 0:
-                is_valid = version in consolidated_requirements
-            else:
-                is_valid = True
-
-            if not is_valid:
+            if not self._release_is_valid(consolidated_requirements, version):
                 continue
 
-            requires_python = ""
             release_detail = release_details[-1] if len(release_details) > 0 else None
             if release_detail:
                 if release_detail["yanked"]:
                     continue
 
-                if requires_python := release_detail.get("requires_python"):
-                    try:
-                        required_python_versions = SpecifierSet(requires_python)
-                    except InvalidSpecifier:
-                        logger.info(
-                            "%s: Ignoring release with invalid requires_python: %s",
-                            self.name,
-                            requires_python,
-                        )
-                        continue
-
-                    if system_python_version not in required_python_versions:
-                        continue
+                if not self._required_python_matches(
+                    release_detail, system_python_version
+                ):
+                    continue
 
             if not latest or version > latest:
                 latest = version
@@ -189,6 +174,33 @@ class DistributionPackage:
             return None
 
         return version
+
+    def _release_is_valid(
+        self, consolidated_requirements: SpecifierSet, version: Version
+    ) -> bool:
+        if len(consolidated_requirements) == 0:
+            return True
+
+        return version in consolidated_requirements
+
+    def _required_python_matches(
+        self, release_detail, system_python_version: Version
+    ) -> bool:
+        if requires_python := release_detail.get("requires_python"):
+            try:
+                required_python_versions = SpecifierSet(requires_python)
+            except InvalidSpecifier:
+                logger.info(
+                    "%s: Ignoring release with invalid requires_python: %s",
+                    self.name,
+                    requires_python,
+                )
+                return False
+
+            if system_python_version not in required_python_versions:
+                return False
+
+        return True
 
     @classmethod
     def create_from_metadata_distribution(
