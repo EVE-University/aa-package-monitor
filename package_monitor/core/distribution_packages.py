@@ -74,6 +74,7 @@ class DistributionPackage:
         self,
         session: aiohttp.ClientSession,
         requirements: dict,
+        package_versions: dict,
         system_python: Version,
     ) -> bool:
         """Update latest version and URL from PyPI.
@@ -85,16 +86,13 @@ class DistributionPackage:
         if not pypi_data:
             return False
 
-        package_requirements = self._calc_package_requirements(requirements)
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
-            package_requirements=package_requirements,
+            package_requirements=self._calc_package_requirements(requirements),
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
-            session,
-            updates=updates,
-            consolidated_requirements=package_requirements,
+            session, updates=updates, package_versions=package_versions
         )
 
         self.latest = str(latest) if latest else self.current
@@ -190,7 +188,7 @@ class DistributionPackage:
         self,
         session: aiohttp.ClientSession,
         updates: List[Version],
-        consolidated_requirements: SpecifierSet,
+        package_versions: Dict[str, Version],
     ) -> Optional[Version]:
         """Determines latest available and valid update and returns it.
         Or return None if none are available.
@@ -201,11 +199,31 @@ class DistributionPackage:
         valid_updates = []
         releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
         for _, info in releases.items():
+            found_issue = False
+            for req_str in info.get("requires_dist", []):
+                try:
+                    r = Requirement(req_str)
+                except InvalidRequirement:
+                    logger.info("%s: Ignoring invalid requirement: %s", self, req_str)
+                    continue
+
+                if r.name in package_versions:
+                    v = package_versions[r.name]
+                    if v not in r.specifier:
+                        logger.debug(
+                            "%s: Update does not match current packages: %s", self, r
+                        )
+                        found_issue = True
+                        break  # this update does not match
+
+            if found_issue:
+                continue
+
             update = version_parse(info["version"])
             valid_updates.append(update)
 
         valid_updates.sort()
-        latest = valid_updates.pop()
+        latest = valid_updates.pop() if valid_updates else None
         return latest
 
     @classmethod
@@ -287,13 +305,15 @@ def update_packages_from_pypi(
 
     async def update_packages_from_pypi_async() -> None:
         """Update packages from PyPI concurrently."""
-        system_python_version = determine_system_python_version()
+        system_python_version = _determine_system_python_version()
+        package_versions = _determine_current_package_versions(packages)
         async with aiohttp.ClientSession() as session:
             tasks = [
                 asyncio.create_task(
                     package.update_from_pypi_async(
                         session=session,
                         requirements=requirements,
+                        package_versions=package_versions,
                         system_python=system_python_version,
                     )
                 )
@@ -304,10 +324,18 @@ def update_packages_from_pypi(
     asyncio.run(update_packages_from_pypi_async())
 
 
-def determine_system_python_version() -> Version:
+def _determine_system_python_version() -> Version:
     """Return current Python version of this system."""
     result = version_parse(
         f"{sys.version_info.major}.{sys.version_info.minor}"
         f".{sys.version_info.micro}"
     )
+    return result
+
+
+def _determine_current_package_versions(
+    packages: Dict[str, DistributionPackage]
+) -> Dict[str, Version]:
+    """Return all current package versions."""
+    result = {name: version_parse(p.current) for name, p in packages.items()}
     return result
