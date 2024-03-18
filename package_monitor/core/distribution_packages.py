@@ -134,24 +134,15 @@ class DistributionPackage:
         consolidated_requirements = self.calc_consolidated_requirements(requirements)
         latest = None
         for release, release_details in pypi_data_releases.items():
-            try:
-                my_release = version_parse(release)
-            except InvalidVersion:
-                logger.info(
-                    "%s: Ignoring release with invalid version: %s",
-                    self.name,
-                    release,
-                )
+            version = self._release_version(release)
+            if not version:
                 continue
 
-            if str(my_release) != str(release):
-                continue
-
-            if my_release.is_prerelease and not self.is_prerelease():
+            if version.is_prerelease and not self.is_prerelease():
                 continue
 
             if len(consolidated_requirements) > 0:
-                is_valid = my_release in consolidated_requirements
+                is_valid = version in consolidated_requirements
             else:
                 is_valid = True
 
@@ -178,10 +169,26 @@ class DistributionPackage:
                     if system_python_version not in required_python_versions:
                         continue
 
-            if not latest or my_release > latest:
-                latest = my_release
+            if not latest or version > latest:
+                latest = version
 
         return str(latest)
+
+    def _release_version(self, version_string: str) -> Optional[Version]:
+        try:
+            version = version_parse(version_string)
+        except InvalidVersion:
+            logger.info(
+                "%s: Ignoring release with invalid version: %s",
+                self.name,
+                version_string,
+            )
+            return None
+
+        if str(version) != str(version_string):
+            return None
+
+        return version
 
     @classmethod
     def create_from_metadata_distribution(
