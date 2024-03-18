@@ -149,16 +149,22 @@ class DistributionPackage:
                         continue
 
                 my_release = version_parse(release)
-                if str(my_release) == str(release) and (
-                    self.is_prerelease() or not my_release.is_prerelease
-                ):
-                    if len(consolidated_requirements) > 0:
-                        is_valid = my_release in consolidated_requirements
-                    else:
-                        is_valid = True
+                if str(my_release) != str(release):
+                    continue
 
-                    if is_valid and (not latest or my_release > version_parse(latest)):
-                        latest = release
+                if my_release.is_prerelease and not self.is_prerelease():
+                    continue
+
+                if len(consolidated_requirements) > 0:
+                    is_valid = my_release in consolidated_requirements
+                else:
+                    is_valid = True
+
+                if not is_valid:
+                    continue
+
+                if not latest or my_release > version_parse(latest):
+                    latest = release
 
             except InvalidVersion:
                 logger.info(
