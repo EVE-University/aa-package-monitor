@@ -13,23 +13,49 @@ from package_monitor import __title__
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
+BASE_URL = "https://pypi.org/pypi"
+
+
+async def fetch_pypi_releases(
+    session: aiohttp.ClientSession, name: str, releases: List[Version]
+) -> List[dict]:
+    """Fetch and return data for releases of a pypi project."""
+    tasks = [
+        asyncio.create_task(
+            _fetch_data_from_pypi_async(
+                session, _make_pypi_url(name=name, version=str(r))
+            )
+        )
+        for r in releases
+    ]
+    r = await asyncio.gather(*tasks)
+    return r
+
 
 async def fetch_data_from_pypi_async(
-    session: aiohttp.ClientSession, name: str, version: Optional[str] = None
+    session: aiohttp.ClientSession, name: str
 ) -> Optional[dict]:
-    """Fetch data for a PyPI project or release and return it.
+    """Fetch JSON data for a URL and return it.
 
     Returns None if there was an API error.
-
-    When the optional ``version`` is specified it will return the data
-    for a specific release instead of the project data.
     """
+    return await _fetch_data_from_pypi_async(session, _make_pypi_url(name))
+
+
+def _make_pypi_url(name: str, version: Optional[str] = None) -> str:
     if not version:
-        path = name
-    else:
-        path = f"{name}/{version}"
-    url = f"https://pypi.org/pypi/{path}/json"
-    logger.info("Fetching info for url: %s", url)
+        return f"{BASE_URL}/{name}/json"
+    return f"{BASE_URL}/{name}/{version}/json"
+
+
+async def _fetch_data_from_pypi_async(
+    session: aiohttp.ClientSession, url: str
+) -> Optional[dict]:
+    """Fetch JSON data for a URL and return it.
+
+    Returns None if there was an API error.
+    """
+    logger.info("Fetching data from PyPI for url: %s", url)
 
     async with session.get(url) as resp:
         if not resp.ok:
@@ -49,17 +75,3 @@ async def fetch_data_from_pypi_async(
 
         pypi_data = await resp.json()
         return pypi_data
-
-
-async def fetch_pypi_releases(
-    session: aiohttp.ClientSession, name: str, releases: List[Version]
-) -> List[dict]:
-    """Fetch and return data for releases of a pypi project."""
-    tasks = [
-        asyncio.create_task(
-            fetch_data_from_pypi_async(session, name=name, version=str(r))
-        )
-        for r in releases
-    ]
-    r = await asyncio.gather(*tasks)
-    return r
