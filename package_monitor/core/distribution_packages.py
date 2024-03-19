@@ -19,7 +19,10 @@ from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
-from package_monitor.app_settings import PACKAGE_MONITOR_CUSTOM_REQUIREMENTS
+from package_monitor.app_settings import (
+    PACKAGE_MONITOR_CUSTOM_REQUIREMENTS,
+    PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES,
+)
 
 from . import metadata_helpers
 from .pypi import fetch_data_from_pypi_async, fetch_pypi_releases
@@ -198,12 +201,12 @@ class DistributionPackage:
         if not updates:
             return None
 
-        if not package_versions:
-            valid_updates = updates
-        else:
+        if PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES and package_versions:
             valid_updates = await self._gather_valid_updates(
                 session, updates, package_versions
             )
+        else:
+            valid_updates = updates
 
         valid_updates.sort()
         latest = valid_updates.pop() if valid_updates else None

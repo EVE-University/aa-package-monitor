@@ -43,3 +43,13 @@ PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES = clean_setting(
 Since version information about editable packages is often outdated,
 this type of packages are not shown by default.
 """
+
+PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES = clean_setting(
+    "PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES", True
+)
+"""When enabled update are only shown when their dependencies match
+with all currently installed packages.
+
+e.g. If you have Django 4.2 installed, and an update requires Django 5 or higher,
+it will not be shown unless this setting is disabled.
+"""
