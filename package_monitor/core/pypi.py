@@ -6,6 +6,8 @@ from typing import List, Optional
 import aiohttp
 from packaging.version import Version
 
+from django.core.cache import cache
+
 from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
@@ -14,6 +16,8 @@ from package_monitor import __title__
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 BASE_URL = "https://pypi.org/pypi"
+CACHE_TIMEOUT = 3600 * 24
+CACHE_KEY = "package-monitor-pypi-"
 
 
 async def fetch_pypi_releases(
@@ -22,9 +26,7 @@ async def fetch_pypi_releases(
     """Fetch and return data for releases of a pypi project."""
     tasks = [
         asyncio.create_task(
-            _fetch_data_from_pypi_async(
-                session, _make_pypi_url(name=name, version=str(r))
-            )
+            fetch_release_from_pypi_async(session, name=name, version=str(r))
         )
         for r in releases
     ]
@@ -32,14 +34,31 @@ async def fetch_pypi_releases(
     return r
 
 
-async def fetch_data_from_pypi_async(
+async def fetch_project_from_pypi_async(
     session: aiohttp.ClientSession, name: str
 ) -> Optional[dict]:
-    """Fetch JSON data for a URL and return it.
+    """Fetch project data from PyPI and return it.
 
     Returns None if there was an API error.
     """
     return await _fetch_data_from_pypi_async(session, _make_pypi_url(name))
+
+
+async def fetch_release_from_pypi_async(
+    session: aiohttp.ClientSession, name: str, version: str
+) -> Optional[dict]:
+    """Fetch release data from PyPI and return it.
+
+    Returns None if there was an API error.
+    """
+    url = _make_pypi_url(name, version)
+    key = f"{CACHE_KEY}{url}"
+    if data := await cache.aget(key):
+        return data
+
+    r = await _fetch_data_from_pypi_async(session, url)
+    await cache.aset(key=key, value=r, timeout=CACHE_TIMEOUT)
+    return r
 
 
 def _make_pypi_url(name: str, version: Optional[str] = None) -> str:
@@ -73,5 +92,11 @@ async def _fetch_data_from_pypi_async(
                 )
             return None
 
-        pypi_data = await resp.json()
-        return pypi_data
+        data = await resp.json()
+        return data
+
+
+def clear_cache():
+    """Clear the release cache."""
+    keys = cache.iter_keys(f"{CACHE_KEY}*")
+    cache.delete_many(keys)

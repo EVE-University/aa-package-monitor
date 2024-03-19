@@ -25,7 +25,7 @@ from package_monitor.app_settings import (
 )
 
 from . import metadata_helpers
-from .pypi import fetch_data_from_pypi_async, fetch_pypi_releases
+from .pypi import fetch_project_from_pypi_async, fetch_pypi_releases
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
@@ -85,7 +85,7 @@ class DistributionPackage:
         Return True if update was successful, else False.
         """
 
-        pypi_data = await fetch_data_from_pypi_async(session, name=self.name)
+        pypi_data = await fetch_project_from_pypi_async(session, name=self.name)
         if not pypi_data:
             return False
 

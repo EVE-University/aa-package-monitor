@@ -193,7 +193,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
         self.assertDictEqual(expected, result)
 
 
-@mock.patch(MODULE_PATH + ".fetch_data_from_pypi_async")
+@mock.patch(MODULE_PATH + ".fetch_project_from_pypi_async")
 class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.python_version = _determine_system_python_version()

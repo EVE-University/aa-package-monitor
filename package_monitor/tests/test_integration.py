@@ -3,6 +3,7 @@ from unittest import TestCase, mock
 from aioresponses import aioresponses
 
 from package_monitor import tasks
+from package_monitor.core import pypi
 from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
@@ -22,6 +23,9 @@ class TestUpdatePackagesFromPyPi(TestCase):
         super().tearDownClass()
         # workaround to remove obj which is not cleaned up
         Distribution.objects.all().delete()
+
+    def setUp(self) -> None:
+        pypi.clear_cache()
 
     @aioresponses()
     def test_should_update_packages(
