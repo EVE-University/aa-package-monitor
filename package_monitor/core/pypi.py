@@ -15,7 +15,7 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
 
 async def fetch_data_from_pypi_async(
-    session: aiohttp.ClientSession, name: str, version: str = None
+    session: aiohttp.ClientSession, name: str, version: Optional[str] = None
 ) -> Optional[dict]:
     """Fetch data for a PyPI project or release and return it.
 
@@ -53,12 +53,13 @@ async def fetch_data_from_pypi_async(
 
 async def fetch_pypi_releases(
     session: aiohttp.ClientSession, name: str, releases: List[Version]
-) -> dict:
+) -> List[dict]:
     """Fetch and return data for releases of a pypi project."""
     tasks = [
-        asyncio.create_task(fetch_data_from_pypi_async(session, name=name, version=r))
+        asyncio.create_task(
+            fetch_data_from_pypi_async(session, name=name, version=str(r))
+        )
         for r in releases
     ]
     r = await asyncio.gather(*tasks)
-    results = {o["info"]["version"]: o["info"] for o in r}
-    return results
+    return r

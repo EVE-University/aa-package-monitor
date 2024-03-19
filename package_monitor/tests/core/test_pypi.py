@@ -65,10 +65,10 @@ class TestFetchPypiReleases(IsolatedAsyncioTestCase):
             result = await fetch_pypi_releases(session, "alpha", versions)
 
         # then
-        self.assertSetEqual(set(result.keys()), {"1.2.3", "1.2.5"})
-        p = result["1.2.3"]
-        self.assertEqual(p["name"], "alpha")
-        self.assertEqual(p["version"], "1.2.3")
-        p = result["1.2.5"]
-        self.assertEqual(p["name"], "alpha")
-        self.assertEqual(p["version"], "1.2.5")
+        self.assertEqual(len(result), 2)
+        p = result[0]
+        self.assertEqual(p["info"]["name"], "alpha")
+        self.assertEqual(p["info"]["version"], "1.2.3")
+        p = result[1]
+        self.assertEqual(p["info"]["name"], "alpha")
+        self.assertEqual(p["info"]["version"], "1.2.5")

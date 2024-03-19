@@ -212,7 +212,11 @@ class DistributionPackage:
     async def _gather_valid_updates(self, session, updates, package_versions):
         valid_updates = []
         releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
-        for _, info in releases.items():
+        for release in releases:
+            info = release.get("info")
+            if not info:
+                continue
+
             found_issue = False
             for req_str in info.get("requires_dist", []):
                 try:
@@ -221,14 +225,14 @@ class DistributionPackage:
                     logger.info("%s: Ignoring invalid requirement: %s", self, req_str)
                     continue
 
-                if r.name in package_versions:
-                    v = package_versions[r.name]
+                if (name := canonicalize_name(r.name)) in package_versions:
+                    v = package_versions[name]
                     if v not in r.specifier:
                         logger.debug(
                             "%s: Update does not match current packages: %s", self, r
                         )
                         found_issue = True
-                        break  # this update does not match
+                        break  # exit at first found issue
 
             if found_issue:
                 continue
@@ -271,7 +275,9 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     return {obj.name_normalized: obj for obj in packages}
 
 
-def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
+def compile_package_requirements(
+    packages: Dict[str, DistributionPackage]
+) -> Dict[str, Dict[str, SpecifierSet]]:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = defaultdict(dict)
 
