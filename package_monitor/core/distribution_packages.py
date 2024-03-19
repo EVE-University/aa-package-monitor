@@ -62,13 +62,13 @@ class DistributionPackage:
         )
         return current_is_prerelease
 
-    def _calc_package_requirements(self, requirements: dict) -> SpecifierSet:
-        """Determine requirements for this package."""
-        result = SpecifierSet()
+    def _package_specifiers_from_requirements(self, requirements: dict) -> SpecifierSet:
+        """Return consolidated specifiers for this package from all other packages."""
+        s = SpecifierSet()
         if self.name_normalized in requirements:
             for _, specifier in requirements[self.name_normalized].items():
-                result &= specifier
-        return result
+                s &= specifier
+        return s
 
     async def update_from_pypi_async(
         self,
@@ -88,7 +88,9 @@ class DistributionPackage:
 
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
-            package_requirements=self._calc_package_requirements(requirements),
+            package_requirements=self._package_specifiers_from_requirements(
+                requirements
+            ),
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
