@@ -156,14 +156,15 @@ Here is a list of available settings for this app. They can be configured by add
 
 Note that all settings are optional and the app will use the documented default settings if they are not used.
 
-Name | Description | Default
--- | -- | --
-`PACKAGE_MONITOR_CUSTOM_REQUIREMENTS`| List of custom requirements that all potential updates are checked against. Example: `["Sphinx<6"]` | `[]`
-`PACKAGE_MONITOR_EXCLUDE_PACKAGES`| Names of distribution packages to excluded from monitoring.  | `[]`
-`PACKAGE_MONITOR_INCLUDE_PACKAGES`| Names of additional distribution packages to be monitored, e.g. `["celery", "redis]`. This setting only makes sense when you are not monitoring all packages already.  | `[]`
-`PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`| Whether to notify when an update is available for a currently installed distribution package. Notifications will be sent as AA notification to all admins. | `False`
-`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`| Whether to monitor all distribution packages, as opposed to only monitoring packages that contain Django apps.  | `True`
-`PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES`| Whether to show distribution packages installed as editable. Since version information about editable packages is often outdated, this type of packages are not shown by default. | `False`
+Name|Description|Default
+--|--|--
+`PACKAGE_MONITOR_CUSTOM_REQUIREMENTS`|List of custom requirements that all potential updates are checked against. Example: ["gunicorn<20"]|`[]`
+`PACKAGE_MONITOR_EXCLUDE_PACKAGES`|Names of distribution packages to be excluded.|`[]`
+`PACKAGE_MONITOR_INCLUDE_PACKAGES`|Names of additional distribution packages to be monitored.|`[]`
+`PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`|Whether to notify when an update is available for a currently installed distribution package.|`False`
+`PACKAGE_MONITOR_SHOW_ALL_PACKAGES`|Whether to show all distribution packages, as opposed to only showing packages that contain Django apps.|`True`
+`PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES`|Whether to show distribution packages installed as editable.  Since version information about editable packages is often outdated, this type of packages are not shown by default.|`False`
+`PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES`|When enabled update are only shown when their dependencies match with all currently installed packages.  e.g. If you have Django 4.2 installed, and an update requires Django 5 or higher, it will not be shown unless this setting is disabled.|`True`
 
 ## Permissions
 
