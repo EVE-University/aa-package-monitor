@@ -1,3 +1,5 @@
+"""Fetch data from PyPI."""
+
 import asyncio
 from typing import List, Optional
 
