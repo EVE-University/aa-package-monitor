@@ -50,7 +50,7 @@ PACKAGE_MONITOR_PROTECTED_PACKAGES = clean_setting(
 """Names of protected packages.
 
 Updates can include requirements for updating other packages,
-which can potentially break the installation.
+which can potentially break the current AA installation.
 
 For example: You have Django 4.2 installed
 and an update to a package requires Django 5 or higher.

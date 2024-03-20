@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Added
 
-- Added ability to filter available updates based on their requirements. For example if you have AA 3.x installed and the latest update to one of your apps requires AA 4.x, that update will no longer be shown.
+- Added ability to exclude updates which could potentially break the current AA installation by indirectly updating a protected package (e.g. Django). See new setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
+
+## Changed
+
+- Will no longer show updates for packages, which would cause an update to Django or Alliance Auth. See new setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
 
 ## [1.14.0] - 2023-11-27
 
