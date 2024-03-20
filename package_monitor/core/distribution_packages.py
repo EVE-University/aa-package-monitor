@@ -305,18 +305,25 @@ def compile_package_requirements(
 def _add_valid_requirement(
     requirements: dict, requirement: Requirement, package_name: str, packages: dict
 ):
-    requirement_name = canonicalize_name(requirement.name)
-    if requirement_name in packages:
-        if requirement.marker:
-            try:
-                is_valid = requirement.marker.evaluate()
-            except (UndefinedEnvironmentName, UndefinedComparison):
-                is_valid = False
-        else:
-            is_valid = True
+    name = canonicalize_name(requirement.name)
+    if name not in packages:
+        return
 
-        if is_valid:
-            requirements[requirement_name][package_name] = requirement.specifier
+    if not _is_requirement_valid(requirement):
+        return
+
+    requirements[name][package_name] = requirement.specifier
+
+
+def _is_requirement_valid(requirement):
+    if requirement.marker:
+        try:
+            is_valid = requirement.marker.evaluate()
+        except (UndefinedEnvironmentName, UndefinedComparison):
+            is_valid = False
+    else:
+        is_valid = True
+    return is_valid
 
 
 def update_packages_from_pypi(
@@ -328,7 +335,7 @@ def update_packages_from_pypi(
 
     async def update_packages_from_pypi_async() -> None:
         """Update packages from PyPI concurrently."""
-        system_python_version = _determine_system_python_version()
+        system_python_version = determine_system_python_version()
         packages_versions = gather_protected_packages_versions(packages)
         async with aiohttp.ClientSession() as session:
             tasks = [
@@ -347,7 +354,7 @@ def update_packages_from_pypi(
     asyncio.run(update_packages_from_pypi_async())
 
 
-def _determine_system_python_version() -> Version:
+def determine_system_python_version() -> Version:
     """Return current Python version of this system."""
     result = version_parse(
         f"{sys.version_info.major}.{sys.version_info.minor}"

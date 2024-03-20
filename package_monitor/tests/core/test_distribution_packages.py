@@ -8,8 +8,8 @@ from app_utils.testing import NoSocketsTestCase
 
 from package_monitor.core.distribution_packages import (
     DistributionPackage,
-    _determine_system_python_version,
     compile_package_requirements,
+    determine_system_python_version,
     gather_distribution_packages,
     gather_protected_packages_versions,
 )
@@ -197,7 +197,7 @@ class TestCompilePackageRequirements(NoSocketsTestCase):
 @mock.patch(MODULE_PATH + ".fetch_project_from_pypi_async")
 class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
-        self.python_version = _determine_system_python_version()
+        self.python_version = determine_system_python_version()
 
     async def test_should_update_packages(self, mock_fetch_data_from_pypi_async):
         # given
