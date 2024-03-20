@@ -1,6 +1,7 @@
 """Fetch data from PyPI."""
 
 import asyncio
+import hashlib
 from typing import List, Optional
 
 import aiohttp
@@ -51,14 +52,20 @@ async def fetch_release_from_pypi_async(
 
     Returns None if there was an API error.
     """
-    url = _make_pypi_url(name, version)
-    key = f"{CACHE_KEY}{url}"
+    key = _make_cache_key(name, version)
     if data := await cache.aget(key):
         return data
 
-    r = await _fetch_data_from_pypi_async(session, url)
+    r = await _fetch_data_from_pypi_async(session, _make_pypi_url(name, version))
     await cache.aset(key=key, value=r, timeout=CACHE_TIMEOUT)
     return r
+
+
+def _make_cache_key(name: str, version: str) -> str:
+    b = f"{name}-{version}".encode("utf-8")
+    key_hash = hashlib.md5(b).hexdigest()
+    key = f"{CACHE_KEY}{key_hash}"
+    return key
 
 
 def _make_pypi_url(name: str, version: Optional[str] = None) -> str:
