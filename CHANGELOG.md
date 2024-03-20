@@ -7,15 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-## [1.15.0] - TBD
+## [1.15.0] - 2024-03-20
 
 ## Added
 
-- Added ability to exclude updates which could potentially break the current AA installation by indirectly updating a protected package (e.g. Django). See new setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
+- Some updates to installed packages might also trigger updates of other packages, which could potentially break the current AA installation. For example: if you have aa-esi-status v1.x installed with Alliance Auth v3 and update to aa-esi-status v2.x, it will automatically also update to Alliance Auth to v4, which would then requires additional manual installation steps or AA will no longer function.
+
+To address this, such potentially unwanted updates can now be automatically excluded for specific packages. See also setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
 
 ## Changed
 
-- Will no longer show updates for packages, which would cause an update to Django or Alliance Auth. See new setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
+- Available updates to installed packages, which would also cause an update to Django or Alliance Auth, will no longer be shown. See also setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
 
 ## [1.14.0] - 2023-11-27
 
