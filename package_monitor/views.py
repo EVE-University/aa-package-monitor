@@ -90,12 +90,16 @@ def package_list_data(request) -> JsonResponse:
                 [
                     format_html(
                         '<span title="{}" class="text-nowrap;">{}</span>',
-                        ", ".join(row["requirements"])
-                        if row["requirements"]
-                        else "ANY",
-                        link_html(row["homepage_url"], row["name"])
-                        if row["homepage_url"]
-                        else row["name"],
+                        (
+                            ", ".join(row["requirements"])
+                            if row["requirements"]
+                            else "ANY"
+                        ),
+                        (
+                            link_html(row["homepage_url"], row["name"])
+                            if row["homepage_url"]
+                            else row["name"]
+                        ),
                     )
                     for row in used_by_sorted
                 ]

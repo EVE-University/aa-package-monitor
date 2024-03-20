@@ -3,6 +3,7 @@ from unittest import TestCase, mock
 from aioresponses import aioresponses
 
 from package_monitor import tasks
+from package_monitor.core import pypi
 from package_monitor.core.distribution_packages import DistributionPackage
 from package_monitor.models import Distribution
 
@@ -23,6 +24,9 @@ class TestUpdatePackagesFromPyPi(TestCase):
         # workaround to remove obj which is not cleaned up
         Distribution.objects.all().delete()
 
+    def setUp(self) -> None:
+        pypi.clear_cache()
+
     @aioresponses()
     def test_should_update_packages(
         self, mock_distributions, mock_django_apps, requests_mocker
@@ -32,17 +36,24 @@ class TestUpdatePackagesFromPyPi(TestCase):
         distributions = lambda: iter([dist_alpha])  # noqa: E731
         mock_distributions.side_effect = distributions
         mock_django_apps.get_app_configs.return_value = []
+
         pypi_alpha = PypiFactory(
             distribution=DistributionPackage.create_from_metadata_distribution(
                 dist_alpha
             )
         )
+        pypi_alpha.info.version = "1.1.0"
         pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
         requests_mocker.get(
             "https://pypi.org/pypi/alpha/json", payload=pypi_alpha.asdict()
         )
+        requests_mocker.get(
+            "https://pypi.org/pypi/alpha/1.1.0/json", payload=pypi_alpha.asdict()
+        )
+
         # when
         tasks.update_distributions()
+
         # then
         self.assertEqual(Distribution.objects.count(), 1)
         obj = Distribution.objects.get(name="alpha")

@@ -43,3 +43,21 @@ PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES = clean_setting(
 Since version information about editable packages is often outdated,
 this type of packages are not shown by default.
 """
+
+PACKAGE_MONITOR_PROTECTED_PACKAGES = clean_setting(
+    "PACKAGE_MONITOR_PROTECTED_PACKAGES", ["allianceauth", "django"]
+)
+"""Names of protected packages.
+
+Updates can include requirements for updating other packages,
+which can potentially break the current AA installation.
+
+For example: You have Django 4.2 installed
+and an update to a package requires Django 5 or higher.
+Then installing that package may break your installation.
+
+When enabled Package Monitor will not show updates,
+which would cause an indirect update of a protected package.
+
+And empty list disables this feature.
+"""

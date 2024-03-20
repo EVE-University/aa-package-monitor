@@ -19,9 +19,13 @@ from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
 from package_monitor import __title__
-from package_monitor.app_settings import PACKAGE_MONITOR_CUSTOM_REQUIREMENTS
+from package_monitor.app_settings import (
+    PACKAGE_MONITOR_CUSTOM_REQUIREMENTS,
+    PACKAGE_MONITOR_PROTECTED_PACKAGES,
+)
 
 from . import metadata_helpers
+from .pypi import fetch_project_from_pypi_async, fetch_pypi_releases
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
@@ -61,119 +65,189 @@ class DistributionPackage:
         )
         return current_is_prerelease
 
-    def calc_consolidated_requirements(self, requirements: dict) -> SpecifierSet:
-        """Determine consolidated requirements for this package."""
-        consolidated_requirements = SpecifierSet()
+    def _package_specifiers_from_requirements(self, requirements: dict) -> SpecifierSet:
+        """Return consolidated specifiers for this package from all other packages."""
+        s = SpecifierSet()
         if self.name_normalized in requirements:
             for _, specifier in requirements[self.name_normalized].items():
-                consolidated_requirements &= specifier
-        return consolidated_requirements
+                s &= specifier
+        return s
 
     async def update_from_pypi_async(
-        self, requirements: dict, session: aiohttp.ClientSession
+        self,
+        session: aiohttp.ClientSession,
+        requirements: dict,
+        protected_packages_versions: dict,
+        system_python: Version,
     ) -> bool:
         """Update latest version and URL from PyPI.
 
         Return True if update was successful, else False.
         """
 
-        pypi_data = await self._fetch_data_from_pypi_async(session)
+        pypi_data = await fetch_project_from_pypi_async(session, name=self.name)
         if not pypi_data:
             return False
 
-        system_python_version = determine_system_python_version()
-        latest = self._determine_latest_version(
-            pypi_data["releases"], requirements, system_python_version
+        updates = self._determine_available_updates(
+            pypi_data_releases=pypi_data["releases"],
+            package_requirements=self._package_specifiers_from_requirements(
+                requirements
+            ),
+            system_python=system_python,
+        )
+        latest = await self._determine_latest_available_update(
+            session,
+            updates=updates,
+            protected_packages_versions=protected_packages_versions,
         )
 
-        if not latest:
-            logger.warning(
-                "%s: Could not find any release that matches all requirements", self
-            )
-
-        self.latest = latest
+        self.latest = str(latest) if latest else self.current
 
         pypi_info = pypi_data.get("info")
         pypi_url = pypi_info.get("project_url", "") if pypi_info else ""
         self.homepage_url = pypi_url
         return True
 
-    async def _fetch_data_from_pypi_async(
-        self, session: aiohttp.ClientSession
-    ) -> Optional[dict]:
-        """Fetch data for a package from PyPI and return it
-        or return None if there was an API error.
+    def _determine_available_updates(
+        self,
+        pypi_data_releases: dict,
+        package_requirements: SpecifierSet,
+        system_python: Version,
+    ) -> List[Version]:
+        """Determine latest valid updates available on PyPI
+        and return them as ascending list.
         """
-
-        logger.info(f"Fetching info for distribution package '{self.name}' from PyPI")
-
-        url = f"https://pypi.org/pypi/{self.name}/json"
-        async with session.get(url) as resp:
-            if not resp.ok:
-                if resp.status == 404:
-                    logger.info("Package '%s' is not registered in PyPI", self.name)
-                else:
-                    logger.warning(
-                        "Failed to retrieve infos from PyPI for "
-                        "package '%s'. "
-                        "Status code: %d, "
-                        "response: %s",
-                        self.name,
-                        resp.status,
-                        await resp.text(),
-                    )
-                return None
-
-            pypi_data = await resp.json()
-            return pypi_data
-
-    def _determine_latest_version(
-        self, pypi_data_releases, requirements, system_python_version
-    ):
-        """Determine latest valid version available on PyPI."""
-        consolidated_requirements = self.calc_consolidated_requirements(requirements)
-        latest = ""
+        updates = []
+        current_version = (
+            version_parse(self.current) if self.current else Version("0.0.0")
+        )
         for release, release_details in pypi_data_releases.items():
-            requires_python = ""
+            version = self._release_version(release)
+            if not version:
+                continue
+
+            if version.is_prerelease and not self.is_prerelease():
+                continue
+
+            if not self._release_is_valid(package_requirements, version):
+                continue
+
+            if version <= current_version:
+                continue
+
+            release_detail = release_details[-1] if len(release_details) > 0 else None
+            if release_detail:
+                if release_detail["yanked"]:
+                    continue
+
+                if not self._required_python_matches(release_detail, system_python):
+                    continue
+
+            updates.append(version)
+
+        return updates
+
+    def _release_version(self, version_string: str) -> Optional[Version]:
+        try:
+            version = version_parse(version_string)
+        except InvalidVersion:
+            logger.info(
+                "%s: Ignoring release with invalid version: %s",
+                self.name,
+                version_string,
+            )
+            return None
+
+        if str(version) != str(version_string):
+            return None
+
+        return version
+
+    def _release_is_valid(
+        self, package_requirements: SpecifierSet, version: Version
+    ) -> bool:
+        if len(package_requirements) == 0:
+            return True
+
+        return version in package_requirements
+
+    def _required_python_matches(
+        self, release_detail, system_python_version: Version
+    ) -> bool:
+        if requires_python := release_detail.get("requires_python"):
             try:
-                release_detail = (
-                    release_details[-1] if len(release_details) > 0 else None
-                )
-                if release_detail:
-                    if release_detail["yanked"]:
-                        continue
-
-                    if (
-                        requires_python := release_detail.get("requires_python")
-                    ) and system_python_version not in SpecifierSet(requires_python):
-                        continue
-
-                my_release = version_parse(release)
-                if str(my_release) == str(release) and (
-                    self.is_prerelease() or not my_release.is_prerelease
-                ):
-                    if len(consolidated_requirements) > 0:
-                        is_valid = my_release in consolidated_requirements
-                    else:
-                        is_valid = True
-
-                    if is_valid and (not latest or my_release > version_parse(latest)):
-                        latest = release
-
-            except InvalidVersion:
-                logger.info(
-                    "%s: Ignoring release with invalid version: %s",
-                    self.name,
-                    release,
-                )
+                required_python_versions = SpecifierSet(requires_python)
             except InvalidSpecifier:
                 logger.info(
                     "%s: Ignoring release with invalid requires_python: %s",
                     self.name,
                     requires_python,
                 )
+                return False
 
+            if system_python_version not in required_python_versions:
+                return False
+
+        return True
+
+    async def _determine_latest_available_update(
+        self,
+        session: aiohttp.ClientSession,
+        updates: List[Version],
+        protected_packages_versions: Dict[str, Version],
+    ) -> Optional[Version]:
+        """Determines latest available and valid update and returns it.
+        Or return None if none are available.
+        """
+        if not updates:
+            return None
+
+        if protected_packages_versions:
+            valid_updates = await self._gather_valid_updates(
+                session, updates, protected_packages_versions
+            )
+        else:
+            valid_updates = updates
+
+        valid_updates.sort()
+        latest = valid_updates.pop() if valid_updates else None
         return latest
+
+    async def _gather_valid_updates(self, session, updates, package_versions):
+        valid_updates = []
+        releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
+        for release in releases:
+            info = release.get("info")
+            if not info:
+                continue
+
+            found_issue = False
+            for req_str in info.get("requires_dist", []):
+                try:
+                    r = Requirement(req_str)
+                except InvalidRequirement:
+                    continue  # invalid requirements can be ignored
+
+                if not is_marker_valid(r):
+                    continue  # invalid requirements can be ignored
+
+                if (name := canonicalize_name(r.name)) in package_versions:
+                    v = package_versions[name]
+                    if v not in r.specifier:
+                        logger.debug(
+                            "%s: Update does not match current packages: %s", self, r
+                        )
+                        found_issue = True
+                        break  # exit at first found issue
+
+            if found_issue:
+                continue
+
+            update = version_parse(info["version"])
+            valid_updates.append(update)
+
+        return valid_updates
 
     @classmethod
     def create_from_metadata_distribution(
@@ -208,7 +282,9 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     return {obj.name_normalized: obj for obj in packages}
 
 
-def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> dict:
+def compile_package_requirements(
+    packages: Dict[str, DistributionPackage]
+) -> Dict[str, Dict[str, SpecifierSet]]:
     """Consolidate requirements from all known distributions and known packages"""
     requirements = defaultdict(dict)
 
@@ -231,18 +307,27 @@ def compile_package_requirements(packages: Dict[str, DistributionPackage]) -> di
 def _add_valid_requirement(
     requirements: dict, requirement: Requirement, package_name: str, packages: dict
 ):
-    requirement_name = canonicalize_name(requirement.name)
-    if requirement_name in packages:
-        if requirement.marker:
-            try:
-                is_valid = requirement.marker.evaluate()
-            except (UndefinedEnvironmentName, UndefinedComparison):
-                is_valid = False
-        else:
-            is_valid = True
+    name = canonicalize_name(requirement.name)
+    if name not in packages:
+        return
 
-        if is_valid:
-            requirements[requirement_name][package_name] = requirement.specifier
+    if not is_marker_valid(requirement):
+        return
+
+    requirements[name][package_name] = requirement.specifier
+
+
+def is_marker_valid(requirement: Requirement) -> bool:
+    """Report wether a requirement is valid based on it's marker.
+    No marker means also True.
+    """
+    if not requirement.marker:
+        return True
+
+    try:
+        return requirement.marker.evaluate()
+    except (UndefinedEnvironmentName, UndefinedComparison):
+        return False
 
 
 def update_packages_from_pypi(
@@ -254,10 +339,17 @@ def update_packages_from_pypi(
 
     async def update_packages_from_pypi_async() -> None:
         """Update packages from PyPI concurrently."""
+        system_python_version = determine_system_python_version()
+        packages_versions = gather_protected_packages_versions(packages)
         async with aiohttp.ClientSession() as session:
             tasks = [
                 asyncio.create_task(
-                    package.update_from_pypi_async(requirements, session)
+                    package.update_from_pypi_async(
+                        session=session,
+                        requirements=requirements,
+                        protected_packages_versions=packages_versions,
+                        system_python=system_python_version,
+                    )
                 )
                 for package in packages.values()
             ]
@@ -272,4 +364,23 @@ def determine_system_python_version() -> Version:
         f"{sys.version_info.major}.{sys.version_info.minor}"
         f".{sys.version_info.micro}"
     )
+    return result
+
+
+def gather_protected_packages_versions(
+    packages: Dict[str, DistributionPackage]
+) -> Dict[str, Version]:
+    """Return versions of protected packages
+    or empty when no protected packages are defined or matching.
+    """
+    focus_packages = set(PACKAGE_MONITOR_PROTECTED_PACKAGES)
+    if not focus_packages:
+        return {}
+
+    focus_names = {canonicalize_name(p) for p in focus_packages}
+    result = {
+        name: version_parse(p.current)
+        for name, p in packages.items()
+        if name in focus_names
+    }
     return result
