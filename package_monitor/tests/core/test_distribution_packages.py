@@ -1,6 +1,7 @@
 from collections import namedtuple
 from unittest import IsolatedAsyncioTestCase, mock
 
+from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
@@ -12,6 +13,7 @@ from package_monitor.core.distribution_packages import (
     determine_system_python_version,
     gather_distribution_packages,
     gather_protected_packages_versions,
+    is_marker_valid,
 )
 from package_monitor.tests.factories import (
     DistributionPackageFactory,
@@ -504,3 +506,16 @@ class TestGatherProtectedPackagesVersions(NoSocketsTestCase):
 
         # then
         self.assertDictEqual(result, {})
+
+
+class TestIsRequirementValid(NoSocketsTestCase):
+    def test_should_report_correctly(self):
+        cases = [
+            ("alpha>1", True),
+            ('alpha>1; python_version>"3.0"', True),
+            ('alpha>1; python_version<"3.0"', False),
+        ]
+        for s, expected in cases:
+            with self.subTest(case=s):
+                r = Requirement(s)
+                self.assertIs(is_marker_valid(r), expected)

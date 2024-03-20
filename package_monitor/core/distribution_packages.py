@@ -227,8 +227,10 @@ class DistributionPackage:
                 try:
                     r = Requirement(req_str)
                 except InvalidRequirement:
-                    logger.info("%s: Ignoring invalid requirement: %s", self, req_str)
-                    continue
+                    continue  # invalid requirements can be ignored
+
+                if not is_marker_valid(r):
+                    continue  # invalid requirements can be ignored
 
                 if (name := canonicalize_name(r.name)) in package_versions:
                     v = package_versions[name]
@@ -309,21 +311,23 @@ def _add_valid_requirement(
     if name not in packages:
         return
 
-    if not _is_requirement_valid(requirement):
+    if not is_marker_valid(requirement):
         return
 
     requirements[name][package_name] = requirement.specifier
 
 
-def _is_requirement_valid(requirement):
-    if requirement.marker:
-        try:
-            is_valid = requirement.marker.evaluate()
-        except (UndefinedEnvironmentName, UndefinedComparison):
-            is_valid = False
-    else:
-        is_valid = True
-    return is_valid
+def is_marker_valid(requirement: Requirement) -> bool:
+    """Report wether a requirement is valid based on it's marker.
+    No marker means also True.
+    """
+    if not requirement.marker:
+        return True
+
+    try:
+        return requirement.marker.evaluate()
+    except (UndefinedEnvironmentName, UndefinedComparison):
+        return False
 
 
 def update_packages_from_pypi(
