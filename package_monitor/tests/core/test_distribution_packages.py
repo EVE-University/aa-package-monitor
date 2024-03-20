@@ -11,6 +11,7 @@ from package_monitor.core.distribution_packages import (
     _determine_system_python_version,
     compile_package_requirements,
     gather_distribution_packages,
+    gather_protected_packages_versions,
 )
 from package_monitor.tests.factories import (
     DistributionPackageFactory,
@@ -210,7 +211,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
         # then
@@ -231,7 +232,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
 
@@ -252,7 +253,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
 
@@ -273,7 +274,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
         # then
@@ -290,7 +291,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
         # then
@@ -310,7 +311,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={},
+            protected_packages_versions={},
             system_python=Version("3.6.9"),
         )
         # then
@@ -331,7 +332,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            package_versions={},
+            protected_packages_versions={},
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -351,7 +352,7 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            package_versions={},
+            protected_packages_versions={},
         )
         # then
         self.assertEqual(dist_alpha.latest, "1.0.0")
@@ -372,14 +373,11 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             system_python=self.python_version,
-            package_versions={},
+            protected_packages_versions={},
         )
         # then
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
-    @mock.patch(
-        MODULE_PATH + ".PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES", True
-    )
     @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
     async def test_should_ignore_updates_with_non_matching_requirements(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
@@ -410,16 +408,13 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={"bravo": Version("0.5.0")},
+            protected_packages_versions={"bravo": Version("0.5.0")},
             system_python=self.python_version,
         )
 
         # then
         self.assertEqual(dist_alpha.latest, "1.1.0")
 
-    @mock.patch(
-        MODULE_PATH + ".PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES", False
-    )
     @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
     async def test_should_ignore_updates_with_non_matching_requirements_2(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
@@ -450,9 +445,62 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         await dist_alpha.update_from_pypi_async(
             session=mock.MagicMock(),
             requirements=requirements,
-            package_versions={"bravo": Version("0.5.0")},
+            protected_packages_versions={},
             system_python=self.python_version,
         )
 
         # then
         self.assertEqual(dist_alpha.latest, "1.2.0")
+
+
+class TestGatherProtectedPackagesVersions(NoSocketsTestCase):
+    def test_should_return_protected_packages_with_versions(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        dist_bravo = DistributionPackageFactory(name="bravo", current="1.2.3")
+        packages = {"alpha": dist_alpha, "bravo": dist_bravo}
+
+        # when
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_PROTECTED_PACKAGES", ["alpha"]):
+            result = gather_protected_packages_versions(packages)
+
+        # then
+        self.assertDictEqual(result, {"alpha": Version("1.0.0")})
+
+    def test_should_return_protected_packages_with_versions_and_non_canonical_names(
+        self,
+    ):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        dist_bravo = DistributionPackageFactory(name="bravo", current="1.2.3")
+        packages = {"alpha": dist_alpha, "bravo": dist_bravo}
+
+        # when
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_PROTECTED_PACKAGES", ["Alpha"]):
+            result = gather_protected_packages_versions(packages)
+
+        # then
+        self.assertDictEqual(result, {"alpha": Version("1.0.0")})
+
+    def test_should_return_empty_when_no_protected_packages(self):
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        packages = {"alpha": dist_alpha}
+
+        # when
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_PROTECTED_PACKAGES", []):
+            result = gather_protected_packages_versions(packages)
+
+        # then
+        self.assertDictEqual(result, {})
+
+    def test_should_return_empty_when_no_packages(self):
+        # given
+        packages = {}
+
+        # when
+        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_PROTECTED_PACKAGES", ["alpha"]):
+            result = gather_protected_packages_versions(packages)
+
+        # then
+        self.assertDictEqual(result, {})

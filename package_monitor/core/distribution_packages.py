@@ -21,7 +21,7 @@ from app_utils.logging import LoggerAddTag
 from package_monitor import __title__
 from package_monitor.app_settings import (
     PACKAGE_MONITOR_CUSTOM_REQUIREMENTS,
-    PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES,
+    PACKAGE_MONITOR_PROTECTED_PACKAGES,
 )
 
 from . import metadata_helpers
@@ -77,7 +77,7 @@ class DistributionPackage:
         self,
         session: aiohttp.ClientSession,
         requirements: dict,
-        package_versions: dict,
+        protected_packages_versions: dict,
         system_python: Version,
     ) -> bool:
         """Update latest version and URL from PyPI.
@@ -97,7 +97,9 @@ class DistributionPackage:
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
-            session, updates=updates, package_versions=package_versions
+            session,
+            updates=updates,
+            protected_packages_versions=protected_packages_versions,
         )
 
         self.latest = str(latest) if latest else self.current
@@ -193,7 +195,7 @@ class DistributionPackage:
         self,
         session: aiohttp.ClientSession,
         updates: List[Version],
-        package_versions: Dict[str, Version],
+        protected_packages_versions: Dict[str, Version],
     ) -> Optional[Version]:
         """Determines latest available and valid update and returns it.
         Or return None if none are available.
@@ -201,9 +203,9 @@ class DistributionPackage:
         if not updates:
             return None
 
-        if PACKAGE_MONITOR_UPDATES_REQUIRE_MATCHING_DEPENDENCIES and package_versions:
+        if protected_packages_versions:
             valid_updates = await self._gather_valid_updates(
-                session, updates, package_versions
+                session, updates, protected_packages_versions
             )
         else:
             valid_updates = updates
@@ -327,14 +329,14 @@ def update_packages_from_pypi(
     async def update_packages_from_pypi_async() -> None:
         """Update packages from PyPI concurrently."""
         system_python_version = _determine_system_python_version()
-        package_versions = _determine_current_package_versions(packages)
+        packages_versions = gather_protected_packages_versions(packages)
         async with aiohttp.ClientSession() as session:
             tasks = [
                 asyncio.create_task(
                     package.update_from_pypi_async(
                         session=session,
                         requirements=requirements,
-                        package_versions=package_versions,
+                        protected_packages_versions=packages_versions,
                         system_python=system_python_version,
                     )
                 )
@@ -354,9 +356,20 @@ def _determine_system_python_version() -> Version:
     return result
 
 
-def _determine_current_package_versions(
+def gather_protected_packages_versions(
     packages: Dict[str, DistributionPackage]
 ) -> Dict[str, Version]:
-    """Return all current package versions."""
-    result = {name: version_parse(p.current) for name, p in packages.items()}
+    """Return versions of protected packages
+    or empty when no protected packages are defined or matching.
+    """
+    focus_packages = set(PACKAGE_MONITOR_PROTECTED_PACKAGES)
+    if not focus_packages:
+        return {}
+
+    focus_names = {canonicalize_name(p) for p in focus_packages}
+    result = {
+        name: version_parse(p.current)
+        for name, p in packages.items()
+        if name in focus_names
+    }
     return result
