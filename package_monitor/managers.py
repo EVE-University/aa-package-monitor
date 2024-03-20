@@ -98,9 +98,11 @@ class DistributionManagerBase(models.Manager):
                 used_by = [
                     {
                         "name": package_name,
-                        "homepage_url": packages[package_name].homepage_url
-                        if packages.get(package_name)
-                        else "",
+                        "homepage_url": (
+                            packages[package_name].homepage_url
+                            if packages.get(package_name)
+                            else ""
+                        ),
                         "requirements": [str(obj) for obj in package_requirements],
                     }
                     for package_name, package_requirements in requirements[
