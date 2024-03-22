@@ -91,9 +91,7 @@ class DistributionPackage:
 
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
-            package_requirements=self._package_specifiers_from_requirements(
-                requirements
-            ),
+            package_specifiers=self._package_specifiers_from_requirements(requirements),
             system_python=system_python,
         )
         latest = await self._determine_latest_available_update(
@@ -112,7 +110,7 @@ class DistributionPackage:
     def _determine_available_updates(
         self,
         pypi_data_releases: dict,
-        package_requirements: SpecifierSet,
+        package_specifiers: SpecifierSet,
         system_python: Version,
     ) -> List[Version]:
         """Determine latest valid updates available on PyPI
@@ -123,14 +121,19 @@ class DistributionPackage:
             version_parse(self.current) if self.current else Version("0.0.0")
         )
         for release, release_details in pypi_data_releases.items():
-            version = self._release_version(release)
+            version = to_version_or_none(release)
             if not version:
+                logger.info(
+                    "%s: Ignoring release with invalid version: %s",
+                    self.name,
+                    release,
+                )
                 continue
 
             if version.is_prerelease and not self.is_prerelease():
                 continue
 
-            if not self._release_is_valid(package_requirements, version):
+            if not is_version_in_specifiers(version, package_specifiers):
                 continue
 
             if version <= current_version:
@@ -147,30 +150,6 @@ class DistributionPackage:
             updates.append(version)
 
         return updates
-
-    def _release_version(self, version_string: str) -> Optional[Version]:
-        try:
-            version = version_parse(version_string)
-        except InvalidVersion:
-            logger.info(
-                "%s: Ignoring release with invalid version: %s",
-                self.name,
-                version_string,
-            )
-            return None
-
-        if str(version) != str(version_string):
-            return None
-
-        return version
-
-    def _release_is_valid(
-        self, package_requirements: SpecifierSet, version: Version
-    ) -> bool:
-        if len(package_requirements) == 0:
-            return True
-
-        return version in package_requirements
 
     def _required_python_matches(
         self, release_detail, system_python_version: Version
@@ -223,7 +202,8 @@ class DistributionPackage:
                 continue
 
             found_issue = False
-            for req_str in info.get("requires_dist", []):
+            requires_dist = info.get("requires_dist") or []
+            for req_str in requires_dist:
                 try:
                     r = Requirement(req_str)
                 except InvalidRequirement:
@@ -270,6 +250,27 @@ class DistributionPackage:
         if not disable_app_check:
             obj.apps = metadata_helpers.identify_installed_django_apps(dist)
         return obj
+
+
+def to_version_or_none(version_string: str) -> Optional[Version]:
+    """Convert a version string to a Version object or return None if not possible."""
+    try:
+        version = version_parse(version_string)
+    except InvalidVersion:
+        return None
+
+    if str(version) != str(version_string):
+        return None
+
+    return version
+
+
+def is_version_in_specifiers(version: Version, specifiers: SpecifierSet) -> bool:
+    """Return True if version is in specifies."""
+    if len(specifiers) == 0:
+        return True
+
+    return version in specifiers
 
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:

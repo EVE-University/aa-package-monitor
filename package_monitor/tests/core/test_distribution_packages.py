@@ -14,6 +14,8 @@ from package_monitor.core.distribution_packages import (
     gather_distribution_packages,
     gather_protected_packages_versions,
     is_marker_valid,
+    is_version_in_specifiers,
+    to_version_or_none,
 )
 from package_monitor.tests.factories import (
     DistributionPackageFactory,
@@ -381,11 +383,10 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
     @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
-    async def test_should_ignore_updates_with_non_matching_requirements(
+    async def test_should_ignore_updates_with_non_matching_requirements_1(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
     ):
         # given
-
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
@@ -421,6 +422,43 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     async def test_should_ignore_updates_with_non_matching_requirements_2(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
     ):
+        """Bug #15"""
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.info.version = "1.2.0"
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        pypi_alpha.releases["1.2.0"] = [PypiReleaseFactory()]
+
+        pypi_alpha_1 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_1.info.version = "1.1.0"
+
+        pypi_alpha_2 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_2.info.version = "1.2.0"
+        pypi_alpha_2.info.requires_dist = None
+
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
+        mock_fetch_pypi_releases.return_value = [
+            pypi_alpha_1.asdict(),
+            pypi_alpha_2.asdict(),
+        ]
+
+        # when
+        await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
+            requirements=requirements,
+            protected_packages_versions={"bravo": Version("0.5.0")},
+            system_python=self.python_version,
+        )
+
+        # then
+        self.assertEqual(dist_alpha.latest, "1.2.0")
+
+    @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
+    async def test_should_ignore_conflicting_dependencies_of_not_protected_packages_1(
+        self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
+    ):
         # given
 
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
@@ -448,6 +486,43 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             protected_packages_versions={},
+            system_python=self.python_version,
+        )
+
+        # then
+        self.assertEqual(dist_alpha.latest, "1.2.0")
+
+    @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
+    async def test_should_ignore_dependencies_of_not_protected_packages_2(
+        self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
+    ):
+        # given
+
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.info.version = "1.2.0"
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        pypi_alpha.releases["1.2.0"] = [PypiReleaseFactory()]
+
+        pypi_alpha_1 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_1.info.version = "1.1.0"
+
+        pypi_alpha_2 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_2.info.version = "1.2.0"
+        pypi_alpha_2.info.requires_dist = ["charlie>=1.0.0"]
+
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
+        mock_fetch_pypi_releases.return_value = [
+            pypi_alpha_1.asdict(),
+            pypi_alpha_2.asdict(),
+        ]
+
+        # when
+        await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
+            requirements=requirements,
+            protected_packages_versions={"bravo": Version("0.5.0")},
             system_python=self.python_version,
         )
 
@@ -519,3 +594,27 @@ class TestIsRequirementValid(NoSocketsTestCase):
             with self.subTest(case=s):
                 r = Requirement(s)
                 self.assertIs(is_marker_valid(r), expected)
+
+
+class TestToVersionOrNone(NoSocketsTestCase):
+    def test_should_report_correctly(self):
+        cases = [
+            ("1.0.0", Version("1.0.0")),
+            ("invalid", None),
+            ("1.0.0alpha1", None),
+        ]
+        for s, expected in cases:
+            with self.subTest(case=s):
+                self.assertEqual(to_version_or_none(s), expected)
+
+
+class TestIsVersionInSpecifiers(NoSocketsTestCase):
+    def test_should_report_correctly(self):
+        cases = [
+            (Version("1.0.0"), SpecifierSet(">=1.0.0"), True),
+            (Version("0.1.0"), SpecifierSet(">=1.0.0"), False),
+            (Version("0.1.0"), SpecifierSet(""), True),
+        ]
+        for v, s, expected in cases:
+            with self.subTest(case=s):
+                self.assertEqual(is_version_in_specifiers(v, s), expected)
