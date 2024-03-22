@@ -409,6 +409,4 @@ class TestDistributionBuildInstallCommand(NoSocketsTestCase):
         # when
         result = Distribution.objects.all().build_install_command()
         # then
-        print(result)
-        print(len(result))
         self.assertLessEqual(len(result), 4095)
