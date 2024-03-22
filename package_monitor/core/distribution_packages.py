@@ -223,7 +223,8 @@ class DistributionPackage:
                 continue
 
             found_issue = False
-            for req_str in info.get("requires_dist", []):
+            requires_dist = info.get("requires_dist") or []
+            for req_str in requires_dist:
                 try:
                     r = Requirement(req_str)
                 except InvalidRequirement:

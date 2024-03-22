@@ -381,11 +381,10 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
         self.assertEqual(packages["alpha"].latest, "1.0.0")
 
     @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
-    async def test_should_ignore_updates_with_non_matching_requirements(
+    async def test_should_ignore_updates_with_non_matching_requirements_1(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
     ):
         # given
-
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
         requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
         pypi_alpha = PypiFactory(distribution=dist_alpha)
@@ -421,6 +420,43 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
     async def test_should_ignore_updates_with_non_matching_requirements_2(
         self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
     ):
+        """Bug #15"""
+        # given
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.info.version = "1.2.0"
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        pypi_alpha.releases["1.2.0"] = [PypiReleaseFactory()]
+
+        pypi_alpha_1 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_1.info.version = "1.1.0"
+
+        pypi_alpha_2 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_2.info.version = "1.2.0"
+        pypi_alpha_2.info.requires_dist = None
+
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
+        mock_fetch_pypi_releases.return_value = [
+            pypi_alpha_1.asdict(),
+            pypi_alpha_2.asdict(),
+        ]
+
+        # when
+        await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
+            requirements=requirements,
+            protected_packages_versions={"bravo": Version("0.5.0")},
+            system_python=self.python_version,
+        )
+
+        # then
+        self.assertEqual(dist_alpha.latest, "1.2.0")
+
+    @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
+    async def test_should_ignore_conflicting_dependencies_of_not_protected_packages_1(
+        self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
+    ):
         # given
 
         dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
@@ -448,6 +484,43 @@ class TestUpdatePackagesFromPyPi(IsolatedAsyncioTestCase):
             session=mock.MagicMock(),
             requirements=requirements,
             protected_packages_versions={},
+            system_python=self.python_version,
+        )
+
+        # then
+        self.assertEqual(dist_alpha.latest, "1.2.0")
+
+    @mock.patch(MODULE_PATH + ".fetch_pypi_releases")
+    async def test_should_ignore_dependencies_of_not_protected_packages_2(
+        self, mock_fetch_pypi_releases, mock_fetch_data_from_pypi_async
+    ):
+        # given
+
+        dist_alpha = DistributionPackageFactory(name="alpha", current="1.0.0")
+        requirements = {"bravo": {"alpha": SpecifierSet(">0.1.0")}}
+        pypi_alpha = PypiFactory(distribution=dist_alpha)
+        pypi_alpha.info.version = "1.2.0"
+        pypi_alpha.releases["1.1.0"] = [PypiReleaseFactory()]
+        pypi_alpha.releases["1.2.0"] = [PypiReleaseFactory()]
+
+        pypi_alpha_1 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_1.info.version = "1.1.0"
+
+        pypi_alpha_2 = PypiFactory(distribution=dist_alpha)
+        pypi_alpha_2.info.version = "1.2.0"
+        pypi_alpha_2.info.requires_dist = ["charlie>=1.0.0"]
+
+        mock_fetch_data_from_pypi_async.return_value = pypi_alpha.asdict()
+        mock_fetch_pypi_releases.return_value = [
+            pypi_alpha_1.asdict(),
+            pypi_alpha_2.asdict(),
+        ]
+
+        # when
+        await dist_alpha.update_from_pypi_async(
+            session=mock.MagicMock(),
+            requirements=requirements,
+            protected_packages_versions={"bravo": Version("0.5.0")},
             system_python=self.python_version,
         )
 
