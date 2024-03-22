@@ -7,15 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.15.1] - 2024-03-22
+
+### Fixed
+
+- TypeError: 'NoneType' object is not iterable (#15)
+
 ## [1.15.0] - 2024-03-20
 
-## Added
+### Added
 
 - Some updates to installed packages might also trigger updates of other packages, which could potentially break the current AA installation. For example: if you have aa-esi-status v1.x installed with Alliance Auth v3 and update to aa-esi-status v2.x, it will automatically also update to Alliance Auth to v4, which would then requires additional manual installation steps or AA will no longer function.
 
 To address this, such potentially unwanted updates can now be automatically excluded for specific packages. See also setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
 
-## Changed
+### Changed
 
 - Available updates to installed packages, which would also cause an update to Django or Alliance Auth, will no longer be shown. See also setting `PACKAGE_MONITOR_PROTECTED_PACKAGES` for details.
 
