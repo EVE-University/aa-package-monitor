@@ -14,6 +14,8 @@ from package_monitor.core.distribution_packages import (
     gather_distribution_packages,
     gather_protected_packages_versions,
     is_marker_valid,
+    is_version_in_specifiers,
+    to_version_or_none,
 )
 from package_monitor.tests.factories import (
     DistributionPackageFactory,
@@ -592,3 +594,27 @@ class TestIsRequirementValid(NoSocketsTestCase):
             with self.subTest(case=s):
                 r = Requirement(s)
                 self.assertIs(is_marker_valid(r), expected)
+
+
+class TestToVersionOrNone(NoSocketsTestCase):
+    def test_should_report_correctly(self):
+        cases = [
+            ("1.0.0", Version("1.0.0")),
+            ("invalid", None),
+            ("1.0.0alpha1", None),
+        ]
+        for s, expected in cases:
+            with self.subTest(case=s):
+                self.assertEqual(to_version_or_none(s), expected)
+
+
+class TestIsVersionInSpecifiers(NoSocketsTestCase):
+    def test_should_report_correctly(self):
+        cases = [
+            (Version("1.0.0"), SpecifierSet(">=1.0.0"), True),
+            (Version("0.1.0"), SpecifierSet(">=1.0.0"), False),
+            (Version("0.1.0"), SpecifierSet(""), True),
+        ]
+        for v, s, expected in cases:
+            with self.subTest(case=s):
+                self.assertEqual(is_version_in_specifiers(v, s), expected)
