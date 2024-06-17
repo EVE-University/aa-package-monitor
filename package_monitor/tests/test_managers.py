@@ -256,7 +256,7 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
         X = namedtuple(
             "X",
             [
-                "ok",
+                "shouldNotify",
                 "installed_version",
                 "latest_version",
                 "latest_notified_version",
@@ -278,7 +278,7 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
         for num, tc in enumerate(cases, 1):
             with self.subTest("test notifications", num=num):
                 Distribution.objects.all().delete()
-                DistributionFactory(
+                dist = DistributionFactory(
                     installed_version=tc.installed_version,
                     latest_version=tc.latest_version,
                     latest_notified_version=tc.latest_notified_version,
@@ -289,4 +289,13 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                     tc.show_editable,
                 ), mock.patch(MODULE_PATH + ".notify_admins") as notify_admins:
                     Distribution.objects.send_update_notifications()
-                    self.assertIs(tc.ok, notify_admins.called)
+                    self.assertIs(tc.shouldNotify, notify_admins.called)
+                    dist.refresh_from_db()
+                    if tc.shouldNotify:
+                        self.assertEqual(
+                            dist.latest_version, dist.latest_notified_version
+                        )
+                    else:
+                        self.assertEqual(
+                            tc.latest_notified_version, dist.latest_notified_version
+                        )
