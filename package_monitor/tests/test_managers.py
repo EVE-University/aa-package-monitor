@@ -262,18 +262,20 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                 "latest_notified_version",
                 "is_editable",
                 "show_editable",
+                "should_resend",
             ],
         )
         cases = [
-            X(True, "1.0.0", "1.0.1", "", False, False),
-            X(False, "1.0.0", "1.0.0", "", False, False),
-            X(False, "1.0.0", "0.1.0", "", False, False),
-            X(False, "1.0.0", "", "", False, False),
-            X(False, "", "1.0.0", "", False, False),
-            X(False, "1.0.0", "1.0.1", "1.0.1", False, False),
-            X(True, "1.0.0", "1.0.2", "1.0.1", False, False),
-            X(False, "1.0.0", "1.0.2", "", True, False),
-            X(True, "1.0.0", "1.0.2", "", True, True),
+            X(True, "1.0.0", "1.0.1", "", False, False, False),
+            X(False, "1.0.0", "1.0.0", "", False, False, False),
+            X(False, "1.0.0", "0.1.0", "", False, False, False),
+            X(False, "1.0.0", "", "", False, False, False),
+            X(False, "", "1.0.0", "", False, False, False),
+            X(False, "1.0.0", "1.0.1", "1.0.1", False, False, False),
+            X(True, "1.0.0", "1.0.2", "1.0.1", False, False, False),
+            X(False, "1.0.0", "1.0.2", "", True, False, False),
+            X(True, "1.0.0", "1.0.2", "", True, True, False),
+            X(True, "1.0.0", "1.0.1", "1.0.1", False, False, True),
         ]
         for num, tc in enumerate(cases, 1):
             with self.subTest("test notifications", num=num):
@@ -285,10 +287,11 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                     is_editable=tc.is_editable,
                 )
                 with mock.patch(
-                    MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES",
-                    tc.show_editable,
-                ), mock.patch(MODULE_PATH + ".notify_admins") as notify_admins:
-                    Distribution.objects.send_update_notifications()
+                    MODULE_PATH + ".notify_admins", spec=True
+                ) as notify_admins:
+                    Distribution.objects.send_update_notifications(
+                        show_editable=tc.show_editable, should_resend=tc.should_resend
+                    )
                     self.assertIs(tc.shouldNotify, notify_admins.called)
                     dist.refresh_from_db()
                     if tc.shouldNotify:
