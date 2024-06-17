@@ -12,9 +12,10 @@ from .factories import MetadataDistributionStubFactory, PypiFactory, PypiRelease
 CORE_PATH = "package_monitor.core.distribution_packages"
 CORE_HELPERS_PATH = "package_monitor.core.metadata_helpers"
 MANAGERS_PATH = "package_monitor.managers"
+TASKS_PATH = "package_monitor.tasks"
 
 
-@mock.patch(MANAGERS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
+@mock.patch(TASKS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
 @mock.patch(CORE_HELPERS_PATH + ".django_apps", spec=True)
 @mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestUpdatePackagesFromPyPi(TestCase):

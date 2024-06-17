@@ -6,6 +6,7 @@ from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
 
 from . import __title__
+from .app_settings import PACKAGE_MONITOR_NOTIFICATIONS_ENABLED
 from .models import Distribution
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
@@ -15,3 +16,5 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 def update_distributions():
     """Update or create all distributions."""
     Distribution.objects.update_all()
+    if PACKAGE_MONITOR_NOTIFICATIONS_ENABLED:
+        Distribution.objects.send_update_notifications()

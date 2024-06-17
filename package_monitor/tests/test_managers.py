@@ -1,3 +1,4 @@
+from collections import namedtuple
 from unittest import mock
 
 from packaging.specifiers import SpecifierSet
@@ -11,7 +12,6 @@ from .factories import DistributionFactory, DistributionPackageFactory, make_pac
 MODULE_PATH = "package_monitor.managers"
 
 
-@mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
 @mock.patch(MODULE_PATH + ".update_packages_from_pypi", spec=True)
 @mock.patch(MODULE_PATH + ".compile_package_requirements", spec=True)
 @mock.patch(MODULE_PATH + ".gather_distribution_packages", spec=True)
@@ -160,167 +160,6 @@ class TestDistributionsUpdateAll(NoSocketsTestCase):
         self.assertIsNone(obj.is_outdated)
 
 
-@mock.patch(MODULE_PATH + ".notify_admins", spec=True)
-@mock.patch(MODULE_PATH + ".update_packages_from_pypi", spec=True)
-@mock.patch(MODULE_PATH + ".compile_package_requirements", spec=True)
-@mock.patch(MODULE_PATH + ".gather_distribution_packages", spec=True)
-class TestDistributionsUpdateAllNotifications(NoSocketsTestCase):
-    @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True)
-    def test_should_notify_when_enabled_and_there_is_an_update(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0"
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all()
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "1.1.0")
-        self.assertTrue(mock_notify_admins.called)
-
-    def test_should_not_notify_when_disabled_via_setting(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0"
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False):
-            Distribution.objects.update_all()
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "")
-        self.assertFalse(mock_notify_admins.called)
-
-    def test_should_notify_when_outdated_and_newer_update(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0"
-        )
-        DistributionFactory(
-            name="Alpha",
-            installed_version="1.0.0",
-            latest_version="1.1.0",
-            is_outdated=True,
-            latest_notified_version="1.0.0",
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all()
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "1.1.0")
-        self.assertTrue(mock_notify_admins.called)
-
-    def test_should_not_notify_when_already_notified(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0"
-        )
-        DistributionFactory(
-            name="Alpha",
-            installed_version="1.0.0",
-            latest_version="1.1.0",
-            is_outdated=True,
-            latest_notified_version="1.1.0",
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all()
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "1.1.0")
-        self.assertFalse(mock_notify_admins.called)
-
-    def test_should_not_notify_when_disabled_directly(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0"
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True):
-            Distribution.objects.update_all(notifications_disabled=True)
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "")
-        self.assertFalse(mock_notify_admins.called)
-
-    def test_should_not_notify_when_editable_and_those_are_not_shown(
-        self,
-        mock_gather_distribution_packages,
-        mock_compile_package_requirements,
-        mock_update_packages_from_pypi,
-        mock_notify_admins,
-    ):
-        # given
-        dist_alpha = DistributionPackageFactory(
-            name="Alpha", current="1.0.0", latest="1.1.0", is_editable=True
-        )
-        mock_gather_distribution_packages.return_value = make_packages(dist_alpha)
-        mock_compile_package_requirements.return_value = {}
-        # when
-        with mock.patch(
-            MODULE_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", True
-        ), mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False):
-            Distribution.objects.update_all()
-        # then
-        self.assertEqual(Distribution.objects.count(), 1)
-        obj = Distribution.objects.get(name="Alpha")
-        self.assertTrue(obj.is_outdated)
-        self.assertEqual(obj.latest_notified_version, "")
-        self.assertFalse(mock_notify_admins.called)
-
-
 class TestDistributionFilterVisible(NoSocketsTestCase):
     @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True)
     @mock.patch(MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES", False)
@@ -410,3 +249,44 @@ class TestDistributionBuildInstallCommand(NoSocketsTestCase):
         result = Distribution.objects.all().build_install_command()
         # then
         self.assertLessEqual(len(result), 4095)
+
+
+class TestDistributionNotifyUpdates(NoSocketsTestCase):
+    def test_can_notify_updates(self):
+        X = namedtuple(
+            "X",
+            [
+                "ok",
+                "installed_version",
+                "latest_version",
+                "latest_notified_version",
+                "is_editable",
+                "show_editable",
+            ],
+        )
+        cases = [
+            X(True, "1.0.0", "1.0.1", "", False, False),
+            X(False, "1.0.0", "1.0.0", "", False, False),
+            X(False, "1.0.0", "0.1.0", "", False, False),
+            X(False, "1.0.0", "", "", False, False),
+            X(False, "", "1.0.0", "", False, False),
+            X(False, "1.0.0", "1.0.1", "1.0.1", False, False),
+            X(True, "1.0.0", "1.0.2", "1.0.1", False, False),
+            X(False, "1.0.0", "1.0.2", "", True, False),
+            X(True, "1.0.0", "1.0.2", "", True, True),
+        ]
+        for num, tc in enumerate(cases, 1):
+            with self.subTest("test notifications", num=num):
+                Distribution.objects.all().delete()
+                DistributionFactory(
+                    installed_version=tc.installed_version,
+                    latest_version=tc.latest_version,
+                    latest_notified_version=tc.latest_notified_version,
+                    is_editable=tc.is_editable,
+                )
+                with mock.patch(
+                    MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES",
+                    tc.show_editable,
+                ), mock.patch(MODULE_PATH + ".notify_admins") as notify_admins:
+                    Distribution.objects.send_update_notifications()
+                    self.assertIs(tc.ok, notify_admins.called)
