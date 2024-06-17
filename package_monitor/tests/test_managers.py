@@ -289,7 +289,7 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                 with mock.patch(
                     MODULE_PATH + ".notify_admins", spec=True
                 ) as notify_admins:
-                    Distribution.objects.send_update_notifications(
+                    Distribution.objects.send_update_notification(
                         show_editable=tc.show_editable, should_repeat=tc.should_repeat
                     )
                     self.assertIs(tc.shouldNotify, notify_admins.called)

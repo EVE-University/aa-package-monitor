@@ -38,16 +38,16 @@ class TestUpdateDistributions(TestCase):
                     MODULE_PATH + ".PACKAGE_MONITOR_REPEAT_NOTIFICATIONS",
                     tc.should_repeat,
                 ), patch(
-                    MODULE_PATH + ".Distribution.objects.send_update_notifications",
+                    MODULE_PATH + ".Distribution.objects.send_update_notification",
                     spec=True,
-                ) as send_update_notifications, patch(
+                ) as send_update_notification, patch(
                     MODULE_PATH + ".Distribution.objects.update_all", spec=True
                 ) as update_all:
                     tasks.update_distributions()
 
                 self.assertTrue(update_all.called)
-                self.assertIs(tc.should_notify, send_update_notifications.called)
+                self.assertIs(tc.should_notify, send_update_notification.called)
                 if tc.should_notify:
-                    _, kwargs = send_update_notifications.call_args
+                    _, kwargs = send_update_notification.call_args
                     self.assertIs(tc.show_editable, kwargs["show_editable"])
                     self.assertIs(tc.should_repeat, kwargs["should_repeat"])

@@ -20,19 +20,21 @@ logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 def update_distributions():
     """Run regular tasks."""
     if PACKAGE_MONITOR_NOTIFICATIONS_ENABLED:
-        chain(update_all_distributions.si(), send_update_notifications.si()).delay()
+        chain(update_all_distributions.si(), send_update_notification.si()).delay()
     else:
         update_all_distributions.delay()
 
 
 @shared_task
 def update_all_distributions():
+    """Update all distributions."""
     Distribution.objects.update_all()
 
 
 @shared_task
-def send_update_notifications(should_repeat: bool = False):
-    Distribution.objects.send_update_notifications(
+def send_update_notification(should_repeat: bool = False):
+    """Send update notification to inform about new versions."""
+    Distribution.objects.send_update_notification(
         show_editable=PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
         should_repeat=should_repeat or PACKAGE_MONITOR_REPEAT_NOTIFICATIONS,
     )

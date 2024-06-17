@@ -126,17 +126,17 @@ class DistributionManagerBase(models.Manager):
         package_names = {obj.name for obj in packages.values()}
         self.exclude(name__in=package_names).delete()
 
-    def send_update_notifications(
+    def send_update_notification(
         self: models.QuerySet[Distribution],
         show_editable: bool,
         should_repeat: bool = False,
     ) -> None:
-        """Send notifications to inform about updates for all distributions."""
+        """Send notification to admins to inform about new versions."""
         selected = self._filter_dist_to_notify(
             show_editable=show_editable, should_repeat=should_repeat
         )
         if selected:
-            self._send_notifications(selected)
+            self._send_update_notification(selected)
 
     def _filter_dist_to_notify(
         self: models.QuerySet[Distribution],
@@ -160,7 +160,7 @@ class DistributionManagerBase(models.Manager):
             selected.append(dist)
         return selected
 
-    def _send_notifications(self, distributions: List[Distribution]):
+    def _send_update_notification(self, distributions: List[Distribution]):
         count = len(distributions)
         update_text = f"{count} update" if count == 1 else f"{count} updates"
         title = f"Package Monitor: {update_text} available"
