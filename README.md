@@ -76,6 +76,8 @@ CELERYBEAT_SCHEDULE['package_monitor_update_distributions'] = {
 }
 ```
 
+Finally, please also take a moment to consider how often you want to receive update notifications. The default is immediate, but you can also chose to receive notifications after a timeout, e.g. only once per 24 hours or once per week. If you choose a timeout you can also choose to get repeated notifications about the same updates, like a reminder. For more details please see the [Settings](#settings).
+
 ### Step 4 - Finalize installation
 
 Run migrations & copy static files
@@ -162,6 +164,8 @@ Name|Description|Default
 `PACKAGE_MONITOR_EXCLUDE_PACKAGES`|Names of distribution packages to be excluded.|`[]`
 `PACKAGE_MONITOR_INCLUDE_PACKAGES`|Names of additional distribution packages to be monitored.|`[]`
 `PACKAGE_MONITOR_NOTIFICATIONS_ENABLED`|Whether to notify when an update is available for a currently installed distribution package.|`False`
+`PACKAGE_MONITOR_NOTIFICATIONS_REPEAT`|Whether to repeat notifying about the same updates.|`False`
+`PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT`|Timeout of sending update notifications to admins in hours.  0 = disabled, which means notifications about new updates are sent without delay once they have been identified by the periodic task (e.g. usually runs every hour).|`0`
 `PACKAGE_MONITOR_PROTECTED_PACKAGES`|Names of protected packages.  Updates can include requirements for updating other packages, which can potentially break the current AA installation.  For example: You have Django 4.2 installed and an update to a package requires Django 5 or higher. Then installing that package may break your installation.  When enabled Package Monitor will not show updates, which would cause an indirect update of a protected package.  And empty list disables this feature.|`['allianceauth', 'django']`
 `PACKAGE_MONITOR_SHOW_ALL_PACKAGES`|Whether to show all distribution packages, as opposed to only showing packages that contain Django apps.|`True`
 `PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES`|Whether to show distribution packages installed as editable.  Since version information about editable packages is often outdated, this type of packages are not shown by default.|`False`

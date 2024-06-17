@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.16.0] - 2024-06-17
+
+### Added
+
+- You can now set a timeout for update notifications, so that update notifications will be sent less often, e.g. only once every 24 hours. All accrued updates will then be shown in one combined message. This is disabled by default to keep the existing behavior. For more info see the new setting: `PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT` in the README.
+
+- You can now choose to get repeated notifications about the same updates. This works like a reminder and is useful, when notifications are sent after a longer timeout. This is disabled by default to keep the existing behavior. For more info see the new setting: `PACKAGE_MONITOR_NOTIFICATIONS_REPEAT` in the README. This is off by default.
+
+### Changed
+
+- Combine messages when multiple package update are available (#14)
+
 ## [1.15.1] - 2024-03-22
 
 ### Fixed
