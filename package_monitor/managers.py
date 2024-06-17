@@ -73,7 +73,7 @@ class DistributionQuerySet(models.QuerySet):
 class DistributionManagerBase(models.Manager):
     """Manager for Distribution."""
 
-    def update_all(self, notifications_disabled: bool = False) -> int:
+    def update_all(self) -> int:
         """Update the list of relevant distribution packages in the database."""
         logger.info(
             f"Started refreshing approx. {self.count()} distribution packages..."
@@ -81,20 +81,13 @@ class DistributionManagerBase(models.Manager):
         packages = gather_distribution_packages()
         requirements = compile_package_requirements(packages)
         update_packages_from_pypi(packages, requirements)
-        self._save_packages(
-            packages=packages,
-            requirements=requirements,
-            notifications_disabled=notifications_disabled,
-        )
+        self._save_packages(packages=packages, requirements=requirements)
         packages_count = len(packages)
         logger.info(f"Completed refreshing {packages_count} distribution packages")
         return packages_count
 
     def _save_packages(
-        self,
-        packages: Dict[str, DistributionPackage],
-        requirements: dict,
-        notifications_disabled: bool,
+        self, packages: Dict[str, DistributionPackage], requirements: dict
     ) -> None:
         """Save the given package information into the model."""
 
@@ -151,7 +144,7 @@ class DistributionManagerBase(models.Manager):
         should_repeat: bool,
     ) -> List[Distribution]:
         selected = []
-        for dist in self.all():
+        for dist in self.order_by("name"):
             if dist.is_editable and not show_editable:
                 continue
             if not dist.installed_version or not dist.latest_version:

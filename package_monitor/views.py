@@ -143,5 +143,5 @@ def package_list_data(request) -> JsonResponse:
 @permission_required("package_monitor.basic_access")
 def refresh_distributions(request):
     """Ajax view for refreshing all distributions."""
-    Distribution.objects.update_all(notifications_disabled=True)
+    Distribution.objects.update_all()
     return HttpResponse("ok")

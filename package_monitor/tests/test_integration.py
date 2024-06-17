@@ -1,6 +1,8 @@
-from unittest import TestCase, mock
+from unittest import mock
 
 from aioresponses import aioresponses
+
+from django.test import TestCase, override_settings
 
 from package_monitor import tasks
 from package_monitor.core import pypi
@@ -15,6 +17,7 @@ MANAGERS_PATH = "package_monitor.managers"
 TASKS_PATH = "package_monitor.tasks"
 
 
+@override_settings(CELERY_ALWAYS_EAGER=True, CELERY_EAGER_PROPAGATES_EXCEPTIONS=True)
 @mock.patch(TASKS_PATH + ".PACKAGE_MONITOR_NOTIFICATIONS_ENABLED", False)
 @mock.patch(CORE_HELPERS_PATH + ".django_apps", spec=True)
 @mock.patch(CORE_PATH + ".importlib_metadata.distributions", spec=True)
