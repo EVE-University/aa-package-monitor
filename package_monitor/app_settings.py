@@ -44,6 +44,12 @@ Since version information about editable packages is often outdated,
 this type of packages are not shown by default.
 """
 
+PACKAGE_MONITOR_REPEAT_NOTIFICATIONS = clean_setting(
+    "PACKAGE_MONITOR_REPEAT_NOTIFICATIONS", False
+)
+"""Whether to repeat notifying about the same updates."""
+
+
 PACKAGE_MONITOR_PROTECTED_PACKAGES = clean_setting(
     "PACKAGE_MONITOR_PROTECTED_PACKAGES", ["allianceauth", "django"]
 )

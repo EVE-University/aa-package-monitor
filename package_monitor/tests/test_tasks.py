@@ -11,11 +11,20 @@ MODULE_PATH = "package_monitor.tasks"
 @override_settings(CELERY_ALWAYS_EAGER=True, CELERY_EAGER_PROPAGATES_EXCEPTIONS=True)
 class TestUpdateDistributions(TestCase):
     def test_should_update_all_distributions_and_notify(self):
-        X = namedtuple("X", ["should_notify", "notifications_enabled", "show_editable"])
+        X = namedtuple(
+            "X",
+            [
+                "should_notify",
+                "notifications_enabled",
+                "show_editable",
+                "should_repeat",
+            ],
+        )
         cases = [
-            X(True, True, False),
-            X(False, False, False),
-            X(True, True, True),
+            X(True, True, False, False),
+            X(False, False, False, False),
+            X(True, True, True, False),
+            X(True, True, False, True),
         ]
         for num, tc in enumerate(cases, 1):
             with self.subTest("test update distributions", num=num):
@@ -25,6 +34,9 @@ class TestUpdateDistributions(TestCase):
                 ), patch(
                     MODULE_PATH + ".PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES",
                     tc.show_editable,
+                ), patch(
+                    MODULE_PATH + ".PACKAGE_MONITOR_REPEAT_NOTIFICATIONS",
+                    tc.should_repeat,
                 ), patch(
                     MODULE_PATH + ".Distribution.objects.send_update_notifications",
                     spec=True,
@@ -38,4 +50,4 @@ class TestUpdateDistributions(TestCase):
                 if tc.should_notify:
                     _, kwargs = send_update_notifications.call_args
                     self.assertIs(tc.show_editable, kwargs["show_editable"])
-                    self.assertFalse(kwargs["should_resend"])
+                    self.assertIs(tc.should_repeat, kwargs["should_repeat"])

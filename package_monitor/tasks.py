@@ -8,6 +8,7 @@ from app_utils.logging import LoggerAddTag
 from . import __title__
 from .app_settings import (
     PACKAGE_MONITOR_NOTIFICATIONS_ENABLED,
+    PACKAGE_MONITOR_REPEAT_NOTIFICATIONS,
     PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
 from .models import Distribution
@@ -30,8 +31,8 @@ def update_all_distributions():
 
 
 @shared_task
-def send_update_notifications(should_resend: bool = False):
+def send_update_notifications(should_repeat: bool = False):
     Distribution.objects.send_update_notifications(
         show_editable=PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
-        should_resend=should_resend,
+        should_repeat=should_repeat or PACKAGE_MONITOR_REPEAT_NOTIFICATIONS,
     )

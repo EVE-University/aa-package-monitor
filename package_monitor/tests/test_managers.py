@@ -262,7 +262,7 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                 "latest_notified_version",
                 "is_editable",
                 "show_editable",
-                "should_resend",
+                "should_repeat",
             ],
         )
         cases = [
@@ -290,7 +290,7 @@ class TestDistributionNotifyUpdates(NoSocketsTestCase):
                     MODULE_PATH + ".notify_admins", spec=True
                 ) as notify_admins:
                     Distribution.objects.send_update_notifications(
-                        show_editable=tc.show_editable, should_resend=tc.should_resend
+                        show_editable=tc.show_editable, should_repeat=tc.should_repeat
                     )
                     self.assertIs(tc.shouldNotify, notify_admins.called)
                     dist.refresh_from_db()

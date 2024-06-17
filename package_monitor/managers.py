@@ -136,11 +136,11 @@ class DistributionManagerBase(models.Manager):
     def send_update_notifications(
         self: models.QuerySet[Distribution],
         show_editable: bool,
-        should_resend: bool = False,
+        should_repeat: bool = False,
     ) -> None:
         """Send notifications to inform about updates for all distributions."""
         selected = self._filter_dist_to_notify(
-            show_editable=show_editable, should_resend=should_resend
+            show_editable=show_editable, should_repeat=should_repeat
         )
         if selected:
             self._send_notifications(selected)
@@ -148,7 +148,7 @@ class DistributionManagerBase(models.Manager):
     def _filter_dist_to_notify(
         self: models.QuerySet[Distribution],
         show_editable: bool,
-        should_resend: bool,
+        should_repeat: bool,
     ) -> List[Distribution]:
         selected = []
         for dist in self.all():
@@ -160,7 +160,7 @@ class DistributionManagerBase(models.Manager):
             latest = version_parse(dist.latest_version)
             if latest <= installed:
                 continue
-            if not should_resend and dist.latest_notified_version:
+            if not should_repeat and dist.latest_notified_version:
                 notified = version_parse(dist.latest_notified_version)
                 if notified >= latest:
                     continue
