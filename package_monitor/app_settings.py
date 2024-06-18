@@ -28,6 +28,21 @@ PACKAGE_MONITOR_NOTIFICATIONS_ENABLED = clean_setting(
 for a currently installed distribution package.
 """
 
+PACKAGE_MONITOR_NOTIFICATIONS_REPEAT = clean_setting(
+    "PACKAGE_MONITOR_NOTIFICATIONS_REPEAT", False
+)
+"""Whether to repeat notifying about the same updates."""
+
+
+PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT = clean_setting(
+    "PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT", 0
+)
+"""Timeout of sending update notifications to admins in hours.
+
+0 = disabled, which means notifications about new updates are sent without delay
+once they have been identified by the periodic task (e.g. usually runs every hour).
+"""
+
 PACKAGE_MONITOR_SHOW_ALL_PACKAGES = clean_setting(
     "PACKAGE_MONITOR_SHOW_ALL_PACKAGES", True
 )
@@ -43,6 +58,7 @@ PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES = clean_setting(
 Since version information about editable packages is often outdated,
 this type of packages are not shown by default.
 """
+
 
 PACKAGE_MONITOR_PROTECTED_PACKAGES = clean_setting(
     "PACKAGE_MONITOR_PROTECTED_PACKAGES", ["allianceauth", "django"]
