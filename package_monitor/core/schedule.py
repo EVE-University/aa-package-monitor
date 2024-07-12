@@ -1,6 +1,7 @@
 """Module schedule calculates events for the update notification schedule."""
 
 import datetime as dt
+from typing import Optional
 
 import pytz
 from dateutil import rrule
@@ -10,7 +11,7 @@ from django.utils.timezone import now
 
 
 def is_notification_due(
-    schedule_text: str, max_delay: int, last_report: dt.datetime | None
+    schedule_text: str, max_delay: int, last_report: Optional[dt.datetime]
 ) -> bool:
     """Reports whether a new update notification is due.
 
