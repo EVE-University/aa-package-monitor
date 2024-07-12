@@ -10,10 +10,12 @@ from app_utils.logging import LoggerAddTag
 from . import __title__
 from .app_settings import (
     PACKAGE_MONITOR_NOTIFICATIONS_ENABLED,
+    PACKAGE_MONITOR_NOTIFICATIONS_MAX_DELAY,
     PACKAGE_MONITOR_NOTIFICATIONS_REPEAT,
-    PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT,
+    PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE,
     PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
 )
+from .core import schedule
 from .models import Distribution
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
@@ -31,13 +33,16 @@ def update_distributions():
 def _should_send_notifications() -> bool:
     if not PACKAGE_MONITOR_NOTIFICATIONS_ENABLED:
         return False
-    timeout_hours = PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT
-    if max(timeout_hours, 0) == 0:
-        return True
-    key = "package-monitor-notification-timeout"
-    if cache.get(key):
+    key = "package-monitor-notification-last-report"
+    last_report = cache.get(key)
+    is_due = schedule.is_notification_due(
+        schedule_text=PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE,
+        max_delay=PACKAGE_MONITOR_NOTIFICATIONS_MAX_DELAY,
+        last_report=last_report,
+    )
+    if not is_due:
         return False
-    cache.set(key=key, value=True, timeout=timeout_hours * 3600)
+    cache.set(key=key, value=last_report, timeout=None)
     return True
 
 

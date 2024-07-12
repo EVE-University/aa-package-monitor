@@ -31,6 +31,8 @@ dependencies = [
     "importlib_metadata",
     "aiohttp>=3.8",
     "packaging>=22",
+    "recurrent>=0.4.1",
+    "python-dateutil>=2.9",
 ]
 
 [project.urls]

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.17.0] - TBD
+
+### Changed
+
+- This improves the "timeout" feature by allowing to define a concrete time when update notifications should happen, e.g. every day at 12 o'clock. This approach is better, because with the previous timeout configuration the reporting time would be defined by the time an an update is made, so update notifications would appear at different times after every update. With the improved version update notifications will always happen at the same time. In addition it is now also possible to schedule update notifications very specifically like ever saturday at 12:00 or every first saturday in a month at 10:00. For details please see the documentation for the new settings: `PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE`. The timeout  setting introduced in the last release will no longer have any effect.
+
 ## [1.16.0] - 2024-06-18
 
 ### Added

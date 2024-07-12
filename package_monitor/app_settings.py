@@ -33,14 +33,24 @@ PACKAGE_MONITOR_NOTIFICATIONS_REPEAT = clean_setting(
 )
 """Whether to repeat notifying about the same updates."""
 
-
-PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT = clean_setting(
-    "PACKAGE_MONITOR_NOTIFICATIONS_TIMEOUT", 0
+PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE = clean_setting(
+    "PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE", ""
 )
-"""Timeout of sending update notifications to admins in hours.
+"""When to send notifications about updates.
+If not set, update notifications can be send every time the regular task runs.
 
-0 = disabled, which means notifications about new updates are sent without delay
-once they have been identified by the periodic task (e.g. usually runs every hour).
+The schedule can be defined in natural language. Examples: "every day at 10:00",
+"every saturday at 18:00", "every first saturday every month at 15:00".
+For more information about the syntax please see: [recurrent package](https://github.com/kvh/recurrent)
+"""
+
+PACKAGE_MONITOR_NOTIFICATIONS_MAX_DELAY = clean_setting(
+    "PACKAGE_MONITOR_NOTIFICATIONS_MAX_DELAY", 5400
+)
+"""Maximum delay in seconds between the scheduled event for firing a notification
+and the time the notification is issued.
+
+This value should be synchronized with the timing of the recurring task.
 """
 
 PACKAGE_MONITOR_SHOW_ALL_PACKAGES = clean_setting(
