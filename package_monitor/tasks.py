@@ -3,6 +3,7 @@
 from celery import chain, shared_task
 
 from django.core.cache import cache
+from django.utils.timezone import now
 
 from allianceauth.services.hooks import get_extension_logger
 from app_utils.logging import LoggerAddTag
@@ -19,6 +20,7 @@ from .core import schedule
 from .models import Distribution
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
+CACHE_KEY_LAST_REPORT = "package-monitor-notification-last-report"
 
 
 @shared_task(time_limit=3600)
@@ -33,8 +35,7 @@ def update_distributions():
 def _should_send_notifications() -> bool:
     if not PACKAGE_MONITOR_NOTIFICATIONS_ENABLED:
         return False
-    key = "package-monitor-notification-last-report"
-    last_report = cache.get(key)
+    last_report = cache.get(key=CACHE_KEY_LAST_REPORT)
     is_due = schedule.is_notification_due(
         schedule_text=PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE,
         max_delay=PACKAGE_MONITOR_NOTIFICATIONS_MAX_DELAY,
@@ -42,7 +43,6 @@ def _should_send_notifications() -> bool:
     )
     if not is_due:
         return False
-    cache.set(key=key, value=last_report, timeout=None)
     return True
 
 
@@ -59,3 +59,4 @@ def send_update_notification(should_repeat: bool = False):
         show_editable=PACKAGE_MONITOR_SHOW_EDITABLE_PACKAGES,
         should_repeat=should_repeat or PACKAGE_MONITOR_NOTIFICATIONS_REPEAT,
     )
+    cache.set(key=CACHE_KEY_LAST_REPORT, value=now(), timeout=None)
