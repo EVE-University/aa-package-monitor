@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.17.0] - 2024-07-13
+
+### Added
+
+- Recurring time for update notifications can now be specified precisely and in natural language:
+  - In the last release we introduced a new feature that allows receiving update notifications less often, e.g. only once a day or once a week. This release replaces the "timeout" implementation of that feature with a "schedule" implementation. The schedule implementation allows the user to define a concrete schedule for update notifications in natural language, e.g. "every day at 12 o'clock".
+  - To try out this new feature we recommend the following settings. This will produce a daily notification about any pending updates at 18:00:
+    - `PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE = "every day at 18:00"`
+    - `PACKAGE_MONITOR_NOTIFICATIONS_REPEAT = True`
+  - For more details please see the documentation for the new settings: `PACKAGE_MONITOR_NOTIFICATIONS_SCHEDULE`.
+
+### Changed
+
+- The timeout setting introduced in the last release has been removed.
+
 ## [1.16.0] - 2024-06-18
 
 ### Added
