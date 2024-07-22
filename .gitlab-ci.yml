@@ -60,7 +60,7 @@ test-py311-dj40:
 
 test-py311-dj42:
   extends: .tox_setup
-  image: python:3.11-bullseye
+  image: python:3.11-bookworm
   script:
     - tox -e py311-django42
     - bash <(curl -s https://codecov.io/bash)

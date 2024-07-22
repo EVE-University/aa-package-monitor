@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.17.1] - 2024-07-22
+
+### Fixed
+
+- Update process breaks with "KeyError" exception when encountering invalid distributions.
+
 ## [1.17.0] - 2024-07-13
 
 ### Added
