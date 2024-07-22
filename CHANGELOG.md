@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.17.2] - 2024-07-22
+
+### Fixed
+
+- KeyError when trying to show name of a corrupt distribution package
+
 ## [1.17.1] - 2024-07-22
 
 ### Fixed
