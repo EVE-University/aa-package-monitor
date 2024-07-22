@@ -281,7 +281,9 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
             if not dist.metadata["Name"]:
                 continue
         except KeyError:
-            logger.warning("Ignoring corrupt distribution package: %s", dist.name)
+            logger.warning(
+                "Ignoring corrupt distribution package: %s", dist.metadata.items()
+            )
             continue
         obj = DistributionPackage.create_from_metadata_distribution(dist)
         packages.append(obj)
