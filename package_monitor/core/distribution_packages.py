@@ -275,11 +275,19 @@ def is_version_in_specifiers(version: Version, specifiers: SpecifierSet) -> bool
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     """Gather distribution packages and detect Django apps."""
-    packages = [
-        DistributionPackage.create_from_metadata_distribution(dist)
-        for dist in importlib_metadata.distributions()
-        if dist.metadata["Name"]
-    ]
+    packages: List[DistributionPackage] = []
+    for dist in importlib_metadata.distributions():
+        try:
+            if not dist.metadata["Name"]:
+                continue
+        except KeyError:
+            logger.warning(
+                "Ignoring corrupt distribution package: %s", dist.metadata.items()
+            )
+            continue
+        obj = DistributionPackage.create_from_metadata_distribution(dist)
+        packages.append(obj)
+
     return {obj.name_normalized: obj for obj in packages}
 
 

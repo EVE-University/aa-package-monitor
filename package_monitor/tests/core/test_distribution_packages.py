@@ -101,12 +101,21 @@ class TestFetchRelevantPackages(NoSocketsTestCase):
         dist_bravo = MetadataDistributionStubFactory(
             name="bravo", requires=["alpha>=1.0.0"]
         )
-        distributions = lambda: iter([dist_alpha, dist_bravo])  # noqa: E731
-        mock_distributions.side_effect = distributions
+        mock_distributions.return_value = [dist_alpha, dist_bravo]
         # when
         result = gather_distribution_packages()
         # then
         self.assertSetEqual({"alpha", "bravo"}, set(result.keys()))
+
+    def test_should_ignore_corrupt_package(self, mock_distributions):
+        dist_alpha = MetadataDistributionStubFactory(name="alpha")
+        bad_dist = mock.Mock()
+        bad_dist.metadata = {}
+        mock_distributions.return_value = [bad_dist, dist_alpha]
+        # when
+        result = gather_distribution_packages()
+        # then
+        self.assertSetEqual({"alpha"}, set(result.keys()))
 
 
 class TestCompilePackageRequirements(NoSocketsTestCase):
