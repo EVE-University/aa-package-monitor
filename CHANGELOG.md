@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
+## [1.17.3] - 2024-07-23
+
+### Fixed
+
+- Some distributions packages (e.g. `jaraco.text`) reported with the wrong current version
+
 ## [1.17.2] - 2024-07-22
 
 ### Fixed

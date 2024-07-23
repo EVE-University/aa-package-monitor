@@ -93,30 +93,52 @@ class TestDistributionPackage(NoSocketsTestCase):
         self.assertFalse(obj.is_prerelease())
 
 
+class MyDist:
+    @property
+    def name(self):
+        raise KeyError()
+
+    @property
+    def metadata(self):
+        return {}
+
+
+@mock.patch(MODULE_PATH + ".sys")
 @mock.patch(MODULE_PATH + ".importlib_metadata.distributions", spec=True)
 class TestFetchRelevantPackages(NoSocketsTestCase):
-    def test_should_fetch_all_packages(self, mock_distributions):
+    def test_should_fetch_all_packages(self, mock_distributions, mock_sys):
         # given
         dist_alpha = MetadataDistributionStubFactory(name="alpha")
         dist_bravo = MetadataDistributionStubFactory(
             name="bravo", requires=["alpha>=1.0.0"]
         )
         mock_distributions.return_value = [dist_alpha, dist_bravo]
+        mock_sys.path = []
         # when
         result = gather_distribution_packages()
         # then
         self.assertSetEqual({"alpha", "bravo"}, set(result.keys()))
 
-    def test_should_ignore_corrupt_package(self, mock_distributions):
+    def test_should_ignore_corrupt_package(self, mock_distributions, mock_sys):
         dist_alpha = MetadataDistributionStubFactory(name="alpha")
-        bad_dist = mock.Mock()
-        bad_dist.metadata = {}
-        bad_dist.name = "Bad Boy"
+        bad_dist = MyDist()
         mock_distributions.return_value = [bad_dist, dist_alpha]
+        mock_sys.path = []
         # when
         result = gather_distribution_packages()
         # then
         self.assertSetEqual({"alpha"}, set(result.keys()))
+
+    def test_should_filter_out_setuptools_vendor(self, mock_distributions, mock_sys):
+        # given
+        dist_alpha = MetadataDistributionStubFactory(name="alpha")
+        mock_distributions.return_value = [dist_alpha]
+        mock_sys.path = ["x/setuptools/_vendor", "path/to"]
+        # when
+        gather_distribution_packages()
+        # then
+        _, kwargs = mock_distributions.call_args
+        self.assertNotIn("x/setuptools/_vendor", kwargs["path"])
 
 
 class TestCompilePackageRequirements(NoSocketsTestCase):
