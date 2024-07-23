@@ -275,10 +275,14 @@ def is_version_in_specifiers(version: Version, specifiers: SpecifierSet) -> bool
 
 def gather_distribution_packages() -> Dict[str, DistributionPackage]:
     """Gather distribution packages and detect Django apps."""
-    packages: List[DistributionPackage] = []
-    for dist in importlib_metadata.distributions():
+    # The setuptools installation has it's own copy of packages.
+    # To prevent importlib_metadata from reporting them as an installed package
+    # in the current environment we need to exclude them
+    paths = [p for p in sys.path if not p.endswith("setuptools/_vendor")]
+    packages = {}
+    for dist in importlib_metadata.distributions(path=paths):
         try:
-            if not dist.metadata["Name"]:
+            if not dist.name:
                 continue
         except KeyError:
             logger.warning(
@@ -286,9 +290,16 @@ def gather_distribution_packages() -> Dict[str, DistributionPackage]:
             )
             continue
         obj = DistributionPackage.create_from_metadata_distribution(dist)
-        packages.append(obj)
+        name = obj.name_normalized
+        if name in packages:
+            logger.warning(
+                "Found duplicate package. App is not able to determine "
+                "what the correct installed version is: %s",
+                name,
+            )
+        packages[name] = obj
 
-    return {obj.name_normalized: obj for obj in packages}
+    return packages
 
 
 def compile_package_requirements(

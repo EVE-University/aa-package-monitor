@@ -37,8 +37,7 @@ class TestUpdatePackagesFromPyPi(TestCase):
     ):
         # given
         dist_alpha = MetadataDistributionStubFactory(name="alpha", version="1.0.0")
-        distributions = lambda: iter([dist_alpha])  # noqa: E731
-        mock_distributions.side_effect = distributions
+        mock_distributions.return_value = [dist_alpha]
         mock_django_apps.get_app_configs.return_value = []
 
         pypi_alpha = PypiFactory(
