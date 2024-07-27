@@ -84,10 +84,14 @@ class DistributionPackage:
 
         Return True if update was successful, else False.
         """
-
+        unipypi_data = await fetch_project_from_unipypi_async(session, name=self.name)
         pypi_data = await fetch_project_from_pypi_async(session, name=self.name)
-        if not pypi_data:
+        if not (pypi_data or unipypi_data):
             return False
+        elif unipypi_data and pypi_data:
+            pypi_data["releases"].update(unipypi_data["releases"])
+        elif unipypi_data and not pypi_data:
+            pypi_data = unipypi_data
 
         updates = self._determine_available_updates(
             pypi_data_releases=pypi_data["releases"],
@@ -141,8 +145,9 @@ class DistributionPackage:
 
             release_detail = release_details[-1] if len(release_details) > 0 else None
             if release_detail:
-                if release_detail["yanked"]:
-                    continue
+                if "yanked" in release_detail:
+                    if release_detail["yanked"]:
+                        continue
 
                 if not self._required_python_matches(release_detail, system_python):
                     continue

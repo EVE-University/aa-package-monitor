@@ -44,6 +44,14 @@ async def fetch_project_from_pypi_async(
     """
     return await _fetch_data_from_pypi_async(session, _make_pypi_url(name))
 
+async def fetch_project_from_unipypi_async(
+    session: aiohttp.ClientSession, name: str
+) -> Optional[dict]:
+    """Fetch project data from UNI PyPI and return it.
+
+    Returns None if there was an API error.
+    """
+    return await _fetch_data_from_pypi_async(session, _make_unipypi_url(name))
 
 async def fetch_release_from_pypi_async(
     session: aiohttp.ClientSession, name: str, version: str
@@ -73,6 +81,10 @@ def _make_pypi_url(name: str, version: Optional[str] = None) -> str:
         return f"{BASE_URL}/{name}/json"
     return f"{BASE_URL}/{name}/{version}/json"
 
+def _make_unipypi_url(name: str, version: Optional[str] = None) -> str:
+    if not version:
+        return f"https://pypi.eveuniversity.org/{name}/json"
+    return f"https://pypi.eveuniversity.org/{name}/{version}/json"
 
 async def _fetch_data_from_pypi_async(
     session: aiohttp.ClientSession, url: str
