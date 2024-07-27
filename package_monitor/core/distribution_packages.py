@@ -25,7 +25,7 @@ from package_monitor.app_settings import (
 )
 
 from . import metadata_helpers
-from .pypi import fetch_project_from_pypi_async, fetch_pypi_releases
+from .pypi import fetch_project_from_pypi_async, fetch_project_from_unipypi_async, fetch_pypi_releases
 
 logger = LoggerAddTag(get_extension_logger(__name__), __title__)
 
