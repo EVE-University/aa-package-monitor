@@ -202,7 +202,10 @@ class DistributionPackage:
         valid_updates = []
         releases = await fetch_pypi_releases(session, name=self.name, releases=updates)
         for release in releases:
-            info = release.get("info")
+            try:
+                info = release.get("info")
+            except AttributeError:
+                continue # Nonetype catch
             if not info:
                 continue
 
