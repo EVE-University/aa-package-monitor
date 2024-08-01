@@ -234,6 +234,16 @@ class DistributionPackage:
 
             update = version_parse(info["version"])
             valid_updates.append(update)
+        
+        project = await fetch_project_from_unipypi_async(session, name=self.name)
+        try:
+            releases = project["releases"]
+        except TypeError:
+            releases = []
+
+        for release in releases:
+            update = version_parse(release)
+            valid_updates.append(update)
 
         return valid_updates
 
